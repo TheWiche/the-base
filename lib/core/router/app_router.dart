@@ -281,16 +281,24 @@ class _AppShell extends ConsumerWidget {
       child: Scaffold(
         backgroundColor:
             isDark ? AppColors.darkBackground : AppColors.lightBackground,
-        body: child,
-        bottomNavigationBar: _ChevereNavBar(
-          currentIndex: currentIdx,
-          radarCount: radarCount,
-          isDark: isDark,
-          bg: navBg,
-          onTap: (i) {
-            HapticFeedback.selectionClick();
-            context.go(_shellDests[i].route);
-          },
+        // La barra va en el body, NO en bottomNavigationBar.
+        // En M3 el Scaffold envuelve ese slot con su propio Material de
+        // surface-color que tapa cualquier color que pongamos en el widget.
+        // Poniéndolo en el body (Column) somos dueños 100% del fondo.
+        body: Column(
+          children: [
+            Expanded(child: child),
+            _ChevereNavBar(
+              currentIndex: currentIdx,
+              radarCount: radarCount,
+              isDark: isDark,
+              bg: navBg,
+              onTap: (i) {
+                HapticFeedback.selectionClick();
+                context.go(_shellDests[i].route);
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -369,17 +377,14 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
     final bg     = widget.bg;
     final n      = _shellDests.length;
 
-    // Pintamos el fondo con un Container explícito (la forma más directa de
-    // pintar). El Material va dentro en modo transparente sólo para la
-    // estructura, sin imponer ningún color encima.
-    return Container(
+    // ColoredBox: el pintor más primitivo de Flutter.
+    // Sin Material, sin temas, sin tints — pinta exactamente bg y nada más.
+    return ColoredBox(
       color: bg,
-      child: Material(
-        type: MaterialType.transparency,
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 64,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
           child: Stack(
             children: [
               // Línea divisoria superior
@@ -487,7 +492,6 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
               ),
             ],
           ),
-        ),
         ),
       ),
     );
