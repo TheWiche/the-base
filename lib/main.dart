@@ -27,14 +27,10 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Pantalla completa: ocultamos la barra de navegación del sistema (la franja
-  // gris con el gesto) y dejamos sólo la barra de estado arriba. Así la barra
-  // de pestañas violeta de Flutter llega hasta el borde inferior real, sin el
-  // velo gris de contraste que Android dibuja encima del gesto.
-  await SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.manual,
-    overlays: [SystemUiOverlay.top],
-  );
+  // EdgeToEdge: Flutter dibuja detrás de ambas barras del sistema.
+  // La barra de navegación del sistema queda TRANSPARENTE (sin scrim),
+  // así el ColoredBox violeta de _ChevereNavBar se ve sin mezclas.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   // El estilo del sistema se actualiza dinámicamente en TheBaseApp.build()
   // según el modo oscuro/claro activo.
@@ -156,14 +152,12 @@ class _NotificationListenerWidget extends ConsumerStatefulWidget {
 }
 
 class _NotificationListenerState
-    extends ConsumerState<_NotificationListenerWidget>
-    with WidgetsBindingObserver {
+    extends ConsumerState<_NotificationListenerWidget> {
   Timer? _periodicTimer;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     // Remind every 15 minutes if items are still pending.
     _periodicTimer = Timer.periodic(
       const Duration(minutes: 15),
@@ -173,32 +167,8 @@ class _NotificationListenerState
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _periodicTimer?.cancel();
     super.dispose();
-  }
-
-  void _restoreFullScreen() {
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: [SystemUiOverlay.top],
-    );
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Al volver a primer plano, Android suele restaurar la barra de navegación;
-    // la volvemos a ocultar para conservar la pantalla completa.
-    if (state == AppLifecycleState.resumed) {
-      _restoreFullScreen();
-    }
-  }
-
-  @override
-  void didChangeMetrics() {
-    // El teclado y otros cambios de métricas también reaparecen la barra;
-    // la re-ocultamos en el siguiente frame.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _restoreFullScreen());
   }
 
   Future<void> _periodicCheck() async {

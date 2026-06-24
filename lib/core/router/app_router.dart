@@ -271,8 +271,12 @@ class _AppShell extends ConsumerWidget {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        systemNavigationBarColor: navBg,
+        // edgeToEdge: la barra del sistema es TRANSPARENTE.
+        // systemNavigationBarContrastEnforced: false evita el scrim gris
+        // automático que MIUI/Android 10+ añade para contraste.
+        systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
         systemNavigationBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,
         statusBarColor: Colors.transparent,
@@ -377,15 +381,19 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
     final bg     = widget.bg;
     final n      = _shellDests.length;
 
-    // ColoredBox: el pintor más primitivo de Flutter.
-    // Sin Material, sin temas, sin tints — pinta exactamente bg y nada más.
+    // En edgeToEdge, viewPadding.bottom es la altura del área del gesto.
+    // Pintamos TODO ese espacio con bg (violeta) para que el ColoredBox llegue
+    // hasta el borde físico de la pantalla, tapando la zona transparente del
+    // sistema que antes se mezclaba con gris.
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     return ColoredBox(
       color: bg,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Stack(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 64,
+            child: Stack(
             children: [
               // Línea divisoria superior
               Positioned(
@@ -493,6 +501,10 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
             ],
           ),
         ),
+          // Rellena el área del gesto con el mismo color violeta,
+          // eliminando cualquier zona transparente del sistema.
+          SizedBox(height: bottomInset),
+        ],
       ),
     );
   }
