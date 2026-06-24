@@ -50,7 +50,7 @@ window.addEventListener('scroll', () => {
 document.getElementById('year').textContent = new Date().getFullYear()
 
 // ── QR Code ───────────────────────────────────────────────────
-const DOWNLOAD_URL = 'https://github.com/cotesyepez/the-base/releases/latest/download/the-base.apk'
+const DOWNLOAD_URL = 'https://github.com/TheWiche/the-base/releases/latest/download/the-base.apk'
 
 const canvas = document.getElementById('qrCanvas')
 if (canvas) {
@@ -81,7 +81,7 @@ document.querySelectorAll('.card, .cta-text, .section-title, .section-desc').for
 })
 
 // ── Version badge from GitHub ──────────────────────────────────
-const GITHUB_REPO = 'cotesyepez/the-base'
+const GITHUB_REPO = 'TheWiche/the-base'
 
 async function fetchLatestVersion() {
   try {
