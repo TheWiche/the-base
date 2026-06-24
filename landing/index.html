@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="The Base – Sistema offline de facturación para meseros. Gestiona mesas, divide cuentas y cierra turnos con total confianza." />
+  <title>Inicio | The Base</title>
+  <link rel="icon" href="/img/LogoSinTexto.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════ NAVBAR ══════════════════════════════════ -->
+<header id="nav" role="banner">
+  <div class="nav-inner">
+
+    <a class="nav-logo" href="/" aria-label="The Base – inicio">
+      <img src="/img/LogoConTexto.png" alt="The Base" class="nav-logo-img" />
+    </a>
+
+    <nav class="nav-links" aria-label="Principal">
+      <a href="#download">
+        Descargar
+        <span class="nav-badge" id="versionBadge">v1.0.0</span>
+      </a>
+      <a href="#changelog">Changelog</a>
+      <a href="#docs">Guía</a>
+      <a href="#features">Características</a>
+    </nav>
+
+    <div class="nav-actions">
+      <!-- GitHub -->
+      <a href="https://github.com/cotesyepez/the-base" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor">
+          <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.167 6.839 9.49.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.607.069-.607 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.742 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+        </svg>
+      </a>
+
+      <!-- Theme toggle -->
+      <button class="theme-btn" id="themeBtn" aria-label="Cambiar tema">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+
+      <!-- Mobile hamburger -->
+      <button class="hamburger" id="hamburger" aria-label="Abrir menú" aria-expanded="false" aria-controls="mobileMenu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile drawer -->
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+    <a href="#download">Descargar</a>
+    <a href="#changelog">Changelog</a>
+    <a href="#docs">Guía</a>
+    <a href="#features">Características</a>
+    <a href="https://github.com/cotesyepez/the-base" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════ HERO ══════════════════════════════════ -->
+<main>
+<section class="hero" aria-label="Bienvenida">
+  <div class="hero-glow" aria-hidden="true"></div>
+
+  <div class="hero-container">
+    <div class="hero-text">
+      <p class="hero-eyebrow">Gratis · Código abierto · Android</p>
+
+      <h1>
+        The Base<br>
+        <span class="brand">Billetera del Mesero</span>
+      </h1>
+
+      <p class="hero-desc">
+        Gestiona mesas, divide cuentas y cierra turnos con total confianza
+        — funciona sin internet en tu dispositivo Android.
+      </p>
+
+      <div class="hero-btns">
+        <a class="btn-primary" id="downloadBtn"
+           href="https://github.com/cotesyepez/the-base/releases/latest/download/the-base.apk"
+           aria-label="Descargar APK de The Base">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Descargar APK
+        </a>
+
+        <a class="btn-secondary" href="#features">
+          Ver características
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Phone screenshots -->
+    <div class="hero-visual" aria-hidden="true">
+      <div class="phones-wrap">
+        <div class="phone-frame phone-back">
+          <img src="/img/Screenshot_Pincipal.jpeg" alt="Pantalla principal de The Base" class="phone-screenshot" />
+        </div>
+        <div class="phone-frame phone-front">
+          <img src="/img/Screenshot_Pedidos.jpeg" alt="Gestión de pedidos en The Base" class="phone-screenshot" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════ FEATURES ══════════════════════════════════ -->
+<section class="features" id="features" aria-label="Características">
+  <div class="section-container">
+    <p class="section-label">¿Por qué The Base?</p>
+    <h2 class="section-title">Todo lo que necesitas para trabajar</h2>
+    <p class="section-desc">Diseñado para meseros reales, en condiciones reales.</p>
+
+    <div class="cards">
+
+      <article class="card">
+        <div class="card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.5 12.41a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.41 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.09 6.09l1.27-.76a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </div>
+        <h3>Offline primero</h3>
+        <p>
+          Tus datos viven en tu dispositivo gracias a Isar.
+          Sin conexión, sin interrupciones. Sincronización con Supabase
+          cuando la necesites.
+        </p>
+        <a class="card-link" href="#docs">Conocer más</a>
+      </article>
+
+      <article class="card">
+        <div class="card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+        </div>
+        <h3>División inteligente</h3>
+        <p>
+          Liquor rule, Cierre Blindado y split billing. Reglas de negocio
+          que protegen cada centavo de tu turno y nunca fallan.
+        </p>
+        <a class="card-link" href="#docs">Ver reglas</a>
+      </article>
+
+      <article class="card">
+        <div class="card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h3>Multi-mesa</h3>
+        <p>
+          Gestiona varias mesas a la vez, asigna pedidos por comensal y
+          genera el resumen del turno al cerrar con un solo toque.
+        </p>
+        <a class="card-link" href="#docs">Empezar</a>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════ DOWNLOAD CTA ══════════════════════════════════ -->
+<section class="download-cta" id="download" aria-label="Descarga">
+  <div class="section-container cta-inner">
+    <div class="cta-text">
+      <h2>Listo para empezar a trabajar</h2>
+      <p>
+        Descarga el APK directamente desde GitHub Releases e instálalo
+        en tu dispositivo Android. Sin tienda de aplicaciones, sin suscripciones.
+      </p>
+
+      <div class="cta-btns">
+        <a class="btn-primary"
+           href="https://github.com/cotesyepez/the-base/releases/latest/download/the-base.apk">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Descargar APK
+        </a>
+        <a class="btn-secondary" href="https://github.com/cotesyepez/the-base/releases" target="_blank" rel="noopener">
+          Ver todas las versiones
+        </a>
+      </div>
+
+      <p class="cta-note">
+        Requiere Android 5.0+. Habilita "Fuentes desconocidas" para instalar.
+      </p>
+    </div>
+
+    <div class="cta-visual" aria-hidden="true">
+      <div class="qr-container">
+        <canvas id="qrCanvas"></canvas>
+        <span class="qr-label">Descarga rápida</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ══════════════════════════════════ FOOTER ══════════════════════════════════ -->
+<footer role="contentinfo">
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="/img/LogoConTexto.png" alt="The Base" class="footer-logo-img" />
+    </div>
+    <p class="footer-copy">
+      <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Licencia Apache 2.0</a>
+      &nbsp;·&nbsp;
+      <a href="#privacy">Privacidad</a>
+    </p>
+    <p class="footer-copy">Copyright &copy; <span id="year"></span> The Base App</p>
+  </div>
+</footer>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "the-base-landing",
+  "version": "1.0.0",
+  "description": "Landing page for The Base – Billetera del Mesero",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

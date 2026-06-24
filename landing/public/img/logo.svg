@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" shape-rendering="geometricPrecision">
+
+  <!-- ═══════════════════════════════════════════════════
+       BASECONTROL — App Icon  |  512×512  |  B&W Line Art
+       ═══════════════════════════════════════════════════ -->
+
+  <!-- ■ BACKGROUND ■ -->
+  <rect width="512" height="512" fill="#FFFFFF"/>
+
+  <!-- ■ LEFT PALM LEAVES ■ -->
+  <!-- Leaf 1 — upper-left diagonal (~-42°) -->
+  <path d="M 142,228 C 110,184 72,158 36,138 C 57,166 92,188 124,210 Z"
+        fill="white" stroke="black" stroke-width="4.5" stroke-linejoin="round"/>
+  <line x1="142" y1="228" x2="42" y2="141"
+        stroke="black" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Leaf 2 — horizontal-left -->
+  <path d="M 132,274 C 90,262 54,264 18,257 C 40,277 78,284 114,277 Z"
+        fill="white" stroke="black" stroke-width="4.5" stroke-linejoin="round"/>
+  <line x1="132" y1="274" x2="21" y2="259"
+        stroke="black" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Leaf 3 — lower-left diagonal (~+28°) -->
+  <path d="M 138,322 C 112,356 84,378 52,396 C 76,372 106,348 132,325 Z"
+        fill="white" stroke="black" stroke-width="4.5" stroke-linejoin="round"/>
+  <line x1="138" y1="322" x2="56" y2="394"
+        stroke="black" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- ■ RIGHT PALM LEAVES (mirror x = 512 - x) ■ -->
+  <!-- Leaf 1 — upper-right diagonal -->
+  <path d="M 370,228 C 402,184 440,158 476,138 C 455,166 420,188 388,210 Z"
+        fill="white" stroke="black" stroke-width="4.5" stroke-linejoin="round"/>
+  <line x1="370" y1="228" x2="470" y2="141"
+        stroke="black" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Leaf 2 — horizontal-right -->
+  <path d="M 380,274 C 422,262 458,264 494,257 C 472,277 434,284 398,277 Z"
+        fill="white" stroke="black" stroke-width="4.5" stroke-linejoin="round"/>
+  <line x1="380" y1="274" x2="491" y2="259"
+        stroke="black" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Leaf 3 — lower-right diagonal -->
+  <path d="M 374,322 C 400,356 428,378 460,396 C 436,372 406,348 380,325 Z"
+        fill="white" stroke="black" stroke-width="4.5" stroke-linejoin="round"/>
+  <line x1="374" y1="322" x2="456" y2="394"
+        stroke="black" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- ■ SHIELD — main outline ■ -->
+  <path d="M 256,82
+           L 380,107
+           C 394,146 398,220 390,295
+           C 382,364 340,415 256,456
+           C 172,415 130,364 122,295
+           C 114,220 118,146 132,107
+           Z"
+        fill="white" stroke="black" stroke-width="9"
+        stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Shield — inner decorative border -->
+  <path d="M 256,100
+           L 365,123
+           C 377,157 380,224 373,292
+           C 366,356 327,402 256,439
+           C 185,402 146,356 139,292
+           C 132,224 135,157 147,123
+           Z"
+        fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- ■ CHECKMARK BADGE — top of shield ■ -->
+  <circle cx="256" cy="82" r="31" fill="white" stroke="black" stroke-width="6.5"/>
+  <polyline points="239,83 251,97 276,61"
+            fill="none" stroke="black" stroke-width="6"
+            stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ■ WAITER — head ■ -->
+  <circle cx="256" cy="238" r="23" fill="white" stroke="black" stroke-width="5"/>
+
+  <!-- Collar / neck -->
+  <line x1="256" y1="261" x2="256" y2="272"
+        stroke="black" stroke-width="4.5" stroke-linecap="round"/>
+
+  <!-- Collar points (shirt) -->
+  <path d="M 248,262 L 242,274" stroke="black" stroke-width="3"
+        stroke-linecap="round"/>
+  <path d="M 264,262 L 270,274" stroke="black" stroke-width="3"
+        stroke-linecap="round"/>
+
+  <!-- ■ BOWTIE ■ -->
+  <!-- Left wing -->
+  <polygon points="252,270 229,262 231,280"
+           fill="white" stroke="black" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Right wing -->
+  <polygon points="260,270 283,262 281,280"
+           fill="white" stroke="black" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Center knot -->
+  <ellipse cx="256" cy="270" rx="5.5" ry="6.5" fill="black"/>
+
+  <!-- ■ JACKET / TORSO ■ -->
+  <!-- Left lapel and side -->
+  <path d="M 251,271 L 216,298 L 200,356"
+        fill="none" stroke="black" stroke-width="4.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right lapel and side -->
+  <path d="M 261,271 L 296,298 L 312,356"
+        fill="none" stroke="black" stroke-width="4.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Jacket hem -->
+  <line x1="200" y1="356" x2="312" y2="356"
+        stroke="black" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- Jacket center button-line -->
+  <line x1="256" y1="282" x2="256" y2="356"
+        stroke="black" stroke-width="2"/>
+  <!-- Jacket waistline seam -->
+  <line x1="204" y1="324" x2="308" y2="324"
+        stroke="black" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- ■ RIGHT ARM — raised to hold tray ■ -->
+  <path d="M 304,307 C 332,290 354,252 366,184"
+        fill="none" stroke="black" stroke-width="5.5" stroke-linecap="round"/>
+
+  <!-- ■ TRAY — horizontal oval held aloft ■ -->
+  <ellipse cx="272" cy="170" rx="92" ry="12"
+           fill="white" stroke="black" stroke-width="5.5"/>
+  <!-- Tray inner rim -->
+  <ellipse cx="272" cy="170" rx="82" ry="7"
+           fill="none" stroke="black" stroke-width="1.5"/>
+
+  <!-- ■ CASH BILLS — drawn BEFORE wallet (z-order: bills behind wallet) ■ -->
+  <!-- Bill 1 — left section, sticking out of wallet top -->
+  <rect x="222" y="140" width="27" height="17" rx="2" ry="2"
+        fill="white" stroke="black" stroke-width="3.5"/>
+  <line x1="226" y1="147" x2="245" y2="147" stroke="black" stroke-width="1.5"/>
+  <line x1="226" y1="152" x2="241" y2="152" stroke="black" stroke-width="1"/>
+
+  <!-- Bill 2 — right section, sticking out at slight offset -->
+  <rect x="259" y="137" width="27" height="19" rx="2" ry="2"
+        fill="white" stroke="black" stroke-width="3.5"/>
+  <line x1="263" y1="145" x2="282" y2="145" stroke="black" stroke-width="1.5"/>
+  <line x1="263" y1="150" x2="279" y2="150" stroke="black" stroke-width="1"/>
+
+  <!-- ■ LEATHER WALLET — drawn AFTER bills (wallet covers their lower portion) ■ -->
+  <!-- Wallet body -->
+  <rect x="216" y="154" width="82" height="30" rx="4.5" ry="4.5"
+        fill="white" stroke="black" stroke-width="4.5"/>
+  <!-- Wallet center fold -->
+  <line x1="257" y1="154" x2="257" y2="184" stroke="black" stroke-width="2.5"/>
+  <!-- Wallet clasp -->
+  <circle cx="257" cy="169" r="4.5" fill="black"/>
+  <!-- Left panel card-slot stitching -->
+  <rect x="220" y="159" width="33" height="20" rx="2"
+        fill="none" stroke="black" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <!-- Right panel horizontal detail lines -->
+  <line x1="263" y1="162" x2="293" y2="162" stroke="black" stroke-width="1.5"/>
+  <line x1="263" y1="168" x2="293" y2="168" stroke="black" stroke-width="1"/>
+  <line x1="263" y1="174" x2="290" y2="174" stroke="black" stroke-width="1"/>
+
+  <!-- ■ COINS — on tray, right of wallet ■ -->
+  <!-- Coin 1 -->
+  <circle cx="319" cy="161" r="9.5" fill="white" stroke="black" stroke-width="3.5"/>
+  <line x1="315" y1="161" x2="323" y2="161" stroke="black" stroke-width="1.5"/>
+  <line x1="319" y1="157" x2="319" y2="165" stroke="black" stroke-width="1.5"/>
+  <!-- Coin 2 -->
+  <circle cx="339" cy="162" r="8.5" fill="white" stroke="black" stroke-width="3.5"/>
+  <line x1="335" y1="162" x2="343" y2="162" stroke="black" stroke-width="1.5"/>
+  <line x1="339" y1="158" x2="339" y2="166" stroke="black" stroke-width="1.5"/>
+
+  <!-- ■ APP NAME ■ -->
+  <text x="256" y="492"
+        font-family="'Arial Black', Impact, Arial, Helvetica, sans-serif"
+        font-size="29"
+        font-weight="900"
+        letter-spacing="4"
+        text-anchor="middle"
+        fill="black">BASECONTROL</text>
+
+</svg>
