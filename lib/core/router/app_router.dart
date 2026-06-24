@@ -272,24 +272,21 @@ class _AppShell extends ConsumerWidget {
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,
         systemNavigationBarContrastEnforced: false,
-        // La barra siempre es negra → los iconos del sistema deben ser claros.
-        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
       child: Scaffold(
         backgroundColor:
             isDark ? AppColors.darkBackground : AppColors.lightBackground,
-        // La barra va en el body, NO en bottomNavigationBar.
-        // En M3 el Scaffold envuelve ese slot con su propio Material de
-        // surface-color que tapa cualquier color que pongamos en el widget.
-        // Poniéndolo en el body (Column) somos dueños 100% del fondo.
         body: Column(
           children: [
             Expanded(child: child),
             _ChevereNavBar(
               currentIndex: currentIdx,
               radarCount: radarCount,
+              isDark: isDark,
               onTap: (i) {
                 HapticFeedback.selectionClick();
                 context.go(_shellDests[i].route);
@@ -320,11 +317,13 @@ class _ChevereNavBar extends StatefulWidget {
   const _ChevereNavBar({
     required this.currentIndex,
     required this.radarCount,
+    required this.isDark,
     required this.onTap,
   });
 
   final int currentIndex;
   final int radarCount;
+  final bool isDark;
   final ValueChanged<int> onTap;
 
   @override
@@ -366,13 +365,23 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
 
   @override
   Widget build(BuildContext context) {
-    final n = _shellDests.length;
+    final isDark = widget.isDark;
+    final n      = _shellDests.length;
 
-    // Fusión oscura: negro puro absorbe el scrim gris de MIUI, haciéndolo
-    // invisible. viewPadding.bottom extiende el negro hasta el borde físico.
+    // La barra usa el mismo fondo que el Scaffold: se funde con el contenido
+    // igual que TikTok. En oscuro zinc-950 ≈ negro — el scrim de MIUI es
+    // invisible. En claro gray-50 ≈ blanco puro.
+    final bg = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    final inactiveColor = isDark
+        ? AppColors.darkOnSurfaceVariant  // zinc-400
+        : AppColors.lightOnSurfaceVariant; // gray-500
+    final dividerColor = isDark
+        ? AppColors.darkOutline            // zinc-700
+        : AppColors.lightOutline;          // gray-200
+
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     return ColoredBox(
-      color: Colors.black,
+      color: bg,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -380,17 +389,13 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
             height: 64,
             child: Stack(
               children: [
-                // Línea divisoria superior sutil sobre negro
+                // Línea divisoria superior
                 Positioned(
                   top: 0, left: 0, right: 0,
-                  child: Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: Colors.white.withValues(alpha: 0.12),
-                  ),
+                  child: Divider(height: 1, thickness: 1, color: dividerColor),
                 ),
 
-                // Píldora deslizante: tinte blanco sobre negro
+                // Píldora deslizante
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final tabW = constraints.maxWidth / n;
@@ -409,7 +414,9 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
                           height: 40,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.10),
+                              color: AppColors.primary.withValues(
+                                alpha: isDark ? 0.15 : 0.10,
+                              ),
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
@@ -424,15 +431,12 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
                   children: List.generate(n, (i) {
                     final dest     = _shellDests[i];
                     final selected = i == widget.currentIndex;
-                    // Activo: violeta principal. Inactivo: gris medio.
-                    final iconColor = selected
-                        ? AppColors.primary
-                        : Colors.grey;
+                    final color    = selected ? AppColors.primary : inactiveColor;
 
                     Widget icon = Icon(
                       selected ? (dest.activeIcon ?? dest.icon) : dest.icon,
                       size: 22,
-                      color: iconColor,
+                      color: color,
                     );
 
                     if (i == 2 && widget.radarCount > 0) {
@@ -462,7 +466,7 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
                               AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 200),
                                 style: AppTextStyles.labelSmall.copyWith(
-                                  color: iconColor,
+                                  color: color,
                                   fontWeight: selected
                                       ? FontWeight.w800
                                       : FontWeight.w600,
@@ -480,7 +484,7 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
               ],
             ),
           ),
-          // Negro sólido hasta el borde físico de la pantalla.
+          // Extiende el fondo hasta el borde físico de la pantalla.
           SizedBox(height: bottomInset),
         ],
       ),
