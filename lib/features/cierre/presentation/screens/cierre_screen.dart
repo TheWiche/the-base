@@ -9,8 +9,10 @@ import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../base_management/domain/entities/base_transaction_entity.dart';
 import '../../../base_management/domain/entities/wallet_summary.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
+import '../../../orders/presentation/providers/order_providers.dart';
 import '../../../tables/domain/entities/table_session_entity.dart';
 import '../../domain/entities/cierre_blocker.dart';
 import '../providers/cierre_providers.dart';
@@ -198,7 +200,10 @@ class _CierreScreenState extends ConsumerState<CierreScreen> {
             // ── Finalizar Jornada button ───────────────────────────
             _FinalizarButton(
               canClose: validation.canClose,
-              onPressed: validation.canClose ? _showFinalizarDialog : null,
+              cashDeclared: _cashInHand > 0,
+              onPressed: (validation.canClose && _cashInHand > 0)
+                  ? _showFinalizarDialog
+                  : null,
             ),
             const SizedBox(height: AppDimensions.space32),
           ],
@@ -228,21 +233,38 @@ class _CierreScreenState extends ConsumerState<CierreScreen> {
     Share.share(lines.join('\n'), subject: 'Resumen de Turno — $dateStr');
   }
 
-  void _showFinalizarDialog() {
+  Future<void> _showFinalizarDialog() async {
     final walletAsync = ref.read(enrichedWalletSummaryProvider);
     final summary = walletAsync.valueOrNull;
     if (summary == null) return;
+
+    final closedSessions = await ref.read(closedSessionsProvider.future);
+    if (!mounted) return;
+
+    final today      = DateTime.now();
+    final startOfDay = DateTime(today.year, today.month, today.day);
+    final mesasHoy   = closedSessions
+        .where((s) => s.openedAt.isAfter(startOfDay))
+        .length;
+
+    final incrementCount = summary.transactions
+        .where((t) => t.type == TransactionType.increase)
+        .length;
 
     final netProfit = _cashInHand - summary.totalDebt + summary.transferTipsTotal;
 
     showDialog<void>(
       context: context,
       builder: (ctx) => _CierreResumenDialog(
-        totalDebt: summary.totalDebt,
+        totalDebt:       summary.totalDebt,
+        totalLiquorDebt: summary.totalLiquorDebt,
         verifiedTransfers: summary.verifiedTransfersTotal,
-        transferTips: summary.transferTipsTotal,
-        cashInHand: _cashInHand,
-        netProfit: netProfit,
+        cashPayments:    summary.cashPaymentsTotal,
+        transferTips:    summary.transferTipsTotal,
+        cashInHand:      _cashInHand,
+        netProfit:       netProfit,
+        mesasAtendidas:  mesasHoy,
+        incrementCount:  incrementCount,
         onConfirm: () {
           Navigator.of(ctx).pop();
           _onCierreConfirmed();
@@ -500,128 +522,27 @@ class _ProfitCalculator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final netProfit = cashInHand - summary.totalDebt + summary.transferTipsTotal;
+    final netProfit    = cashInHand - summary.totalDebt + summary.transferTipsTotal;
     final isProfitable = netProfit >= 0;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark       = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface;
+    final outlineColor = isDark ? AppColors.darkOutlineVariant : AppColors.lightOutlineVariant;
+    final mutedColor   = isDark ? AppColors.darkOnSurfaceVariant : AppColors.lightOnSurfaceVariant;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Cash in hand input ───────────────────────────────────────
-        Text(
-          'EFECTIVO EN MANO',
-          style: AppTextStyles.statusBadge.copyWith(
-            color: isDark
-                ? AppColors.darkOnSurfaceVariant
-                : AppColors.lightOnSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: AppDimensions.space8),
-        TextFormField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            _ThousandsSeparatorFormatter(),
-          ],
-          style: AppTextStyles.displayMedium,
-          decoration: InputDecoration(
-            prefixText: '\$ ',
-            prefixStyle: AppTextStyles.headlineMedium.copyWith(
-              color: isDark
-                  ? AppColors.darkOnSurfaceVariant
-                  : AppColors.lightOnSurfaceVariant,
-            ),
-            hintText: '0',
-            hintStyle: AppTextStyles.displayMedium.copyWith(
-              color: isDark ? AppColors.darkDisabled : AppColors.lightDisabled,
-            ),
-          ),
-          onChanged: (raw) {
-            final digits = raw.replaceAll('.', '');
-            onCashChanged(int.tryParse(digits) ?? 0);
-          },
-        ),
-
-        const SizedBox(height: AppDimensions.space8),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            onPressed: onOpenCounter,
-            icon: const Icon(Icons.calculate_rounded, size: AppDimensions.iconSm),
-            label: const Text('Contar efectivo'),
-          ),
-        ),
-
-        const SizedBox(height: AppDimensions.space32),
-
-        // ── Breakdown ────────────────────────────────────────────────
-        Text('RESUMEN FINANCIERO', style: AppTextStyles.headlineSmall),
-        const SizedBox(height: AppDimensions.space16),
-
-        _MetricRow(
-          label: 'Deuda Total',
-          amount: summary.totalDebt,
-          color: AppColors.statusRed,
-          icon: Icons.receipt_long_rounded,
-          subtitle: 'Base + Incrementos + Licor',
-        ),
-        const SizedBox(height: AppDimensions.space8),
-        _MetricRow(
-          label: 'Transferencias Verificadas',
-          amount: summary.verifiedTransfersTotal,
-          color: AppColors.statusBlue,
-          icon: Icons.verified_rounded,
-          subtitle: 'Ya legalizadas en caja',
-        ),
-        if (summary.transferTipsTotal > 0) ...[
-          const SizedBox(height: AppDimensions.space8),
-          _MetricRow(
-            label: 'Propinas (Transferencias)',
-            amount: summary.transferTipsTotal,
-            color: AppColors.brand,
-            icon: Icons.star_rounded,
-            subtitle: 'Suma de propinas digitales',
-          ),
-        ],
-        const SizedBox(height: AppDimensions.space8),
-        _MetricRow(
-          label: 'Efectivo Declarado',
-          amount: cashInHand,
-          color: AppColors.statusGreen,
-          icon: Icons.payments_rounded,
-          subtitle: 'Ingresado manualmente',
-        ),
-
-        const SizedBox(height: AppDimensions.space20),
-        Divider(
-          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-          thickness: AppDimensions.dividerThickness,
-        ),
-        const SizedBox(height: AppDimensions.space20),
-
-        // ── Net Profit result ────────────────────────────────────────
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppDimensions.space20),
+        // ── Cash in hand card ────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(AppDimensions.space16),
           decoration: BoxDecoration(
-            color: cashInHand > 0
-                ? (isProfitable
-                    ? AppColors.statusGreen.withOpacity(0.08)
-                    : AppColors.statusRed.withOpacity(0.08))
-                : (isDark
-                    ? AppColors.darkSurfaceVariant
-                    : AppColors.lightSurface),
+            color: surfaceColor,
             borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
             border: Border.all(
               color: cashInHand > 0
-                  ? (isProfitable
-                      ? AppColors.statusGreen.withOpacity(0.4)
-                      : AppColors.statusRed.withOpacity(0.4))
-                  : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
-              width: cashInHand > 0 ? 2.0 : 1.0,
+                  ? AppColors.statusGreen.withOpacity(0.5)
+                  : outlineColor,
+              width: cashInHand > 0 ? 1.5 : 1.0,
             ),
           ),
           child: Column(
@@ -630,59 +551,177 @@ class _ProfitCalculator extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    cashInHand > 0
-                        ? (isProfitable
-                            ? Icons.trending_up_rounded
-                            : Icons.trending_down_rounded)
-                        : Icons.calculate_rounded,
-                    color: cashInHand > 0
-                        ? (isProfitable
-                            ? AppColors.statusGreen
-                            : AppColors.statusRed)
-                        : (isDark
-                            ? AppColors.darkDisabled
-                            : AppColors.lightDisabled),
-                    size: AppDimensions.iconLg,
+                    Icons.payments_rounded,
+                    size: 16,
+                    color: cashInHand > 0 ? AppColors.statusGreen : mutedColor,
                   ),
-                  const SizedBox(width: AppDimensions.space12),
+                  const SizedBox(width: AppDimensions.space6),
                   Text(
-                    'UTILIDAD NETA',
+                    'EFECTIVO EN MANO',
                     style: AppTextStyles.statusBadge.copyWith(
-                      color: cashInHand > 0
-                          ? (isProfitable
-                              ? AppColors.statusGreen
-                              : AppColors.statusRed)
-                          : (isDark
-                              ? AppColors.darkDisabled
-                              : AppColors.lightDisabled),
+                      color: cashInHand > 0 ? AppColors.statusGreen : mutedColor,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppDimensions.space8),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 150),
-                child: Text(
-                  cashInHand > 0 ? netProfit.toSignedCop : '—',
-                  key: ValueKey(netProfit),
-                  style: AppTextStyles.displayLarge.copyWith(
-                    color: cashInHand > 0
-                        ? (isProfitable
-                            ? AppColors.statusGreen
-                            : AppColors.statusRed)
-                        : (isDark
-                            ? AppColors.darkDisabled
-                            : AppColors.lightDisabled),
+              const SizedBox(height: AppDimensions.space12),
+              TextFormField(
+                controller: controller,
+                autofocus: false,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  _ThousandsSeparatorFormatter(),
+                ],
+                style: AppTextStyles.headlineLarge,
+                decoration: InputDecoration(
+                  prefixText: '\$ ',
+                  prefixStyle: AppTextStyles.headlineMedium.copyWith(
+                    color: mutedColor,
                   ),
+                  hintText: '0',
+                  hintStyle: AppTextStyles.headlineLarge.copyWith(
+                    color: isDark ? AppColors.darkDisabled : AppColors.lightDisabled,
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  isDense: true,
+                ),
+                onChanged: (raw) {
+                  final digits = raw.replaceAll('.', '');
+                  onCashChanged(int.tryParse(digits) ?? 0);
+                },
+              ),
+              const SizedBox(height: AppDimensions.space12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onOpenCounter,
+                  icon: const Icon(Icons.calculate_rounded, size: AppDimensions.iconSm),
+                  label: const Text('Contar billetera'),
                 ),
               ),
-              const SizedBox(height: AppDimensions.space4),
-              Text(
-                'Efectivo − Deuda Total + Propinas',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: isDark
-                      ? AppColors.darkOnSurfaceVariant
-                      : AppColors.lightOnSurfaceVariant,
+            ],
+          ),
+        ),
+
+        const SizedBox(height: AppDimensions.space20),
+
+        // ── Financial summary card ───────────────────────────────────
+        Container(
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+            border: Border.all(color: outlineColor),
+          ),
+          child: Column(
+            children: [
+              _SummaryRow(
+                label: 'Deuda Total',
+                value: summary.totalDebt.toCop,
+                valueColor: AppColors.statusRed,
+                icon: Icons.receipt_long_rounded,
+                isFirst: true,
+              ),
+              _SummaryDivider(),
+              _SummaryRow(
+                label: 'Transferencias',
+                value: summary.verifiedTransfersTotal.toCop,
+                valueColor: AppColors.statusBlue,
+                icon: Icons.verified_rounded,
+              ),
+              if (summary.transferTipsTotal > 0) ...[
+                _SummaryDivider(),
+                _SummaryRow(
+                  label: 'Propinas',
+                  value: summary.transferTipsTotal.toCop,
+                  valueColor: AppColors.brand,
+                  icon: Icons.star_rounded,
+                ),
+              ],
+              _SummaryDivider(),
+              _SummaryRow(
+                label: 'Efectivo Declarado',
+                value: cashInHand.toCop,
+                valueColor: AppColors.statusGreen,
+                icon: Icons.payments_rounded,
+              ),
+
+              // ── Net profit result ──────────────────────────────────
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: cashInHand > 0
+                    ? (isProfitable
+                        ? AppColors.statusGreen.withOpacity(0.3)
+                        : AppColors.statusRed.withOpacity(0.3))
+                    : outlineColor,
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.space16,
+                  vertical: AppDimensions.space16,
+                ),
+                decoration: BoxDecoration(
+                  color: cashInHand > 0
+                      ? (isProfitable
+                          ? AppColors.statusGreen.withOpacity(0.07)
+                          : AppColors.statusRed.withOpacity(0.07))
+                      : Colors.transparent,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(AppDimensions.radiusLg),
+                    bottomRight: Radius.circular(AppDimensions.radiusLg),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          cashInHand > 0
+                              ? (isProfitable
+                                  ? Icons.trending_up_rounded
+                                  : Icons.trending_down_rounded)
+                              : Icons.calculate_rounded,
+                          size: AppDimensions.iconSm,
+                          color: cashInHand > 0
+                              ? (isProfitable
+                                  ? AppColors.statusGreen
+                                  : AppColors.statusRed)
+                              : mutedColor,
+                        ),
+                        const SizedBox(width: AppDimensions.space8),
+                        Text(
+                          'UTILIDAD NETA',
+                          style: AppTextStyles.labelLarge.copyWith(
+                            color: cashInHand > 0
+                                ? (isProfitable
+                                    ? AppColors.statusGreen
+                                    : AppColors.statusRed)
+                                : mutedColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 150),
+                      child: Text(
+                        cashInHand > 0 ? netProfit.toSignedCop : '—',
+                        key: ValueKey(netProfit),
+                        style: AppTextStyles.headlineLarge.copyWith(
+                          color: cashInHand > 0
+                              ? (isProfitable
+                                  ? AppColors.statusGreen
+                                  : AppColors.statusRed)
+                              : mutedColor,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -693,70 +732,65 @@ class _ProfitCalculator extends StatelessWidget {
   }
 }
 
-// ── Metric row ────────────────────────────────────────────────────────────────
+// ── Summary row (inside financial card) ──────────────────────────────────────
 
-class _MetricRow extends StatelessWidget {
-  const _MetricRow({
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({
     required this.label,
-    required this.amount,
-    required this.color,
+    required this.value,
+    required this.valueColor,
     required this.icon,
-    required this.subtitle,
+    this.isFirst = false,
   });
 
   final String label;
-  final int amount;
-  final Color color;
+  final String value;
+  final Color valueColor;
   final IconData icon;
-  final String subtitle;
+  final bool isFirst;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark     = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = isDark ? AppColors.darkOnSurfaceVariant : AppColors.lightOnSurfaceVariant;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.space16,
+        vertical: AppDimensions.space12,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: mutedColor),
+          const SizedBox(width: AppDimensions.space10),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.bodyMedium.copyWith(color: mutedColor),
+            ),
+          ),
+          Text(
+            value,
+            style: AppTextStyles.labelLarge.copyWith(color: valueColor),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryDivider extends StatelessWidget {
+  const _SummaryDivider();
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.space12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        border: Border.all(
-          color: isDark ? AppColors.darkOutlineVariant : AppColors.lightOutlineVariant,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: AppDimensions.iconMd),
-          const SizedBox(width: AppDimensions.space12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.mono.copyWith(
-                    fontSize: 10,
-                    color: isDark
-                        ? AppColors.darkDisabled
-                        : AppColors.lightDisabled,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            amount.toCop,
-            style: AppTextStyles.labelLarge.copyWith(color: color),
-          ),
-        ],
-      ),
+    return Divider(
+      height: 1,
+      thickness: 1,
+      indent: AppDimensions.space16,
+      endIndent: AppDimensions.space16,
+      color: isDark ? AppColors.darkOutlineVariant : AppColors.lightOutlineVariant,
     );
   }
 }
@@ -766,33 +800,48 @@ class _MetricRow extends StatelessWidget {
 class _FinalizarButton extends StatelessWidget {
   const _FinalizarButton({
     required this.canClose,
+    required this.cashDeclared,
     required this.onPressed,
   });
 
   final bool canClose;
+  final bool cashDeclared;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: AppDimensions.buttonHeightLg,
-      child: FilledButton.icon(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: canClose ? AppColors.statusGreen : null,
-          foregroundColor: canClose ? AppColors.onStatusGreen : null,
-        ),
-        icon: Icon(
-          canClose ? Icons.lock_open_rounded : Icons.lock_rounded,
-        ),
-        label: Text(
-          'FINALIZAR JORNADA',
-          style: AppTextStyles.labelLarge.copyWith(
-            color: canClose ? AppColors.onStatusGreen : null,
+    final isReady = canClose && cashDeclared;
+
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: AppDimensions.buttonHeightLg,
+          child: FilledButton.icon(
+            onPressed: onPressed,
+            style: FilledButton.styleFrom(
+              backgroundColor: isReady ? AppColors.statusGreen : null,
+              foregroundColor: isReady ? AppColors.onStatusGreen : null,
+            ),
+            icon: Icon(isReady ? Icons.lock_open_rounded : Icons.lock_rounded),
+            label: Text(
+              'FINALIZAR JORNADA',
+              style: AppTextStyles.labelLarge.copyWith(
+                color: isReady ? AppColors.onStatusGreen : null,
+              ),
+            ),
           ),
         ),
-      ),
+        if (canClose && !cashDeclared) ...[
+          const SizedBox(height: AppDimensions.space8),
+          Text(
+            'Declara el efectivo en mano para continuar',
+            style: AppTextStyles.bodySmall
+                .copyWith(color: AppColors.statusOrange),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
     );
   }
 }
@@ -802,29 +851,41 @@ class _FinalizarButton extends StatelessWidget {
 class _CierreResumenDialog extends StatelessWidget {
   const _CierreResumenDialog({
     required this.totalDebt,
+    required this.totalLiquorDebt,
     required this.verifiedTransfers,
+    required this.cashPayments,
     required this.transferTips,
     required this.cashInHand,
     required this.netProfit,
+    required this.mesasAtendidas,
+    required this.incrementCount,
     required this.onConfirm,
     required this.onCancel,
   });
 
   final int totalDebt;
+  final int totalLiquorDebt;
   final int verifiedTransfers;
+  final int cashPayments;
   final int transferTips;
   final int cashInHand;
   final int netProfit;
+  final int mesasAtendidas;
+  final int incrementCount;
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
+    final isDark       = Theme.of(context).brightness == Brightness.dark;
     final isProfitable = netProfit >= 0;
+    final totalBilled  = cashPayments + verifiedTransfers;
 
     return AlertDialog(
       icon: Icon(
-        isProfitable ? Icons.emoji_events_rounded : Icons.sentiment_neutral_rounded,
+        isProfitable
+            ? Icons.emoji_events_rounded
+            : Icons.sentiment_neutral_rounded,
         color: isProfitable ? AppColors.brand : AppColors.statusOrange,
         size: AppDimensions.iconXl,
       ),
@@ -835,17 +896,91 @@ class _CierreResumenDialog extends StatelessWidget {
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _DialogRow(label: 'Deuda Total', value: totalDebt.toCop,
-              valueColor: AppColors.statusRed),
-          _DialogRow(label: 'Transferencias', value: verifiedTransfers.toCop,
-              valueColor: AppColors.statusBlue),
-          if (transferTips > 0)
-            _DialogRow(label: 'Propinas', value: transferTips.toCop,
-                valueColor: AppColors.brand),
-          _DialogRow(label: 'Efectivo en Mano', value: cashInHand.toCop,
-              valueColor: AppColors.statusGreen),
-          const Divider(height: 24),
+          // ── Stat chips ───────────────────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: _StatChip(
+                  icon: Icons.table_restaurant_rounded,
+                  label: 'Mesas',
+                  value: '$mesasAtendidas',
+                  color: AppColors.primary,
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(width: AppDimensions.space8),
+              Expanded(
+                child: _StatChip(
+                  icon: Icons.trending_up_rounded,
+                  label: 'Subidas base',
+                  value: '$incrementCount',
+                  color: AppColors.brand,
+                  isDark: isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.space16),
+          const Divider(height: 1),
+          const SizedBox(height: AppDimensions.space12),
+
+          // ── Ingresos ─────────────────────────────────────────────────
+          _DialogRow(
+            label: 'Total Facturado',
+            value: totalBilled.toCop,
+            valueColor: AppColors.statusGreen,
+          ),
+          if (cashPayments > 0)
+            _DialogRow(
+              label: '  · En efectivo',
+              value: cashPayments.toCop,
+              valueColor: AppColors.statusGreen,
+              isSmall: true,
+            ),
+          if (verifiedTransfers > 0)
+            _DialogRow(
+              label: '  · Transferencias',
+              value: verifiedTransfers.toCop,
+              valueColor: AppColors.statusBlue,
+              isSmall: true,
+            ),
+          if (transferTips > 0) ...[
+            const SizedBox(height: AppDimensions.space4),
+            _DialogRow(
+              label: 'Propinas',
+              value: transferTips.toCop,
+              valueColor: AppColors.brand,
+            ),
+          ],
+
+          const SizedBox(height: AppDimensions.space8),
+
+          // ── Deuda ────────────────────────────────────────────────────
+          _DialogRow(
+            label: 'Deuda Total',
+            value: totalDebt.toCop,
+            valueColor: AppColors.statusRed,
+          ),
+          if (totalLiquorDebt > 0)
+            _DialogRow(
+              label: '  · Por licores',
+              value: totalLiquorDebt.toCop,
+              valueColor: AppColors.statusPurple,
+              isSmall: true,
+            ),
+
+          const SizedBox(height: AppDimensions.space8),
+          _DialogRow(
+            label: 'Efectivo en Mano',
+            value: cashInHand.toCop,
+            valueColor: AppColors.statusGreen,
+          ),
+
+          const Divider(height: AppDimensions.space24),
+
+          // ── Resultado ────────────────────────────────────────────────
           _DialogRow(
             label: 'UTILIDAD NETA',
             value: netProfit.toSignedCop,
@@ -853,23 +988,80 @@ class _CierreResumenDialog extends StatelessWidget {
                 isProfitable ? AppColors.statusGreen : AppColors.statusRed,
             isBold: true,
           ),
+
+          const SizedBox(height: AppDimensions.space20),
+
+          // ── Botones ──────────────────────────────────────────────────
+          SizedBox(
+            height: AppDimensions.buttonHeightLg,
+            child: FilledButton(
+              onPressed: onConfirm,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.statusGreen,
+                foregroundColor: AppColors.onStatusGreen,
+              ),
+              child: const Text('CONFIRMAR CIERRE'),
+            ),
+          ),
+          const SizedBox(height: AppDimensions.space4),
+          TextButton(
+            onPressed: onCancel,
+            child: const Text('Revisar'),
+          ),
         ],
       ),
-      actionsAlignment: MainAxisAlignment.spaceEvenly,
-      actions: [
-        OutlinedButton(
-          onPressed: onCancel,
-          child: const Text('Revisar'),
-        ),
-        FilledButton(
-          onPressed: onConfirm,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.statusGreen,
-            foregroundColor: AppColors.onStatusGreen,
+      actions: const [],
+    );
+  }
+}
+
+// ── Stat chip (count badge) ───────────────────────────────────────────────────
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.isDark,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.space10, vertical: AppDimensions.space10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        border: Border.all(color: color.withOpacity(0.35)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTextStyles.headlineMedium.copyWith(color: color),
           ),
-          child: const Text('CONFIRMAR CIERRE'),
-        ),
-      ],
+          Text(
+            label,
+            style: AppTextStyles.statusBadge.copyWith(
+              color: isDark
+                  ? AppColors.darkOnSurfaceVariant
+                  : AppColors.lightOnSurfaceVariant,
+              fontSize: 9,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -880,19 +1072,21 @@ class _DialogRow extends StatelessWidget {
     required this.value,
     required this.valueColor,
     this.isBold = false,
+    this.isSmall = false,
   });
 
   final String label;
   final String value;
   final Color valueColor;
   final bool isBold;
+  final bool isSmall;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: isSmall ? 2 : 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -900,17 +1094,27 @@ class _DialogRow extends StatelessWidget {
             label,
             style: isBold
                 ? AppTextStyles.labelLarge
-                : AppTextStyles.bodySmall.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
-                  ),
+                : (isSmall
+                    ? AppTextStyles.bodySmall.copyWith(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColors.darkOnSurfaceVariant
+                            : AppColors.lightOnSurfaceVariant,
+                      )
+                    : AppTextStyles.bodySmall.copyWith(
+                        color: isDark
+                            ? AppColors.darkOnSurfaceVariant
+                            : AppColors.lightOnSurfaceVariant,
+                      )),
           ),
           Text(
             value,
             style: isBold
                 ? AppTextStyles.labelLarge.copyWith(color: valueColor)
-                : AppTextStyles.bodyMedium.copyWith(color: valueColor),
+                : (isSmall
+                    ? AppTextStyles.bodySmall.copyWith(
+                        fontSize: 11, color: valueColor)
+                    : AppTextStyles.bodyMedium.copyWith(color: valueColor)),
           ),
         ],
       ),

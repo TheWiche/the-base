@@ -267,7 +267,7 @@ class _AppShell extends ConsumerWidget {
     final isDark = themeMode == ThemeMode.dark ||
         (themeMode == ThemeMode.system &&
             MediaQuery.of(context).platformBrightness == Brightness.dark);
-    final navBg = isDark ? AppColors.darkSurface : AppColors.lightBackground;
+    final navBg = isDark ? AppColors.navBarDark : AppColors.navBarLight;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -369,14 +369,17 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
     final bg     = widget.bg;
     final n      = _shellDests.length;
 
-    // Material garantiza que el color se pinta correctamente en todos
-    // los dispositivos, incluyendo MIUI donde ColoredBox a veces no lo hace.
-    return Material(
+    // Pintamos el fondo con un Container explícito (la forma más directa de
+    // pintar). El Material va dentro en modo transparente sólo para la
+    // estructura, sin imponer ningún color encima.
+    return Container(
       color: bg,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
+      child: Material(
+        type: MaterialType.transparency,
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 64,
           child: Stack(
             children: [
               // Línea divisoria superior
@@ -385,9 +388,9 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
                 child: Divider(
                   height: 1,
                   thickness: 1,
-                  color: isDark
-                      ? AppColors.darkOutlineVariant
-                      : AppColors.lightOutlineVariant,
+                  color: AppColors.primary.withValues(
+                    alpha: isDark ? 0.25 : 0.20,
+                  ),
                 ),
               ),
 
@@ -484,6 +487,7 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
               ),
             ],
           ),
+        ),
         ),
       ),
     );

@@ -186,7 +186,7 @@ abstract final class AppTheme {
 
       // ── NavigationBar ───────────────────────────────────────────────────────
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightBackground,
+        backgroundColor: isDark ? AppColors.navBarDark : AppColors.navBarLight,
         surfaceTintColor: Colors.transparent,
         indicatorColor: AppColors.primary.withOpacity(0.16),
         elevation: 0,
@@ -337,7 +337,7 @@ abstract final class AppTheme {
       // ── BottomNavigationBar (legacy) ────────────────────────────────────────
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor:
-            isDark ? AppColors.darkSurface : AppColors.lightBackground,
+            isDark ? AppColors.navBarDark : AppColors.navBarLight,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: isDark
             ? AppColors.darkOnSurfaceVariant

@@ -41,6 +41,7 @@ Future<void> main() async {
   await IsarService.initialize();
   await ProductRepositoryImpl().seedIfEmpty();
   await ProductRepositoryImpl().seedMigrateV2();
+  await ProductRepositoryImpl().seedMigrateV3();
   await _migrateTableCounter();
   await NotificationService.initialize();
   final prefs = await SharedPreferences.getInstance();
@@ -84,9 +85,8 @@ class TheBaseApp extends ConsumerWidget {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: isDark
-            ? AppColors.darkSurface
-            : AppColors.lightBackground,
+        systemNavigationBarColor:
+            isDark ? AppColors.navBarDark : AppColors.navBarLight,
         systemNavigationBarDividerColor: Colors.transparent,
         systemNavigationBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,

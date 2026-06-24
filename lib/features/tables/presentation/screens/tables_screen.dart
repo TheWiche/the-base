@@ -375,6 +375,8 @@ class _SessionsGrid extends StatefulWidget {
 
 class _SessionsGridState extends State<_SessionsGrid>
     with SingleTickerProviderStateMixin {
+  static bool _hasPlayed = false;
+
   late AnimationController _staggerCtrl;
   late List<Animation<double>> _anims;
 
@@ -382,12 +384,15 @@ class _SessionsGridState extends State<_SessionsGrid>
   void initState() {
     super.initState();
     final n = widget.sessions.length.clamp(1, 20);
-    _staggerCtrl = createStaggerController(vsync: this, itemCount: n)
-      ..forward();
-    _anims = buildStaggerAnimations(
-      controller: _staggerCtrl,
-      itemCount: n,
-    );
+    _staggerCtrl = createStaggerController(vsync: this, itemCount: n);
+    _anims = buildStaggerAnimations(controller: _staggerCtrl, itemCount: n);
+
+    if (_hasPlayed) {
+      _staggerCtrl.value = 1.0;
+    } else {
+      _staggerCtrl.forward();
+      _hasPlayed = true;
+    }
   }
 
   @override

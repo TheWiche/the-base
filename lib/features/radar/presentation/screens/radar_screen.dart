@@ -141,6 +141,8 @@ class _ChronologicalView extends StatefulWidget {
 
 class _ChronologicalViewState extends State<_ChronologicalView>
     with SingleTickerProviderStateMixin {
+  static bool _hasPlayed = false;
+
   late AnimationController _staggerCtrl;
   late List<Animation<double>> _anims;
 
@@ -148,7 +150,13 @@ class _ChronologicalViewState extends State<_ChronologicalView>
   void initState() {
     super.initState();
     _rebuild(widget.items.length);
-    _staggerCtrl.forward();
+
+    if (_hasPlayed) {
+      _staggerCtrl.value = 1.0;
+    } else {
+      _staggerCtrl.forward();
+      _hasPlayed = true;
+    }
   }
 
   void _rebuild(int n) {

@@ -14,7 +14,7 @@
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
-        <item name="android:navigationBarColor">#2A1E54</item>
+        <item name="android:navigationBarColor">#4C2E92</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 </resources>

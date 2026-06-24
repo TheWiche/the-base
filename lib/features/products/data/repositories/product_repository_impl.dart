@@ -18,13 +18,13 @@ const _kCategoryOrder = [
   'Cocteles Paletas',
   'Mojitos',
   'Sangría',
-  'Especiales',
+  'Otros',
   'Vinos',
   'Licores',
   'Descorche',
 ];
 
-const _kSeedVersion = 2;
+const _kSeedVersion = 3;
 const _kSeedVersionKey = 'thebase_seed_v';
 
 final class ProductRepositoryImpl implements IProductRepository {
@@ -102,25 +102,30 @@ final class ProductRepositoryImpl implements IProductRepository {
     {'name': 'Hatsu Frambuesa Sola',   'price': 5000, 'category': 'Gaseosas Solas', 'isLiquor': false},
     {'name': 'Hatsu Sandía Sola',      'price': 5000, 'category': 'Gaseosas Solas', 'isLiquor': false},
 
-    // ── ESPECIALES — Bebidas y acompañamientos ────────────────────────────
-    {'name': 'Cocacola',               'price': 5000, 'category': 'Especiales', 'isLiquor': false},
-    {'name': 'Gatorade',               'price': 7000, 'category': 'Especiales', 'isLiquor': false},
-    {'name': 'Agua',                   'price': 3000, 'category': 'Especiales', 'isLiquor': false},
-    {'name': 'Limón Trozos/Tajín',     'price': 3000, 'category': 'Especiales', 'isLiquor': false},
+    // ── OTROS — Bebidas y acompañamientos ────────────────────────────────
+    {'name': 'Cocacola',               'price': 5000,  'category': 'Otros', 'isLiquor': false},
+    {'name': 'Gatorade',               'price': 7000,  'category': 'Otros', 'isLiquor': false},
+    {'name': 'Agua',                   'price': 3000,  'category': 'Otros', 'isLiquor': false},
+    {'name': 'Limón Trozos/Tajín',     'price': 3000,  'category': 'Otros', 'isLiquor': false},
+    {'name': 'Detodito',               'price': 10000, 'category': 'Otros', 'isLiquor': false},
   ];
 
   // ── V2 incremental seed (for existing installations) ─────────────────────
-  // Only contains products added after v1. seedMigrateV2() inserts these
-  // by name-deduplication so re-running is safe.
   static const _kSeedV2 = <Map<String, Object>>[
     {'name': 'Bretaña Sola',           'price': 5000, 'category': 'Gaseosas Solas', 'isLiquor': false},
     {'name': 'Ginger Sola',            'price': 5000, 'category': 'Gaseosas Solas', 'isLiquor': false},
     {'name': 'Hatsu Frambuesa Sola',   'price': 5000, 'category': 'Gaseosas Solas', 'isLiquor': false},
     {'name': 'Hatsu Sandía Sola',      'price': 5000, 'category': 'Gaseosas Solas', 'isLiquor': false},
-    {'name': 'Cocacola',               'price': 5000, 'category': 'Especiales', 'isLiquor': false},
-    {'name': 'Gatorade',               'price': 7000, 'category': 'Especiales', 'isLiquor': false},
-    {'name': 'Agua',                   'price': 3000, 'category': 'Especiales', 'isLiquor': false},
-    {'name': 'Limón Trozos/Tajín',     'price': 3000, 'category': 'Especiales', 'isLiquor': false},
+    {'name': 'Cocacola',               'price': 5000, 'category': 'Especiales',    'isLiquor': false},
+    {'name': 'Gatorade',               'price': 7000, 'category': 'Especiales',    'isLiquor': false},
+    {'name': 'Agua',                   'price': 3000, 'category': 'Especiales',    'isLiquor': false},
+    {'name': 'Limón Trozos/Tajín',     'price': 3000, 'category': 'Especiales',    'isLiquor': false},
+  ];
+
+  // ── V3 incremental seed ───────────────────────────────────────────────────
+  // Adds Detodito. seedMigrateV3() also renames 'Especiales' → 'Otros' in DB.
+  static const _kSeedV3 = <Map<String, Object>>[
+    {'name': 'Detodito', 'price': 10000, 'category': 'Otros', 'isLiquor': false},
   ];
 
   // ── IProductRepository ────────────────────────────────────────────────────
@@ -150,13 +155,11 @@ final class ProductRepositoryImpl implements IProductRepository {
     debugPrint('[ProductRepository] Seeded ${_kSeed.length} products (v$_kSeedVersion).');
   }
 
-  /// Incremental seed migration — runs once per app update that bumps
-  /// [_kSeedVersion]. Inserts only products whose names don't yet exist,
-  /// preserving any availability toggles the waiter has set.
+  /// V2 migration — inserts Gaseosas Solas + Especiales products for v1 installs.
   Future<void> seedMigrateV2() async {
     final prefs = await SharedPreferences.getInstance();
     final storedVersion = prefs.getInt(_kSeedVersionKey) ?? 1;
-    if (storedVersion >= _kSeedVersion) return;
+    if (storedVersion >= 2) return;
 
     final existing = await IsarService.db.products.where().anyId().findAll();
     final existingNames = existing.map((p) => p.name).toSet();
@@ -178,7 +181,49 @@ final class ProductRepositoryImpl implements IProductRepository {
       debugPrint('[ProductRepository] Migration v2: inserted ${toInsert.length} new products.');
     }
 
-    await prefs.setInt(_kSeedVersionKey, _kSeedVersion);
+    await prefs.setInt(_kSeedVersionKey, 2);
+  }
+
+  /// V3 migration — renames category 'Especiales' → 'Otros' and adds Detodito.
+  Future<void> seedMigrateV3() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedVersion = prefs.getInt(_kSeedVersionKey) ?? 1;
+    if (storedVersion >= 3) return;
+
+    final all = await IsarService.db.products.where().anyId().findAll();
+
+    // Rename existing Especiales products to Otros.
+    final toRename = all.where((p) => p.category == 'Especiales').toList();
+    if (toRename.isNotEmpty) {
+      for (final p in toRename) {
+        p.category = 'Otros';
+      }
+      await IsarService.write((isar) async {
+        await isar.products.putAll(toRename);
+      });
+      debugPrint('[ProductRepository] Migration v3: renamed ${toRename.length} Especiales → Otros.');
+    }
+
+    // Insert new V3 products (by name-deduplication).
+    final existingNames = all.map((p) => p.name).toSet();
+    final toInsert = _kSeedV3
+        .where((data) => !existingNames.contains(data['name'] as String))
+        .map((data) => Product()
+          ..name = data['name'] as String
+          ..price = data['price'] as int
+          ..category = data['category'] as String
+          ..isLiquor = data['isLiquor'] as bool
+          ..isAvailable = true)
+        .toList();
+
+    if (toInsert.isNotEmpty) {
+      await IsarService.write((isar) async {
+        await isar.products.putAll(toInsert);
+      });
+      debugPrint('[ProductRepository] Migration v3: inserted ${toInsert.length} new products.');
+    }
+
+    await prefs.setInt(_kSeedVersionKey, 3);
   }
 
   @override

@@ -4,17 +4,9 @@ import '../extensions/int_extensions.dart';
 
 /// Animates a COP monetary integer from its previous value to [amount].
 ///
-/// Uses [TweenAnimationBuilder] — no controller to dispose.
-/// On first build the value runs from 0 to [amount].
-/// On subsequent rebuilds it tweens from the previous value to the new one.
-///
-/// ```dart
-/// AnimatedAmount(
-///   amount: summary.availableBalance,
-///   style: AppTextStyles.displayLarge.copyWith(color: balanceColor),
-/// )
-/// ```
-class AnimatedAmount extends StatelessWidget {
+/// On first render the value is shown immediately (no count-up).
+/// Animation only plays when [amount] changes while the widget is mounted.
+class AnimatedAmount extends StatefulWidget {
   const AnimatedAmount({
     super.key,
     required this.amount,
@@ -33,17 +25,46 @@ class AnimatedAmount extends StatelessWidget {
   final String prefix;
 
   @override
+  State<AnimatedAmount> createState() => _AnimatedAmountState();
+}
+
+class _AnimatedAmountState extends State<AnimatedAmount> {
+  late double _begin;
+  late double _end;
+
+  @override
+  void initState() {
+    super.initState();
+    // Skip animation on first render: both ends are the same value.
+    _begin = widget.amount.toDouble();
+    _end   = widget.amount.toDouble();
+  }
+
+  @override
+  void didUpdateWidget(AnimatedAmount oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.amount != widget.amount) {
+      // Real data change while screen is open → animate.
+      setState(() {
+        _begin = oldWidget.amount.toDouble();
+        _end   = widget.amount.toDouble();
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (MediaQuery.of(context).disableAnimations) {
-      return Text('$prefix${amount.toCop}', style: style);
+    // No tween needed: show value directly without animation.
+    if (MediaQuery.of(context).disableAnimations || _begin == _end) {
+      return Text('${widget.prefix}${widget.amount.toCop}', style: widget.style);
     }
 
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: amount.toDouble()),
-      duration: duration,
-      curve: curve,
+      tween: Tween<double>(begin: _begin, end: _end),
+      duration: widget.duration,
+      curve: widget.curve,
       builder: (context, value, _) {
-        return Text('$prefix${value.round().toCop}', style: style);
+        return Text('${widget.prefix}${value.round().toCop}', style: widget.style);
       },
     );
   }

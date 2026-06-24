@@ -87,8 +87,8 @@ abstract final class AppColors {
   // and native Android styles.xml so the color is consistent everywhere.
   // Tonos claramente violeta (no los pálidos violet-100/950 que se confundían
   // con gris): en claro un lavanda visible, en oscuro un violeta profundo.
-  static const Color navBarDark  = Color(0xFF2A1E54); // deep saturated violet
-  static const Color navBarLight = Color(0xFFD6CBFA); // visible lavender
+  static const Color navBarDark  = Color(0xFF4C2E92); // bold violet, unmistakable
+  static const Color navBarLight = Color(0xFFB39DF7); // bold lavender, unmistakable
 
   // ── Scrim / Overlay ───────────────────────────────────────────────────────
   static const Color scrim      = Color(0xCC000000);

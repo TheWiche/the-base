@@ -35,6 +35,19 @@ class BillingScreen extends ConsumerWidget {
     final selection = ref.watch(billingSelectionProvider(sessionId));
     final subCuenta = ref.watch(subCuentaProvider(sessionId));
 
+    // Auto-pop when the last unpaid item gets marked paid while this screen is open.
+    ref.listen(tableOrderProvider(sessionId), (_, next) {
+      next.whenData((items) {
+        final billable   = items.where((i) => !i.isCancelled).toList();
+        final selectable = billable.where((i) => !i.isPaid).toList();
+        if (billable.isNotEmpty && selectable.isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted && context.canPop()) context.pop();
+          });
+        }
+      });
+    });
+
     return Scaffold(
       appBar: _buildAppBar(context, ref, session, subCuenta),
       body: itemsAsync.when(

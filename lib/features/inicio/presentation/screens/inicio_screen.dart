@@ -26,6 +26,9 @@ class InicioScreen extends ConsumerStatefulWidget {
 
 class _InicioScreenState extends ConsumerState<InicioScreen>
     with SingleTickerProviderStateMixin {
+  // Persists for the app session — entrance animation plays once on first visit.
+  static bool _hasEntrancePlayed = false;
+
   late AnimationController _ctrl;
 
   late Animation<double> _headerAnim;
@@ -48,7 +51,13 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
     _actionsAnim     = _interval(0.38, 0.78);
     _guideAnim       = _interval(0.52, 1.00);
 
-    _ctrl.forward();
+    if (_hasEntrancePlayed) {
+      // Skip straight to the fully-visible state on re-entry.
+      _ctrl.value = 1.0;
+    } else {
+      _ctrl.forward();
+      _hasEntrancePlayed = true;
+    }
   }
 
   Animation<double> _interval(double begin, double end) => CurvedAnimation(

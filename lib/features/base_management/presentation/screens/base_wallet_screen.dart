@@ -838,6 +838,10 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final time =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
     return AlertDialog(
       icon: const Icon(
         Icons.trending_up_rounded,
@@ -851,6 +855,7 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             'Se agregarán \$100.000 a tu base.\nEsta acción quedará registrada con la hora exacta.',
@@ -859,7 +864,8 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
           ),
           const SizedBox(height: AppDimensions.space16),
           Container(
-            padding: const EdgeInsets.all(AppDimensions.space12),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.space12, vertical: AppDimensions.space10),
             decoration: BoxDecoration(
               color: AppColors.brand.withOpacity(0.1),
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
@@ -868,40 +874,35 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.schedule_rounded,
-                    color: AppColors.brand, size: 16),
+                const Icon(Icons.schedule_rounded, color: AppColors.brand, size: 16),
                 const SizedBox(width: 8),
                 Text(
-                  'Timestamp: ahora mismo',
-                  style: AppTextStyles.mono.copyWith(
-                      color: AppColors.brand),
+                  time,
+                  style: AppTextStyles.mono.copyWith(color: AppColors.brand),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-      actionsAlignment: MainAxisAlignment.spaceEvenly,
-      actions: [
-        SizedBox(
-          height: AppDimensions.tapTargetStd,
-          child: OutlinedButton(
+          const SizedBox(height: AppDimensions.space20),
+          SizedBox(
+            height: AppDimensions.buttonHeightLg,
+            child: FilledButton(
+              onPressed: onConfirm,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.brand,
+                foregroundColor: const Color(0xFF1A0A00),
+              ),
+              child: const Text(AppStrings.actionConfirm),
+            ),
+          ),
+          const SizedBox(height: AppDimensions.space4),
+          TextButton(
             onPressed: onCancel,
             child: const Text(AppStrings.actionCancel),
           ),
-        ),
-        SizedBox(
-          height: AppDimensions.tapTargetStd,
-          child: FilledButton(
-            onPressed: onConfirm,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.brand,
-              foregroundColor: const Color(0xFF1A0A00),
-            ),
-            child: const Text(AppStrings.actionConfirm),
-          ),
-        ),
-      ],
+        ],
+      ),
+      actions: const [],
     );
   }
 }
@@ -919,6 +920,10 @@ class _DecreaseConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final time =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
     return AlertDialog(
       icon: const Icon(
         Icons.trending_down_rounded,
@@ -932,6 +937,7 @@ class _DecreaseConfirmationDialog extends StatelessWidget {
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             'Se reducirán \$100.000 de tu base.\nEsta acción quedará registrada con la hora exacta.',
@@ -940,12 +946,12 @@ class _DecreaseConfirmationDialog extends StatelessWidget {
           ),
           const SizedBox(height: AppDimensions.space16),
           Container(
-            padding: const EdgeInsets.all(AppDimensions.space12),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.space12, vertical: AppDimensions.space10),
             decoration: BoxDecoration(
               color: AppColors.statusOrange.withOpacity(0.08),
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              border:
-                  Border.all(color: AppColors.statusOrange.withOpacity(0.35)),
+              border: Border.all(color: AppColors.statusOrange.withOpacity(0.35)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -954,36 +960,32 @@ class _DecreaseConfirmationDialog extends StatelessWidget {
                     color: AppColors.statusOrange, size: 16),
                 const SizedBox(width: 8),
                 Text(
-                  'Timestamp: ahora mismo',
-                  style: AppTextStyles.mono
-                      .copyWith(color: AppColors.statusOrange),
+                  time,
+                  style: AppTextStyles.mono.copyWith(color: AppColors.statusOrange),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-      actionsAlignment: MainAxisAlignment.spaceEvenly,
-      actions: [
-        SizedBox(
-          height: AppDimensions.tapTargetStd,
-          child: OutlinedButton(
+          const SizedBox(height: AppDimensions.space20),
+          SizedBox(
+            height: AppDimensions.buttonHeightLg,
+            child: FilledButton(
+              onPressed: onConfirm,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.statusOrange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text(AppStrings.actionConfirm),
+            ),
+          ),
+          const SizedBox(height: AppDimensions.space4),
+          TextButton(
             onPressed: onCancel,
             child: const Text(AppStrings.actionCancel),
           ),
-        ),
-        SizedBox(
-          height: AppDimensions.tapTargetStd,
-          child: FilledButton(
-            onPressed: onConfirm,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.statusOrange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text(AppStrings.actionConfirm),
-          ),
-        ),
-      ],
+        ],
+      ),
+      actions: const [],
     );
   }
 }
