@@ -12,7 +12,6 @@ import 'core/notifications/notification_service.dart';
 import 'core/router/app_router.dart';
 import 'core/services/table_counter_service.dart';
 import 'features/tables/data/models/table_session.dart';
-import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/dashboard/presentation/providers/dashboard_providers.dart';
@@ -27,6 +26,15 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Pantalla completa: ocultamos la barra de navegación del sistema (la franja
+  // gris con el gesto) y dejamos sólo la barra de estado arriba. Así la barra
+  // de pestañas violeta de Flutter llega hasta el borde inferior real, sin el
+  // velo gris de contraste que Android dibuja encima del gesto.
+  await SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: [SystemUiOverlay.top],
+  );
 
   // El estilo del sistema se actualiza dinámicamente en TheBaseApp.build()
   // según el modo oscuro/claro activo.
@@ -85,8 +93,10 @@ class TheBaseApp extends ConsumerWidget {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor:
-            isDark ? AppColors.navBarDark : AppColors.navBarLight,
+        // La barra de navegación está oculta (modo pantalla completa), así que
+        // su color es transparente; la franja inferior la pinta la barra de
+        // pestañas de Flutter.
+        systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,
         systemNavigationBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,
@@ -146,12 +156,14 @@ class _NotificationListenerWidget extends ConsumerStatefulWidget {
 }
 
 class _NotificationListenerState
-    extends ConsumerState<_NotificationListenerWidget> {
+    extends ConsumerState<_NotificationListenerWidget>
+    with WidgetsBindingObserver {
   Timer? _periodicTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Remind every 15 minutes if items are still pending.
     _periodicTimer = Timer.periodic(
       const Duration(minutes: 15),
@@ -161,8 +173,32 @@ class _NotificationListenerState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _periodicTimer?.cancel();
     super.dispose();
+  }
+
+  void _restoreFullScreen() {
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top],
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Al volver a primer plano, Android suele restaurar la barra de navegación;
+    // la volvemos a ocultar para conservar la pantalla completa.
+    if (state == AppLifecycleState.resumed) {
+      _restoreFullScreen();
+    }
+  }
+
+  @override
+  void didChangeMetrics() {
+    // El teclado y otros cambios de métricas también reaparecen la barra;
+    // la re-ocultamos en el siguiente frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _restoreFullScreen());
   }
 
   Future<void> _periodicCheck() async {
