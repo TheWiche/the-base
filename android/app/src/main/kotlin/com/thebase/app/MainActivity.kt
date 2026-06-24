@@ -3,8 +3,10 @@ package com.thebase.app
 import android.content.ContentValues
 import android.media.MediaScannerConnection
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.view.View
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -14,6 +16,32 @@ import java.io.FileInputStream
 class MainActivity : FlutterActivity() {
     private val channelName = "com.thebase.app/gallery"
     private val subDir = "TheBase_Transferencias"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Force the Android Window to a fully transparent navigation bar at the
+        // native level. Flutter's SystemChrome calls happen later and can be
+        // overridden by MIUI's gesture-area scrim; setting it here, before
+        // Flutter initialises, is the ground-truth override.
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+
+        // Disable Android 10+ automatic gray contrast scrim on the gesture area.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
+
+        // Extend Flutter's layout behind the navigation bar (edge-to-edge).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            )
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
