@@ -365,19 +365,11 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = widget.isDark;
-    final n      = _shellDests.length;
+    final n = _shellDests.length;
 
-    // La barra usa el mismo fondo que el Scaffold: se funde con el contenido
-    // igual que TikTok. En oscuro zinc-950 ≈ negro — el scrim de MIUI es
-    // invisible. En claro gray-50 ≈ blanco puro.
-    final bg = isDark ? AppColors.darkBackground : AppColors.lightBackground;
-    final inactiveColor = isDark
-        ? AppColors.darkOnSurfaceVariant  // zinc-400
-        : AppColors.lightOnSurfaceVariant; // gray-500
-    final dividerColor = isDark
-        ? AppColors.darkOutline            // zinc-700
-        : AppColors.lightOutline;          // gray-200
+    // Negro puro como TikTok: el scrim de MIUI sobre negro es invisible.
+    const bg            = Colors.black;
+    const inactiveColor = Colors.grey;
 
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     return ColoredBox(
@@ -390,9 +382,9 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
             child: Stack(
               children: [
                 // Línea divisoria superior
-                Positioned(
+                const Positioned(
                   top: 0, left: 0, right: 0,
-                  child: Divider(height: 1, thickness: 1, color: dividerColor),
+                  child: Divider(height: 1, thickness: 1, color: Color(0x1AFFFFFF)),
                 ),
 
                 // Píldora deslizante
@@ -414,9 +406,7 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
                           height: 40,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(
-                                alpha: isDark ? 0.15 : 0.10,
-                              ),
+                              color: const Color(0x1AFFFFFF), // blanco 10 %
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
