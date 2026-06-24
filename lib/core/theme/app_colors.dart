@@ -82,6 +82,14 @@ abstract final class AppColors {
   static const Color lightOnSurfaceVariant = Color(0xFF6B7280); // gray-500
   static const Color lightDisabled         = Color(0xFFD1D5DB); // gray-300
 
+  // ── Nav bar background (bottom navigation) ───────────────────────────────
+  // Single source of truth used in main.dart, app_router.dart, app_theme.dart
+  // and native Android styles.xml so the color is consistent everywhere.
+  // Tonos claramente violeta (no los pálidos violet-100/950 que se confundían
+  // con gris): en claro un lavanda visible, en oscuro un violeta profundo.
+  static const Color navBarDark  = Color(0xFF2A1E54); // deep saturated violet
+  static const Color navBarLight = Color(0xFFD6CBFA); // visible lavender
+
   // ── Scrim / Overlay ───────────────────────────────────────────────────────
   static const Color scrim      = Color(0xCC000000);
   static const Color scrimLight = Color(0x66000000);
