@@ -285,6 +285,7 @@ class _AppShell extends ConsumerWidget {
             _NavBar(
               currentIndex: currentIdx,
               radarCount: radarCount,
+              isDark: isDark,
               onTap: (i) {
                 HapticFeedback.selectionClick();
                 context.go(_shellDests[i].route);
@@ -315,65 +316,98 @@ class _NavBar extends StatelessWidget {
   const _NavBar({
     required this.currentIndex,
     required this.radarCount,
+    required this.isDark,
     required this.onTap,
   });
 
   final int currentIndex;
   final int radarCount;
+  final bool isDark;
   final ValueChanged<int> onTap;
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final bottomInset   = MediaQuery.of(context).viewPadding.bottom;
+    final bg            = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    final inactiveColor = isDark ? AppColors.darkOnSurfaceVariant : AppColors.lightOnSurfaceVariant;
+    final dividerColor  = isDark ? AppColors.darkOutline : AppColors.lightOutline;
 
     return ColoredBox(
-      color: Colors.black,
+      color: bg,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Divider(height: 1, thickness: 1, color: Color(0x33FFFFFF)),
+          Divider(height: 1, thickness: 1, color: dividerColor),
           SizedBox(
-            height: 60,
+            height: 64,
             child: Row(
               children: List.generate(_shellDests.length, (i) {
                 final dest     = _shellDests[i];
                 final selected = i == currentIndex;
-                final color    = selected ? AppColors.primary : Colors.grey;
-
-                Widget icon = Icon(
-                  selected ? (dest.activeIcon ?? dest.icon) : dest.icon,
-                  size: 24,
-                  color: color,
-                );
-
-                if (i == 2 && radarCount > 0) {
-                  icon = Badge(
-                    label: Text('$radarCount'),
-                    backgroundColor: AppColors.statusOrange,
-                    child: icon,
-                  );
-                }
+                final endColor = selected ? AppColors.primary : inactiveColor;
 
                 return Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => onTap(i),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        icon,
-                        const SizedBox(height: 4),
-                        Text(
-                          dest.label,
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 10,
-                            fontWeight: selected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                    // TweenAnimationBuilder anima el color de gris↔violeta
+                    // sin ningún AnimationController ni StatefulWidget.
+                    child: TweenAnimationBuilder<Color?>(
+                      tween: ColorTween(end: endColor),
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOut,
+                      builder: (context, animColor, _) {
+                        final c = animColor ?? endColor;
+
+                        // Escala del ícono: 1.0 inactivo → 1.15 activo.
+                        Widget icon = TweenAnimationBuilder<double>(
+                          tween: Tween(end: selected ? 1.15 : 1.0),
+                          duration: const Duration(milliseconds: 260),
+                          curve: Curves.easeOutBack,
+                          builder: (context, scale, _) => Transform.scale(
+                            scale: scale,
+                            // AnimatedSwitcher hace crossfade entre el ícono
+                            // outlined (inactivo) y el filled (activo).
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 160),
+                              child: Icon(
+                                selected
+                                    ? (dest.activeIcon ?? dest.icon)
+                                    : dest.icon,
+                                key: ValueKey(selected),
+                                size: 24,
+                                color: c,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        );
+
+                        if (i == 2 && radarCount > 0) {
+                          icon = Badge(
+                            label: Text('$radarCount'),
+                            backgroundColor: AppColors.statusOrange,
+                            child: icon,
+                          );
+                        }
+
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            icon,
+                            const SizedBox(height: 4),
+                            Text(
+                              dest.label,
+                              style: TextStyle(
+                                color: c,
+                                fontSize: 10,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 );
