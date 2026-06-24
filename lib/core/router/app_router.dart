@@ -21,7 +21,6 @@ import '../../features/products/presentation/screens/products_screen.dart';
 import '../../features/radar/presentation/screens/radar_screen.dart';
 import '../../features/tables/presentation/screens/tables_screen.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
 import '../theme/theme_provider.dart';
 
 // ── Route name constants ───────────────────────────────────────────────────────
@@ -283,10 +282,9 @@ class _AppShell extends ConsumerWidget {
         body: Column(
           children: [
             Expanded(child: child),
-            _ChevereNavBar(
+            _NavBar(
               currentIndex: currentIdx,
               radarCount: radarCount,
-              isDark: isDark,
               onTap: (i) {
                 HapticFeedback.selectionClick();
                 context.go(_shellDests[i].route);
@@ -311,170 +309,77 @@ class _AppShell extends ConsumerWidget {
   }
 }
 
-// ── Animated bottom navigation bar ────────────────────────────────────────────
+// ── Bottom navigation bar ─────────────────────────────────────────────────────
 
-class _ChevereNavBar extends StatefulWidget {
-  const _ChevereNavBar({
+class _NavBar extends StatelessWidget {
+  const _NavBar({
     required this.currentIndex,
     required this.radarCount,
-    required this.isDark,
     required this.onTap,
   });
 
   final int currentIndex;
   final int radarCount;
-  final bool isDark;
   final ValueChanged<int> onTap;
 
   @override
-  State<_ChevereNavBar> createState() => _ChevereNavBarState();
-}
-
-class _ChevereNavBarState extends State<_ChevereNavBar>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pillCtrl;
-  int _prevIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _prevIndex = widget.currentIndex;
-    _pillCtrl  = AnimationController(
-      duration: const Duration(milliseconds: 280),
-      vsync: this,
-      value: 1.0,
-    );
-  }
-
-  @override
-  void didUpdateWidget(_ChevereNavBar old) {
-    super.didUpdateWidget(old);
-    if (old.currentIndex != widget.currentIndex) {
-      _prevIndex = old.currentIndex;
-      _pillCtrl.forward(from: 0).then((_) {
-        if (mounted) setState(() => _prevIndex = widget.currentIndex);
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _pillCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final n = _shellDests.length;
-
-    // Negro puro como TikTok: el scrim de MIUI sobre negro es invisible.
-    const bg            = Colors.black;
-    const inactiveColor = Colors.grey;
-
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+
     return ColoredBox(
-      color: bg,
+      color: Colors.black,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const Divider(height: 1, thickness: 1, color: Color(0x33FFFFFF)),
           SizedBox(
-            height: 64,
-            child: Stack(
-              children: [
-                // Línea divisoria superior
-                const Positioned(
-                  top: 0, left: 0, right: 0,
-                  child: Divider(height: 1, thickness: 1, color: Color(0x1AFFFFFF)),
-                ),
+            height: 60,
+            child: Row(
+              children: List.generate(_shellDests.length, (i) {
+                final dest     = _shellDests[i];
+                final selected = i == currentIndex;
+                final color    = selected ? AppColors.primary : Colors.grey;
 
-                // Píldora deslizante
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final tabW = constraints.maxWidth / n;
-                    return AnimatedBuilder(
-                      animation: _pillCtrl,
-                      builder: (context, _) {
-                        final t     = Curves.easeInOutCubic.transform(_pillCtrl.value);
-                        final fromX = tabW * _prevIndex;
-                        final toX   = tabW * widget.currentIndex;
-                        final pillX = fromX + (toX - fromX) * t;
+                Widget icon = Icon(
+                  selected ? (dest.activeIcon ?? dest.icon) : dest.icon,
+                  size: 24,
+                  color: color,
+                );
 
-                        return Positioned(
-                          left: pillX + 6,
-                          top: 8,
-                          width: tabW - 12,
-                          height: 40,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: const Color(0x1AFFFFFF), // blanco 10 %
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                if (i == 2 && radarCount > 0) {
+                  icon = Badge(
+                    label: Text('$radarCount'),
+                    backgroundColor: AppColors.statusOrange,
+                    child: icon,
+                  );
+                }
 
-                // Fila de tabs
-                Row(
-                  children: List.generate(n, (i) {
-                    final dest     = _shellDests[i];
-                    final selected = i == widget.currentIndex;
-                    final color    = selected ? AppColors.primary : inactiveColor;
-
-                    Widget icon = Icon(
-                      selected ? (dest.activeIcon ?? dest.icon) : dest.icon,
-                      size: 22,
-                      color: color,
-                    );
-
-                    if (i == 2 && widget.radarCount > 0) {
-                      icon = Badge(
-                        label: Text('${widget.radarCount}'),
-                        backgroundColor: AppColors.statusOrange,
-                        child: icon,
-                      );
-                    }
-
-                    return Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => widget.onTap(i),
-                        child: SizedBox(
-                          height: 64,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedScale(
-                                scale: selected ? 1.12 : 1.0,
-                                duration: const Duration(milliseconds: 220),
-                                curve: Curves.easeOutBack,
-                                child: icon,
-                              ),
-                              const SizedBox(height: 3),
-                              AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: AppTextStyles.labelSmall.copyWith(
-                                  color: color,
-                                  fontWeight: selected
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                  fontSize: selected ? 10.5 : 10,
-                                ),
-                                child: Text(dest.label),
-                              ),
-                            ],
+                return Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onTap(i),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        icon,
+                        const SizedBox(height: 4),
+                        Text(
+                          dest.label,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: selected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                ),
-              ],
+                      ],
+                    ),
+                  ),
+                );
+              }),
             ),
           ),
-          // Extiende el fondo hasta el borde físico de la pantalla.
           SizedBox(height: bottomInset),
         ],
       ),
