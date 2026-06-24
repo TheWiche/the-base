@@ -267,18 +267,13 @@ class _AppShell extends ConsumerWidget {
     final isDark = themeMode == ThemeMode.dark ||
         (themeMode == ThemeMode.system &&
             MediaQuery.of(context).platformBrightness == Brightness.dark);
-    final navBg = isDark ? AppColors.navBarDark : AppColors.navBarLight;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        // edgeToEdge: la barra del sistema es TRANSPARENTE.
-        // systemNavigationBarContrastEnforced: false evita el scrim gris
-        // automático que MIUI/Android 10+ añade para contraste.
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,
         systemNavigationBarContrastEnforced: false,
-        systemNavigationBarIconBrightness:
-            isDark ? Brightness.light : Brightness.dark,
+        // La barra siempre es negra → los iconos del sistema deben ser claros.
+        systemNavigationBarIconBrightness: Brightness.light,
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
@@ -295,8 +290,6 @@ class _AppShell extends ConsumerWidget {
             _ChevereNavBar(
               currentIndex: currentIdx,
               radarCount: radarCount,
-              isDark: isDark,
-              bg: navBg,
               onTap: (i) {
                 HapticFeedback.selectionClick();
                 context.go(_shellDests[i].route);
@@ -327,15 +320,11 @@ class _ChevereNavBar extends StatefulWidget {
   const _ChevereNavBar({
     required this.currentIndex,
     required this.radarCount,
-    required this.isDark,
-    required this.bg,
     required this.onTap,
   });
 
   final int currentIndex;
   final int radarCount;
-  final bool isDark;
-  final Color bg;
   final ValueChanged<int> onTap;
 
   @override
@@ -377,132 +366,121 @@ class _ChevereNavBarState extends State<_ChevereNavBar>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = widget.isDark;
-    final bg     = widget.bg;
-    final n      = _shellDests.length;
+    final n = _shellDests.length;
 
-    // En edgeToEdge, viewPadding.bottom es la altura del área del gesto.
-    // Pintamos TODO ese espacio con bg (violeta) para que el ColoredBox llegue
-    // hasta el borde físico de la pantalla, tapando la zona transparente del
-    // sistema que antes se mezclaba con gris.
+    // Fusión oscura: negro puro absorbe el scrim gris de MIUI, haciéndolo
+    // invisible. viewPadding.bottom extiende el negro hasta el borde físico.
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     return ColoredBox(
-      color: bg,
+      color: Colors.black,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
             height: 64,
             child: Stack(
-            children: [
-              // Línea divisoria superior
-              Positioned(
-                top: 0, left: 0, right: 0,
-                child: Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: AppColors.primary.withValues(
-                    alpha: isDark ? 0.25 : 0.20,
+              children: [
+                // Línea divisoria superior sutil sobre negro
+                Positioned(
+                  top: 0, left: 0, right: 0,
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Colors.white.withValues(alpha: 0.12),
                   ),
                 ),
-              ),
 
-              // Píldora deslizante
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final tabW = constraints.maxWidth / n;
-                  return AnimatedBuilder(
-                    animation: _pillCtrl,
-                    builder: (context, _) {
-                      final t     = Curves.easeInOutCubic.transform(_pillCtrl.value);
-                      final fromX = tabW * _prevIndex;
-                      final toX   = tabW * widget.currentIndex;
-                      final pillX = fromX + (toX - fromX) * t;
+                // Píldora deslizante: tinte blanco sobre negro
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final tabW = constraints.maxWidth / n;
+                    return AnimatedBuilder(
+                      animation: _pillCtrl,
+                      builder: (context, _) {
+                        final t     = Curves.easeInOutCubic.transform(_pillCtrl.value);
+                        final fromX = tabW * _prevIndex;
+                        final toX   = tabW * widget.currentIndex;
+                        final pillX = fromX + (toX - fromX) * t;
 
-                      return Positioned(
-                        left: pillX + 6,
-                        top: 8,
-                        width: tabW - 12,
-                        height: 40,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(
-                              alpha: isDark ? 0.18 : 0.12,
+                        return Positioned(
+                          left: pillX + 6,
+                          top: 8,
+                          width: tabW - 12,
+                          height: 40,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+
+                // Fila de tabs
+                Row(
+                  children: List.generate(n, (i) {
+                    final dest     = _shellDests[i];
+                    final selected = i == widget.currentIndex;
+                    // Activo: violeta principal. Inactivo: gris medio.
+                    final iconColor = selected
+                        ? AppColors.primary
+                        : Colors.grey;
+
+                    Widget icon = Icon(
+                      selected ? (dest.activeIcon ?? dest.icon) : dest.icon,
+                      size: 22,
+                      color: iconColor,
+                    );
+
+                    if (i == 2 && widget.radarCount > 0) {
+                      icon = Badge(
+                        label: Text('${widget.radarCount}'),
+                        backgroundColor: AppColors.statusOrange,
+                        child: icon,
+                      );
+                    }
+
+                    return Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => widget.onTap(i),
+                        child: SizedBox(
+                          height: 64,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              AnimatedScale(
+                                scale: selected ? 1.12 : 1.0,
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutBack,
+                                child: icon,
+                              ),
+                              const SizedBox(height: 3),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 200),
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: iconColor,
+                                  fontWeight: selected
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                  fontSize: selected ? 10.5 : 10,
+                                ),
+                                child: Text(dest.label),
+                              ),
+                            ],
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
-
-              // Fila de tabs
-              Row(
-                children: List.generate(n, (i) {
-                  final dest     = _shellDests[i];
-                  final selected = i == widget.currentIndex;
-                  final iconColor = selected
-                      ? AppColors.primary
-                      : (isDark
-                          ? AppColors.darkOnSurfaceVariant
-                          : AppColors.lightOnSurfaceVariant);
-                  final labelColor = iconColor;
-
-                  Widget icon = Icon(
-                    selected ? (dest.activeIcon ?? dest.icon) : dest.icon,
-                    size: 22,
-                    color: iconColor,
-                  );
-
-                  if (i == 2 && widget.radarCount > 0) {
-                    icon = Badge(
-                      label: Text('${widget.radarCount}'),
-                      backgroundColor: AppColors.statusOrange,
-                      child: icon,
-                    );
-                  }
-
-                  return Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => widget.onTap(i),
-                      child: SizedBox(
-                        height: 64,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            AnimatedScale(
-                              scale: selected ? 1.12 : 1.0,
-                              duration: const Duration(milliseconds: 220),
-                              curve: Curves.easeOutBack,
-                              child: icon,
-                            ),
-                            const SizedBox(height: 3),
-                            AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 200),
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: labelColor,
-                                fontWeight: selected
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                                fontSize: selected ? 10.5 : 10,
-                              ),
-                              child: Text(dest.label),
-                            ),
-                          ],
-                        ),
                       ),
-                    ),
-                  );
-                }),
-              ),
-            ],
+                    );
+                  }),
+                ),
+              ],
+            ),
           ),
-        ),
-          // Rellena el área del gesto con el mismo color violeta,
-          // eliminando cualquier zona transparente del sistema.
+          // Negro sólido hasta el borde físico de la pantalla.
           SizedBox(height: bottomInset),
         ],
       ),
