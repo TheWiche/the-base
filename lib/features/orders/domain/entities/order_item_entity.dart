@@ -19,6 +19,8 @@ final class OrderItemEntity {
     this.deliveredAt,
     this.paymentReceiptId,
     this.note,
+    this.menuCategory,
+    this.subcategory,
   });
 
   final int id;
@@ -44,6 +46,16 @@ final class OrderItemEntity {
 
   /// Optional free-text note for the kitchen/bar (e.g. "sin hielo, con limón").
   final String? note;
+
+  /// Menu category captured at order time (for the factura "Agrupada" view).
+  final String? menuCategory;
+
+  /// Optional menu subcategory ("Cerveza", "Soda", …).
+  final String? subcategory;
+
+  /// Menu category for grouping — falls back to "Otros" when unknown.
+  String get menuCategoryOrOther =>
+      (menuCategory == null || menuCategory!.isEmpty) ? 'Otros' : menuCategory!;
 
   // ── Computed ───────────────────────────────────────────────────────────────
 
@@ -97,6 +109,8 @@ final class OrderItemEntity {
     bool? isPaid,
     int? paymentReceiptId,
     String? note,
+    String? menuCategory,
+    String? subcategory,
   }) =>
       OrderItemEntity(
         id: id ?? this.id,
@@ -112,6 +126,8 @@ final class OrderItemEntity {
         isPaid: isPaid ?? this.isPaid,
         paymentReceiptId: paymentReceiptId ?? this.paymentReceiptId,
         note: note ?? this.note,
+        menuCategory: menuCategory ?? this.menuCategory,
+        subcategory: subcategory ?? this.subcategory,
       );
 
   /// Builds the params to re-order this exact line as a fresh pending item
@@ -124,6 +140,8 @@ final class OrderItemEntity {
         category: category,
         productCatalogId: productCatalogId,
         note: note,
+        menuCategory: menuCategory,
+        subcategory: subcategory,
       );
 
   @override
@@ -183,6 +201,8 @@ final class AddItemParams {
     this.productCatalogId,
     this.quantity = 1,
     this.note,
+    this.menuCategory,
+    this.subcategory,
   }) : assert(price > 0, 'price must be positive'),
        assert(quantity >= 1, 'quantity must be at least 1');
 
@@ -199,6 +219,12 @@ final class AddItemParams {
 
   /// Optional free-text note for the kitchen/bar.
   final String? note;
+
+  /// Menu category ("Micheladas", …) — captured for the factura grouping.
+  final String? menuCategory;
+
+  /// Optional menu subcategory ("Cerveza", "Soda", …).
+  final String? subcategory;
 
   int get lineTotal => price * quantity;
 

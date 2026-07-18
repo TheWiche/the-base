@@ -139,12 +139,14 @@ const _WaiterBaseTransactiontypeEnumValueMap = {
   'increase': 1,
   'decrease': 2,
   'liquorAdjustment': 3,
+  'liquorSettlement': 4,
 };
 const _WaiterBaseTransactiontypeValueEnumMap = {
   0: TransactionType.initial,
   1: TransactionType.increase,
   2: TransactionType.decrease,
   3: TransactionType.liquorAdjustment,
+  4: TransactionType.liquorSettlement,
 };
 
 Id _waiterBaseTransactionGetId(WaiterBaseTransaction object) {

@@ -176,6 +176,7 @@ class _TypeBadge extends StatelessWidget {
       TransactionType.increase => ('AUMENTO', AppColors.brand),
       TransactionType.decrease => ('BAJA', AppColors.statusOrange),
       TransactionType.liquorAdjustment => ('LICOR', AppColors.statusPurple),
+      TransactionType.liquorSettlement => ('BOTELLA', AppColors.statusGreen),
     };
 
     return Container(

@@ -175,10 +175,14 @@ class _NotificationListenerState
     final radarCount = ref.read(pendingRadarCountProvider);
     if (radarCount >= 3) {
       await NotificationService.showRadarAlert(radarCount);
+    } else {
+      await NotificationService.cancelRadarAlert();
     }
     final transferCount = ref.read(pendingTransfersProvider).length;
     if (transferCount > 0) {
       await NotificationService.showTransferAlert(transferCount);
+    } else {
+      await NotificationService.cancelTransferAlert();
     }
   }
 
@@ -188,12 +192,18 @@ class _NotificationListenerState
     ref.listen<int>(pendingRadarCountProvider, (prev, next) {
       if (next >= 5 && (prev ?? 0) < 5) {
         NotificationService.showRadarAlert(next);
+      } else if (next == 0) {
+        NotificationService.cancelRadarAlert();
       }
     });
 
-    // Alert when the first unlegalized transfer arrives.
+    // Transferencias dinámicas (#7): aparece al llegar la primera, se actualiza
+    // el conteo al cambiar, y DESAPARECE cuando ya no quedan pendientes.
     ref.listen(pendingTransfersProvider, (prev, next) {
-      if (next.isNotEmpty && (prev?.isEmpty ?? true)) {
+      final prevLen = prev?.length ?? 0;
+      if (next.isEmpty) {
+        NotificationService.cancelTransferAlert();
+      } else if (next.length != prevLen) {
         NotificationService.showTransferAlert(next.length);
       }
     });

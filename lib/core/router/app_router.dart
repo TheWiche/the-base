@@ -19,6 +19,7 @@ import '../../features/payments/presentation/screens/standalone_transfer_screen.
 import '../../features/payments/presentation/screens/transfer_capture_screen.dart';
 import '../../features/products/presentation/screens/products_screen.dart';
 import '../../features/radar/presentation/screens/radar_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/tables/presentation/screens/tables_screen.dart';
 import '../theme/app_colors.dart';
 import '../theme/theme_provider.dart';
@@ -238,10 +239,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
         path: AppRoutes.settings,
-        pageBuilder: (context, state) => _slidePage(
-          state.pageKey,
-          const _PlaceholderScreen(title: 'Configuración'),
-        ),
+        pageBuilder: (context, state) =>
+            _slidePage(state.pageKey, const SettingsScreen()),
       ),
     ],
   );
@@ -421,20 +420,3 @@ class _NavBar extends StatelessWidget {
   }
 }
 
-// ── Placeholder screen ─────────────────────────────────────────────────────────
-
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Text(title, style: Theme.of(context).textTheme.headlineMedium),
-      ),
-    );
-  }
-}

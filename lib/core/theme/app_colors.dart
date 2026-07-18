@@ -1,31 +1,34 @@
 import 'package:flutter/material.dart';
 
-/// Paleta "Violeta Nocturna" — fuente única de color para toda la app.
+/// Paleta "Tiquete" — fuente única de color para toda la app.
 ///
-/// Primario : Violeta  #7C3AED — CTAs, selección, indicadores activos.
-/// Secundario: Esmeralda #10B981 — éxito, dinero, confirmación.
-/// Oscuro    : familia Zinc (casi negro cálido) + acentos violeta.
-/// Claro     : blancos limpios + violeta + esmeralda.
+/// Concepto: shell oscuro casi-negro + facturas de papel crema + acento ámbar
+/// (mostaza) + verde para dinero/confirmación. Tipografía monoespaciada.
+/// Reemplaza la antigua paleta violeta ("hecha por IA"). Los nombres de
+/// constantes se conservan para que el resto del código herede el nuevo look
+/// sin tocar cada archivo.
+///
+/// Primario : Ámbar   #E0A63C — CTAs, selección, indicadores activos.
+/// Dinero   : Verde   #46B67F — éxito, cobrar, confirmación.
+/// Papel    : Crema   #F2ECDC — facturas/tiquetes (igual en claro y oscuro).
 abstract final class AppColors {
-  // ── Brand / Primary ───────────────────────────────────────────────────────
-  static const Color primary      = Color(0xFF7C3AED); // violet-600
-  static const Color primaryLight = Color(0xFFA78BFA); // violet-400
-  static const Color primaryDark  = Color(0xFF5B21B6); // violet-800
+  // ── Brand / Primary — Ámbar tiquete ───────────────────────────────────────
+  static const Color primary      = Color(0xFFE0A63C); // amber/mostaza
+  static const Color primaryLight = Color(0xFFF0C674); // amber claro
+  static const Color primaryDark  = Color(0xFFB07E22); // amber quemado
 
-  // ── Secondary / Success ───────────────────────────────────────────────────
-  static const Color secondary      = Color(0xFF10B981); // emerald-500
-  static const Color secondaryLight = Color(0xFF34D399); // emerald-400
-  static const Color secondaryDark  = Color(0xFF059669); // emerald-600
+  // ── Secondary / Success — Verde dinero ────────────────────────────────────
+  static const Color secondary      = Color(0xFF46B67F);
+  static const Color secondaryLight = Color(0xFF6ECB9C);
+  static const Color secondaryDark  = Color(0xFF2F8C5F);
 
   // ── Brand aliases (backwards compat) ─────────────────────────────────────
   static const Color brand      = primary;
   static const Color brandDark  = primaryDark;
   static const Color brandLight = primaryLight;
 
-  // ── Chévere name aliases ──────────────────────────────────────────────────
-  // Los nombres anteriores ahora apuntan a los nuevos colores.
-  // Todo el código existente que use estos nombres hereda la nueva paleta
-  // sin necesidad de modificar cada archivo.
+  // ── Aliases heredados (apuntan a la paleta nueva) ─────────────────────────
+  // Todo el código que use estos nombres hereda la nueva paleta sin editar.
   static const Color chevereTeal      = primary;
   static const Color chevereTealDark  = primaryDark;
   static const Color chevereTealLight = primaryLight;
@@ -34,61 +37,67 @@ abstract final class AppColors {
   static const Color cheverePizarra   = lightOnSurface;
   static const Color chevereBlanco    = lightBackground;
 
-  // ── Status — Error / Pendiente ────────────────────────────────────────────
-  static const Color statusRed    = Color(0xFFEF4444); // red-500
-  static const Color statusRedDim = Color(0xFF991B1B); // red-800
+  // ── Papel de tiquete (crema, igual en ambos temas) ────────────────────────
+  static const Color paper        = Color(0xFFF2ECDC); // papel crema
+  static const Color paperDim     = Color(0xFFE7DFC9); // crema alterno (cebra)
+  static const Color paperInk     = Color(0xFF1A1A22); // tinta casi-negra
+  static const Color paperInkSoft = Color(0xFF6B6450); // tinta desvaída
+  static const Color paperLine    = Color(0xFFB9AE90); // líneas punteadas
+
+  // ── Status — Error / Pendiente (rojo sello) ───────────────────────────────
+  static const Color statusRed    = Color(0xFFD6483B); // rojo sello
+  static const Color statusRedDim = Color(0xFF7F241C);
   static const Color onStatusRed  = Color(0xFFFFFFFF);
 
-  // ── Status — Éxito / Cobrado ──────────────────────────────────────────────
-  static const Color statusGreen    = Color(0xFF34D399); // emerald-400
-  static const Color statusGreenDim = Color(0xFF065F46); // emerald-900
-  static const Color onStatusGreen  = Color(0xFF022C22);
+  // ── Status — Éxito / Cobrado (verde) ──────────────────────────────────────
+  static const Color statusGreen    = Color(0xFF46B67F);
+  static const Color statusGreenDim = Color(0xFF0F5537);
+  static const Color onStatusGreen  = Color(0xFF03251A);
 
-  // ── Status — Advertencia / En progreso ───────────────────────────────────
-  static const Color statusOrange   = Color(0xFFF97316); // orange-500
-  static const Color onStatusOrange = Color(0xFFFFFFFF);
+  // ── Status — Advertencia / En progreso (ámbar cálido) ─────────────────────
+  static const Color statusOrange   = Color(0xFFE0872C);
+  static const Color onStatusOrange = Color(0xFF2A1600);
 
   // ── Status — Transferencia / Info ─────────────────────────────────────────
-  static const Color statusBlue   = Color(0xFF38BDF8); // sky-400
-  static const Color onStatusBlue = Color(0xFF082F49);
+  static const Color statusBlue   = Color(0xFF5B8DEF);
+  static const Color onStatusBlue = Color(0xFF06183A);
 
-  // ── Status — Licor / Especial ─────────────────────────────────────────────
-  static const Color statusPurple   = Color(0xFFC084FC); // purple-400
-  static const Color onStatusPurple = Color(0xFF3B0764);
+  // ── Status — Licor / Especial (whisky ámbar-marrón) ───────────────────────
+  static const Color statusPurple   = Color(0xFFC0873E); // licor
+  static const Color onStatusPurple = Color(0xFF2A1A06);
 
-  // ── Dark Theme Surfaces (familia Zinc) ───────────────────────────────────
-  static const Color darkBackground       = Color(0xFF09090B); // zinc-950
-  static const Color darkSurface          = Color(0xFF18181B); // zinc-900
-  static const Color darkSurfaceVariant   = Color(0xFF27272A); // zinc-800
-  static const Color darkOutline          = Color(0xFF3F3F46); // zinc-700
-  static const Color darkOutlineVariant   = Color(0xFF27272A); // zinc-800
+  // ── Dark Theme Surfaces (shell casi-negro cálido) ─────────────────────────
+  static const Color darkBackground       = Color(0xFF0B0B10);
+  static const Color darkSurface          = Color(0xFF14141C);
+  static const Color darkSurfaceVariant   = Color(0xFF1E1E28);
+  static const Color darkOutline          = Color(0xFF34343F);
+  static const Color darkOutlineVariant   = Color(0xFF26262F);
 
-  // ── Dark Theme Text ───────────────────────────────────────────────────────
-  static const Color darkOnBackground     = Color(0xFFFAFAFA); // zinc-50
-  static const Color darkOnSurface        = Color(0xFFFAFAFA); // zinc-50
-  static const Color darkOnSurfaceVariant = Color(0xFFA1A1AA); // zinc-400
-  static const Color darkDisabled         = Color(0xFF52525B); // zinc-600
+  // ── Dark Theme Text (blanco cálido) ───────────────────────────────────────
+  static const Color darkOnBackground     = Color(0xFFF5F1E6);
+  static const Color darkOnSurface        = Color(0xFFF5F1E6);
+  static const Color darkOnSurfaceVariant = Color(0xFFA7A296);
+  static const Color darkDisabled         = Color(0xFF55555F);
 
-  // ── Light Theme Surfaces ──────────────────────────────────────────────────
-  static const Color lightBackground     = Color(0xFFF9FAFB); // gray-50
-  static const Color lightSurface        = Color(0xFFFFFFFF); // white
-  static const Color lightSurfaceVariant = Color(0xFFF3F4F6); // gray-100
-  static const Color lightOutline        = Color(0xFFE5E7EB); // gray-200
-  static const Color lightOutlineVariant = Color(0xFFF3F4F6); // gray-100
+  // ── Light Theme Surfaces (cálido, no blanco frío) ─────────────────────────
+  static const Color lightBackground     = Color(0xFFFAF7EF);
+  static const Color lightSurface        = Color(0xFFFFFFFF);
+  static const Color lightSurfaceVariant = Color(0xFFF1EBDD);
+  static const Color lightOutline        = Color(0xFFE2D9C6);
+  static const Color lightOutlineVariant = Color(0xFFEFE9DB);
 
   // ── Light Theme Text ──────────────────────────────────────────────────────
-  static const Color lightOnBackground     = Color(0xFF111827); // gray-900
-  static const Color lightOnSurface        = Color(0xFF111827); // gray-900
-  static const Color lightOnSurfaceVariant = Color(0xFF6B7280); // gray-500
-  static const Color lightDisabled         = Color(0xFFD1D5DB); // gray-300
+  static const Color lightOnBackground     = Color(0xFF1F1B12);
+  static const Color lightOnSurface        = Color(0xFF1F1B12);
+  static const Color lightOnSurfaceVariant = Color(0xFF6B6552);
+  static const Color lightDisabled         = Color(0xFFC9C0AD);
 
   // ── Nav bar background (bottom navigation) ───────────────────────────────
-  // Single source of truth used in main.dart, app_router.dart, app_theme.dart
-  // and native Android styles.xml so the color is consistent everywhere.
-  // Tonos claramente violeta (no los pálidos violet-100/950 que se confundían
-  // con gris): en claro un lavanda visible, en oscuro un violeta profundo.
-  static const Color navBarDark  = Color(0xFF4C2E92); // bold violet, unmistakable
-  static const Color navBarLight = Color(0xFFB39DF7); // bold lavender, unmistakable
+  // Se funden con el shell para camuflar el velo de gestos de MIUI: el nav bar
+  // custom en app_router usa darkBackground/lightBackground directamente; estos
+  // alias apuntan a lo mismo por si algún tema los referencia.
+  static const Color navBarDark  = darkBackground;
+  static const Color navBarLight = lightBackground;
 
   // ── Scrim / Overlay ───────────────────────────────────────────────────────
   static const Color scrim      = Color(0xCC000000);
@@ -101,14 +110,14 @@ abstract final class AppColors {
     end: Alignment.bottomRight,
   );
 
-  /// Header modo oscuro: violeta profundo → zinc-950.
+  /// Header modo oscuro: ámbar quemado → shell casi-negro.
   static const LinearGradient darkHeaderGradient = LinearGradient(
-    colors: [Color(0xFF2D1B69), Color(0xFF09090B)],
+    colors: [Color(0xFF3A2A0F), Color(0xFF0B0B10)],
     begin: Alignment.topLeft,
     end: Alignment.bottomCenter,
   );
 
-  /// Header modo claro: gradiente violeta.
+  /// Header modo claro: gradiente ámbar.
   static const LinearGradient lightHeaderGradient = LinearGradient(
     colors: [primaryDark, primary],
     begin: Alignment.topLeft,

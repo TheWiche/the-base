@@ -2,27 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/constants/product_categories.dart';
 import '../../../../core/database/isar_service.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/i_product_repository.dart';
 import '../models/product.dart';
-
-/// Canonical display order for categories in the UI.
-const _kCategoryOrder = [
-  'Granizados',
-  "Fría's",
-  'Micheladas',
-  'Gaseosas Solas',
-  'Cocteles Paletas',
-  'Mojitos',
-  'Sangría',
-  'Otros',
-  'Vinos',
-  'Licores',
-  'Descorche',
-];
 
 const _kSeedVersion = 3;
 const _kSeedVersionKey = 'thebase_seed_v';
@@ -234,10 +220,11 @@ final class ProductRepositoryImpl implements IProductRepository {
         .map((list) {
           final sorted = [...list]
             ..sort((a, b) {
-              final ai = _kCategoryOrder.indexOf(a.category);
-              final bi = _kCategoryOrder.indexOf(b.category);
-              final ci = (ai == -1 ? 999 : ai).compareTo(bi == -1 ? 999 : bi);
-              return ci != 0 ? ci : a.name.compareTo(b.name);
+              final ci = categorySortIndex(a.category)
+                  .compareTo(categorySortIndex(b.category));
+              if (ci != 0) return ci;
+              final si = (a.subcategory ?? '').compareTo(b.subcategory ?? '');
+              return si != 0 ? si : a.name.compareTo(b.name);
             });
           return sorted.map(_toEntity).toList();
         });
@@ -261,6 +248,87 @@ final class ProductRepositoryImpl implements IProductRepository {
     }
   }
 
+  // ── CRUD ────────────────────────────────────────────────────────────────────
+
+  @override
+  Future<Result<int>> addProduct({
+    required String name,
+    required int price,
+    required String category,
+    String? subcategory,
+    required bool isLiquor,
+  }) async {
+    try {
+      late int newId;
+      await IsarService.write((isar) async {
+        final product = Product()
+          ..name = name.trim()
+          ..price = price
+          ..category = category.trim()
+          ..subcategory = _clean(subcategory)
+          ..isLiquor = isLiquor
+          ..isAvailable = true;
+        newId = await isar.products.put(product);
+      });
+      return Ok(newId);
+    } catch (e, st) {
+      return Err(DatabaseFailure(
+        message: 'No se pudo crear el producto: $e',
+        stackTrace: st,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> updateProduct({
+    required int id,
+    required String name,
+    required int price,
+    required String category,
+    String? subcategory,
+    required bool isLiquor,
+  }) async {
+    try {
+      await IsarService.write((isar) async {
+        final product = await isar.products.get(id);
+        if (product == null) return;
+        product
+          ..name = name.trim()
+          ..price = price
+          ..category = category.trim()
+          ..subcategory = _clean(subcategory)
+          ..isLiquor = isLiquor;
+        await isar.products.put(product);
+      });
+      return const Ok(null);
+    } catch (e, st) {
+      return Err(DatabaseFailure(
+        message: 'No se pudo actualizar el producto: $e',
+        stackTrace: st,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteProduct(int productId) async {
+    try {
+      await IsarService.write((isar) async {
+        await isar.products.delete(productId);
+      });
+      return const Ok(null);
+    } catch (e, st) {
+      return Err(DatabaseFailure(
+        message: 'No se pudo eliminar el producto: $e',
+        stackTrace: st,
+      ));
+    }
+  }
+
+  static String? _clean(String? s) {
+    final t = s?.trim();
+    return (t == null || t.isEmpty) ? null : t;
+  }
+
   // ── Mapping ───────────────────────────────────────────────────────────────
 
   static ProductEntity _toEntity(Product p) => ProductEntity(
@@ -268,6 +336,7 @@ final class ProductRepositoryImpl implements IProductRepository {
         name: p.name,
         price: p.price,
         category: p.category,
+        subcategory: p.subcategory,
         isLiquor: p.isLiquor,
         isAvailable: p.isAvailable,
       );

@@ -8,6 +8,7 @@ final class ProductEntity {
     required this.category,
     required this.isLiquor,
     required this.isAvailable,
+    this.subcategory,
   });
 
   final int id;
@@ -18,6 +19,9 @@ final class ProductEntity {
 
   /// Human-readable category matching the Bonanza menu (e.g. "Granizados").
   final String category;
+
+  /// Optional menu subcategory ("Cerveza", "Soda", …).
+  final String? subcategory;
 
   /// Whether the product follows the liquor debt rule instead of reducing
   /// the waiter's active balance.

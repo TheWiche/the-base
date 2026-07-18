@@ -14,13 +14,13 @@ abstract final class AppTheme {
   static const ColorScheme _darkScheme = ColorScheme(
     brightness: Brightness.dark,
     primary: AppColors.primary,
-    onPrimary: Color(0xFFFFFFFF),
-    primaryContainer: Color(0xFF2E1065),    // violet-950
-    onPrimaryContainer: Color(0xFFEDE9FE), // violet-100
+    onPrimary: Color(0xFF241A05),           // tinta oscura sobre ámbar
+    primaryContainer: Color(0xFF3A2A0F),    // ámbar quemado profundo
+    onPrimaryContainer: Color(0xFFF0DDB8), // ámbar claro
     secondary: AppColors.secondary,
-    onSecondary: Color(0xFF022C22),
-    secondaryContainer: Color(0xFF064E3B),
-    onSecondaryContainer: Color(0xFFD1FAE5),
+    onSecondary: Color(0xFF03251A),
+    secondaryContainer: Color(0xFF124A33),
+    onSecondaryContainer: Color(0xFFCBEFDD),
     tertiary: AppColors.statusBlue,
     onTertiary: Color(0xFF082F49),
     tertiaryContainer: Color(0xFF0C4A6E),
@@ -52,18 +52,18 @@ abstract final class AppTheme {
   static const ColorScheme _lightScheme = ColorScheme(
     brightness: Brightness.light,
     primary: AppColors.primary,
-    onPrimary: Color(0xFFFFFFFF),
-    primaryContainer: Color(0xFFEDE9FE),    // violet-100
-    onPrimaryContainer: Color(0xFF2E1065), // violet-950
+    onPrimary: Color(0xFF241A05),           // tinta oscura sobre ámbar
+    primaryContainer: Color(0xFFF7E9C9),    // ámbar muy claro
+    onPrimaryContainer: Color(0xFF3A2A0F), // ámbar quemado
     secondary: AppColors.secondaryDark,
     onSecondary: Color(0xFFFFFFFF),
-    secondaryContainer: Color(0xFFD1FAE5), // emerald-100
-    onSecondaryContainer: Color(0xFF022C22),
-    tertiary: Color(0xFF0284C7),           // sky-600
+    secondaryContainer: Color(0xFFCFEFDD), // verde claro
+    onSecondaryContainer: Color(0xFF03251A),
+    tertiary: Color(0xFF3B6FD4),           // azul
     onTertiary: Color(0xFFFFFFFF),
-    tertiaryContainer: Color(0xFFE0F2FE),
-    onTertiaryContainer: Color(0xFF082F49),
-    error: Color(0xFFDC2626),             // red-600
+    tertiaryContainer: Color(0xFFDCE7FB),
+    onTertiaryContainer: Color(0xFF06183A),
+    error: Color(0xFFC0392B),             // rojo sello
     onError: Color(0xFFFFFFFF),
     errorContainer: Color(0xFFFEE2E2),
     onErrorContainer: Color(0xFF7F1D1D),
@@ -424,7 +424,7 @@ abstract final class AppTheme {
       // ── FAB ──────────────────────────────────────────────────────────────────
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: const Color(0xFF241A05),
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusMd),

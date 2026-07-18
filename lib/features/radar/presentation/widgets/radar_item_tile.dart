@@ -180,6 +180,28 @@ class RadarItemTile extends ConsumerWidget {
                           ),
                         ],
                       ),
+
+                      // ── Nota del ítem (si tiene) ───────────────────────
+                      if (item.note != null && item.note!.isNotEmpty) ...[
+                        const SizedBox(height: AppDimensions.space6),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.sticky_note_2_rounded,
+                                size: 14, color: AppColors.statusOrange),
+                            const SizedBox(width: AppDimensions.space6),
+                            Expanded(
+                              child: Text(
+                                item.note!,
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.statusOrange,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

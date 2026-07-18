@@ -114,6 +114,14 @@ class TableOrderNotifier extends FamilyAsyncNotifier<List<OrderItemEntity>, int>
     return _failure(result);
   }
 
+  /// Completa una botella de licor (pass-through): baja la deuda de licor y la
+  /// saca de la cuenta, sin registrar efectivo.
+  Future<Failure?> settleLiquor(int itemId) async {
+    final result =
+        await ref.read(orderRepositoryProvider).settleLiquorItem(itemId);
+    return _failure(result);
+  }
+
   Future<Failure?> clearCancelledItems() async {
     final result = await ref
         .read(orderRepositoryProvider)

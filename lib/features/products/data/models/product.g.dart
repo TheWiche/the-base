@@ -41,6 +41,11 @@ const ProductSchema = CollectionSchema(
       id: 4,
       name: r'price',
       type: IsarType.long,
+    ),
+    r'subcategory': PropertySchema(
+      id: 5,
+      name: r'subcategory',
+      type: IsarType.string,
     )
   },
   estimateSize: _productEstimateSize,
@@ -92,6 +97,12 @@ int _productEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.category.length * 3;
   bytesCount += 3 + object.name.length * 3;
+  {
+    final value = object.subcategory;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -106,6 +117,7 @@ void _productSerialize(
   writer.writeBool(offsets[2], object.isLiquor);
   writer.writeString(offsets[3], object.name);
   writer.writeLong(offsets[4], object.price);
+  writer.writeString(offsets[5], object.subcategory);
 }
 
 Product _productDeserialize(
@@ -121,6 +133,7 @@ Product _productDeserialize(
   object.isLiquor = reader.readBool(offsets[2]);
   object.name = reader.readString(offsets[3]);
   object.price = reader.readLong(offsets[4]);
+  object.subcategory = reader.readStringOrNull(offsets[5]);
   return object;
 }
 
@@ -141,6 +154,8 @@ P _productDeserializeProp<P>(
       return (reader.readString(offset)) as P;
     case 4:
       return (reader.readLong(offset)) as P;
+    case 5:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -816,6 +831,153 @@ extension ProductQueryFilter
       ));
     });
   }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'subcategory',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'subcategory',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'subcategory',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'subcategory',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> subcategoryIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subcategory',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      subcategoryIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'subcategory',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension ProductQueryObject
@@ -882,6 +1044,18 @@ extension ProductQuerySortBy on QueryBuilder<Product, Product, QSortBy> {
   QueryBuilder<Product, Product, QAfterSortBy> sortByPriceDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'price', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortBySubcategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subcategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortBySubcategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subcategory', Sort.desc);
     });
   }
 }
@@ -959,6 +1133,18 @@ extension ProductQuerySortThenBy
       return query.addSortBy(r'price', Sort.desc);
     });
   }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenBySubcategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subcategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenBySubcategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subcategory', Sort.desc);
+    });
+  }
 }
 
 extension ProductQueryWhereDistinct
@@ -992,6 +1178,13 @@ extension ProductQueryWhereDistinct
   QueryBuilder<Product, Product, QDistinct> distinctByPrice() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'price');
+    });
+  }
+
+  QueryBuilder<Product, Product, QDistinct> distinctBySubcategory(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'subcategory', caseSensitive: caseSensitive);
     });
   }
 }
@@ -1031,6 +1224,12 @@ extension ProductQueryProperty
   QueryBuilder<Product, int, QQueryOperations> priceProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'price');
+    });
+  }
+
+  QueryBuilder<Product, String?, QQueryOperations> subcategoryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'subcategory');
     });
   }
 }

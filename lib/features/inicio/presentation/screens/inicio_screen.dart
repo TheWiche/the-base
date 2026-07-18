@@ -252,7 +252,20 @@ class _HeroHeader extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const _ThemeToggle(),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Configuración',
+                    onPressed: () => context.push('/settings'),
+                    icon: Icon(Icons.settings_rounded,
+                        color: Colors.white.withOpacity(0.9)),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: AppDimensions.space4),
+                  const _ThemeToggle(),
+                ],
+              ),
               const SizedBox(height: AppDimensions.space8),
               // Shift indicator pill
               AnimatedContainer(
@@ -374,8 +387,8 @@ class _ThemeToggleState extends ConsumerState<_ThemeToggle>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
               color: Color.lerp(
-                const Color(0xFF3B1F6B), // oscuro: violeta profundo
-                const Color(0xFFEDE9FE), // claro: violet-100
+                const Color(0xFF3A2A0F), // oscuro: ámbar quemado
+                const Color(0xFFF7E9C9), // claro: crema ámbar
                 t,
               ),
               border: Border.all(

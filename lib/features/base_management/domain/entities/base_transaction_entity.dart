@@ -34,6 +34,7 @@ final class BaseTransactionEntity {
         TransactionType.increase => 'Incremento de Base',
         TransactionType.decrease => 'Reducción de Base',
         TransactionType.liquorAdjustment => 'Deuda por Licor',
+        TransactionType.liquorSettlement => 'Botella Completada',
       };
 
   String get displayPrefix => switch (type) {
@@ -41,6 +42,7 @@ final class BaseTransactionEntity {
         TransactionType.increase => '+',
         TransactionType.decrease => '−',
         TransactionType.liquorAdjustment => '+', // adds to debt, displayed positive
+        TransactionType.liquorSettlement => '−', // reduces liquor debt
       };
 
   Color get displayColor => switch (type) {
@@ -48,6 +50,7 @@ final class BaseTransactionEntity {
         TransactionType.increase => AppColors.brand,
         TransactionType.decrease => AppColors.statusOrange,
         TransactionType.liquorAdjustment => AppColors.statusPurple,
+        TransactionType.liquorSettlement => AppColors.statusGreen,
       };
 
   IconData get displayIcon => switch (type) {
@@ -55,6 +58,7 @@ final class BaseTransactionEntity {
         TransactionType.increase => Icons.trending_up_rounded,
         TransactionType.decrease => Icons.trending_down_rounded,
         TransactionType.liquorAdjustment => Icons.wine_bar_rounded,
+        TransactionType.liquorSettlement => Icons.check_circle_rounded,
       };
 
   BaseTransactionEntity copyWith({
@@ -109,4 +113,9 @@ enum TransactionType {
   /// The cost of a liquor bottle charged directly to the waiter's debt.
   /// Does NOT reduce Available Base Balance — only inflates Total Debt.
   liquorAdjustment,
+
+  /// Saldo de una botella "completada" (pagada en barra / caja).
+  /// Reduce la deuda de licor (contrapartida de [liquorAdjustment]). No toca
+  /// el saldo disponible ni el efectivo del mesero: la botella es pass-through.
+  liquorSettlement,
 }

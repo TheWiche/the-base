@@ -33,49 +33,59 @@ const OrderItemSchema = CollectionSchema(
       name: r'isPaid',
       type: IsarType.bool,
     ),
-    r'note': PropertySchema(
+    r'menuCategory': PropertySchema(
       id: 3,
+      name: r'menuCategory',
+      type: IsarType.string,
+    ),
+    r'note': PropertySchema(
+      id: 4,
       name: r'note',
       type: IsarType.string,
     ),
     r'orderedAt': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'orderedAt',
       type: IsarType.dateTime,
     ),
     r'paymentReceiptId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'paymentReceiptId',
       type: IsarType.long,
     ),
     r'price': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'price',
       type: IsarType.long,
     ),
     r'productCatalogId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'productCatalogId',
       type: IsarType.string,
     ),
     r'productName': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'productName',
       type: IsarType.string,
     ),
     r'quantity': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'quantity',
       type: IsarType.long,
     ),
     r'status': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'status',
       type: IsarType.byte,
       enumMap: _OrderItemstatusEnumValueMap,
     ),
+    r'subcategory': PropertySchema(
+      id: 12,
+      name: r'subcategory',
+      type: IsarType.string,
+    ),
     r'tableSessionId': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'tableSessionId',
       type: IsarType.long,
     )
@@ -167,6 +177,12 @@ int _orderItemEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
+    final value = object.menuCategory;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.note;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -179,6 +195,12 @@ int _orderItemEstimateSize(
     }
   }
   bytesCount += 3 + object.productName.length * 3;
+  {
+    final value = object.subcategory;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -191,15 +213,17 @@ void _orderItemSerialize(
   writer.writeByte(offsets[0], object.category.index);
   writer.writeDateTime(offsets[1], object.deliveredAt);
   writer.writeBool(offsets[2], object.isPaid);
-  writer.writeString(offsets[3], object.note);
-  writer.writeDateTime(offsets[4], object.orderedAt);
-  writer.writeLong(offsets[5], object.paymentReceiptId);
-  writer.writeLong(offsets[6], object.price);
-  writer.writeString(offsets[7], object.productCatalogId);
-  writer.writeString(offsets[8], object.productName);
-  writer.writeLong(offsets[9], object.quantity);
-  writer.writeByte(offsets[10], object.status.index);
-  writer.writeLong(offsets[11], object.tableSessionId);
+  writer.writeString(offsets[3], object.menuCategory);
+  writer.writeString(offsets[4], object.note);
+  writer.writeDateTime(offsets[5], object.orderedAt);
+  writer.writeLong(offsets[6], object.paymentReceiptId);
+  writer.writeLong(offsets[7], object.price);
+  writer.writeString(offsets[8], object.productCatalogId);
+  writer.writeString(offsets[9], object.productName);
+  writer.writeLong(offsets[10], object.quantity);
+  writer.writeByte(offsets[11], object.status.index);
+  writer.writeString(offsets[12], object.subcategory);
+  writer.writeLong(offsets[13], object.tableSessionId);
 }
 
 OrderItem _orderItemDeserialize(
@@ -215,17 +239,19 @@ OrderItem _orderItemDeserialize(
   object.deliveredAt = reader.readDateTimeOrNull(offsets[1]);
   object.id = id;
   object.isPaid = reader.readBool(offsets[2]);
-  object.note = reader.readStringOrNull(offsets[3]);
-  object.orderedAt = reader.readDateTime(offsets[4]);
-  object.paymentReceiptId = reader.readLongOrNull(offsets[5]);
-  object.price = reader.readLong(offsets[6]);
-  object.productCatalogId = reader.readStringOrNull(offsets[7]);
-  object.productName = reader.readString(offsets[8]);
-  object.quantity = reader.readLong(offsets[9]);
+  object.menuCategory = reader.readStringOrNull(offsets[3]);
+  object.note = reader.readStringOrNull(offsets[4]);
+  object.orderedAt = reader.readDateTime(offsets[5]);
+  object.paymentReceiptId = reader.readLongOrNull(offsets[6]);
+  object.price = reader.readLong(offsets[7]);
+  object.productCatalogId = reader.readStringOrNull(offsets[8]);
+  object.productName = reader.readString(offsets[9]);
+  object.quantity = reader.readLong(offsets[10]);
   object.status =
-      _OrderItemstatusValueEnumMap[reader.readByteOrNull(offsets[10])] ??
+      _OrderItemstatusValueEnumMap[reader.readByteOrNull(offsets[11])] ??
           OrderItemStatus.pending;
-  object.tableSessionId = reader.readLong(offsets[11]);
+  object.subcategory = reader.readStringOrNull(offsets[12]);
+  object.tableSessionId = reader.readLong(offsets[13]);
   return object;
 }
 
@@ -246,21 +272,25 @@ P _orderItemDeserializeProp<P>(
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readDateTime(offset)) as P;
-    case 5:
-      return (reader.readLongOrNull(offset)) as P;
-    case 6:
-      return (reader.readLong(offset)) as P;
-    case 7:
       return (reader.readStringOrNull(offset)) as P;
-    case 8:
-      return (reader.readString(offset)) as P;
-    case 9:
+    case 5:
+      return (reader.readDateTime(offset)) as P;
+    case 6:
+      return (reader.readLongOrNull(offset)) as P;
+    case 7:
       return (reader.readLong(offset)) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readString(offset)) as P;
     case 10:
+      return (reader.readLong(offset)) as P;
+    case 11:
       return (_OrderItemstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           OrderItemStatus.pending) as P;
-    case 11:
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -958,6 +988,159 @@ extension OrderItemQueryFilter
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isPaid',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      menuCategoryIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'menuCategory',
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      menuCategoryIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'menuCategory',
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition> menuCategoryEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'menuCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      menuCategoryGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'menuCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      menuCategoryLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'menuCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition> menuCategoryBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'menuCategory',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      menuCategoryStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'menuCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      menuCategoryEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'menuCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      menuCategoryContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'menuCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition> menuCategoryMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'menuCategory',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      menuCategoryIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'menuCategory',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      menuCategoryIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'menuCategory',
+        value: '',
       ));
     });
   }
@@ -1684,6 +1867,158 @@ extension OrderItemQueryFilter
   }
 
   QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      subcategoryIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'subcategory',
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      subcategoryIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'subcategory',
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition> subcategoryEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      subcategoryGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition> subcategoryLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition> subcategoryBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'subcategory',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      subcategoryStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition> subcategoryEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition> subcategoryContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'subcategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition> subcategoryMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'subcategory',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      subcategoryIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subcategory',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
+      subcategoryIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'subcategory',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterFilterCondition>
       tableSessionIdEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1797,6 +2132,18 @@ extension OrderItemQuerySortBy on QueryBuilder<OrderItem, OrderItem, QSortBy> {
     });
   }
 
+  QueryBuilder<OrderItem, OrderItem, QAfterSortBy> sortByMenuCategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'menuCategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterSortBy> sortByMenuCategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'menuCategory', Sort.desc);
+    });
+  }
+
   QueryBuilder<OrderItem, OrderItem, QAfterSortBy> sortByNote() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'note', Sort.asc);
@@ -1895,6 +2242,18 @@ extension OrderItemQuerySortBy on QueryBuilder<OrderItem, OrderItem, QSortBy> {
     });
   }
 
+  QueryBuilder<OrderItem, OrderItem, QAfterSortBy> sortBySubcategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subcategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterSortBy> sortBySubcategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subcategory', Sort.desc);
+    });
+  }
+
   QueryBuilder<OrderItem, OrderItem, QAfterSortBy> sortByTableSessionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tableSessionId', Sort.asc);
@@ -1955,6 +2314,18 @@ extension OrderItemQuerySortThenBy
   QueryBuilder<OrderItem, OrderItem, QAfterSortBy> thenByIsPaidDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isPaid', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterSortBy> thenByMenuCategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'menuCategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterSortBy> thenByMenuCategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'menuCategory', Sort.desc);
     });
   }
 
@@ -2056,6 +2427,18 @@ extension OrderItemQuerySortThenBy
     });
   }
 
+  QueryBuilder<OrderItem, OrderItem, QAfterSortBy> thenBySubcategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subcategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QAfterSortBy> thenBySubcategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'subcategory', Sort.desc);
+    });
+  }
+
   QueryBuilder<OrderItem, OrderItem, QAfterSortBy> thenByTableSessionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tableSessionId', Sort.asc);
@@ -2086,6 +2469,13 @@ extension OrderItemQueryWhereDistinct
   QueryBuilder<OrderItem, OrderItem, QDistinct> distinctByIsPaid() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isPaid');
+    });
+  }
+
+  QueryBuilder<OrderItem, OrderItem, QDistinct> distinctByMenuCategory(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'menuCategory', caseSensitive: caseSensitive);
     });
   }
 
@@ -2141,6 +2531,13 @@ extension OrderItemQueryWhereDistinct
     });
   }
 
+  QueryBuilder<OrderItem, OrderItem, QDistinct> distinctBySubcategory(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'subcategory', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<OrderItem, OrderItem, QDistinct> distinctByTableSessionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'tableSessionId');
@@ -2172,6 +2569,12 @@ extension OrderItemQueryProperty
   QueryBuilder<OrderItem, bool, QQueryOperations> isPaidProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isPaid');
+    });
+  }
+
+  QueryBuilder<OrderItem, String?, QQueryOperations> menuCategoryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'menuCategory');
     });
   }
 
@@ -2221,6 +2624,12 @@ extension OrderItemQueryProperty
   QueryBuilder<OrderItem, OrderItemStatus, QQueryOperations> statusProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'status');
+    });
+  }
+
+  QueryBuilder<OrderItem, String?, QQueryOperations> subcategoryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'subcategory');
     });
   }
 

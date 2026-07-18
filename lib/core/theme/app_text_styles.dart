@@ -159,12 +159,65 @@ abstract final class AppTextStyles {
         height: 1.0,
       );
 
-  // ── Monospace — verification codes, timestamps ─────────────────────
+  // ── Monospace / Tiquete — facturas, cifras, códigos ────────────────
+  // Space Mono da el carácter analógico de "papel térmico". Se carga vía
+  // google_fonts igual que Nunito (mismo modelo de caché offline).
 
-  static TextStyle get mono => const TextStyle(
-        fontFamily: 'monospace',
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
+  static TextStyle _mono({
+    required double size,
+    required FontWeight weight,
+    double letterSpacing = 0.0,
+    double height = 1.35,
+  }) =>
+      GoogleFonts.spaceMono(
+        fontSize: size,
+        fontWeight: weight,
+        letterSpacing: letterSpacing,
+        height: height,
+      );
+
+  /// Código de verificación / timestamps. 14 sp.
+  static TextStyle get mono => _mono(
+        size: 14,
+        weight: FontWeight.w700,
+        letterSpacing: 1.0,
+        height: 1.4,
+      );
+
+  /// Encabezado del tiquete (nombre del bar). 18 sp, bold.
+  static TextStyle get receiptTitle => _mono(
+        size: 18,
+        weight: FontWeight.w700,
+        letterSpacing: 2.0,
+        height: 1.3,
+      );
+
+  /// Línea de ítem en el tiquete. 14 sp.
+  static TextStyle get receiptBody => _mono(
+        size: 14,
+        weight: FontWeight.w400,
+        height: 1.5,
+      );
+
+  /// Línea de ítem enfatizada (cantidad, precio). 14 sp, bold.
+  static TextStyle get receiptBodyBold => _mono(
+        size: 14,
+        weight: FontWeight.w700,
+        height: 1.5,
+      );
+
+  /// Texto pequeño del tiquete (hora, c/u, subtítulos). 11.5 sp.
+  static TextStyle get receiptSmall => _mono(
+        size: 11.5,
+        weight: FontWeight.w400,
+        letterSpacing: 0.5,
+        height: 1.4,
+      );
+
+  /// Totales del tiquete (TOTAL / SALDO). 16 sp, bold.
+  static TextStyle get receiptTotal => _mono(
+        size: 16,
+        weight: FontWeight.w700,
         letterSpacing: 1.0,
         height: 1.4,
       );

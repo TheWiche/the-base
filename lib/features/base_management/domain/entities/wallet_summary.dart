@@ -152,6 +152,9 @@ final class WalletSummary {
           decreases += t.amount;
         case TransactionType.liquorAdjustment:
           liquorDebt += t.amount;
+        case TransactionType.liquorSettlement:
+          // Botella completada: reduce la deuda de licor (pass-through).
+          liquorDebt -= t.amount;
       }
     }
 

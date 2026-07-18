@@ -8,7 +8,6 @@ import '../../../base_management/data/models/waiter_base_transaction.dart';
 import '../../../base_management/domain/entities/wallet_summary.dart';
 import '../../../billing/data/models/payment_receipt.dart';
 import '../../../orders/data/models/order_item.dart';
-import '../../../products/data/models/product.dart';
 import '../../../shift_history/data/models/shift_snapshot.dart';
 import '../../../tables/data/models/table_session.dart';
 import '../../domain/repositories/i_cierre_repository.dart';
@@ -47,11 +46,12 @@ final class CierreRepositoryImpl implements ICierreRepository {
         await db.shiftSnapshots.put(snapshot);
 
         // 2. Clear all operational collections, keeping ShiftSnapshot intact.
+        //    NOTE: products are static reference data (menu + agotados +
+        //    ediciones del CRUD) — NO se borran, así persisten entre turnos.
         await db.waiterBaseTransactions.clear();
         await db.tableSessions.clear();
         await db.orderItems.clear();
         await db.paymentReceipts.clear();
-        await db.products.clear();
       });
 
       debugPrint('[CierreRepo] Shift finalized and snapshot saved (id: ${snapshot.id}).');

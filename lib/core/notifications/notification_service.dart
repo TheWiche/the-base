@@ -63,6 +63,16 @@ final class NotificationService {
     );
   }
 
+  /// Quita la notificación de transferencias (cuando ya no hay pendientes).
+  static Future<void> cancelTransferAlert() async {
+    await _plugin.cancel(_idTransfer);
+  }
+
+  /// Quita la notificación de radar (cuando ya no hay pendientes).
+  static Future<void> cancelRadarAlert() async {
+    await _plugin.cancel(_idRadar);
+  }
+
   static NotificationDetails _details() {
     return const NotificationDetails(
       android: AndroidNotificationDetails(

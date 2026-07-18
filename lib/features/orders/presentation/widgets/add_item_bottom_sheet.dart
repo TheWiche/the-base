@@ -55,6 +55,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
   bool _isSubmitting  = false;
   bool _showCustomForm = false;
   String? _selectedMenuCat; // null = none selected
+  String? _selectedSubcat;  // null = todas las subcategorías
   String _searchQuery = '';
   final _cart = <_CartEntry>[];
 
@@ -70,7 +71,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
   // ── Cart ──────────────────────────────────────────────────────────────────
 
   void _addToCart(String name, int price, ProductCategory category,
-      {int qty = 1, String? note}) {
+      {int qty = 1, String? note, String? menuCategory, String? subcategory}) {
     HapticFeedback.lightImpact();
     setState(() {
       final idx = _cart.indexWhere((e) => e.name == name);
@@ -78,7 +79,13 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
         _cart[idx].quantity += qty;
       } else {
         _cart.add(_CartEntry(
-            name: name, price: price, category: category, quantity: qty, note: note));
+            name: name,
+            price: price,
+            category: category,
+            quantity: qty,
+            note: note,
+            menuCategory: menuCategory,
+            subcategory: subcategory));
       }
     });
   }
@@ -165,12 +172,14 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
   void _pickProduct(ProductEntity p) {
     if (!p.isAvailable) return;
     _addToCart(p.name, p.price,
-        p.isLiquor ? ProductCategory.liquor : ProductCategory.standard);
+        p.isLiquor ? ProductCategory.liquor : ProductCategory.standard,
+        menuCategory: p.category);
   }
 
   void _pickMichelada(ProductEntity beer, int price) {
     final beerName = beer.name.replaceFirst('Cerveza ', '');
-    _addToCart('Michelada $beerName', price, ProductCategory.standard);
+    _addToCart('Michelada $beerName', price, ProductCategory.standard,
+        menuCategory: 'Micheladas', subcategory: 'Cerveza');
   }
 
   void _pickCatalog(CatalogProduct p) =>
@@ -210,6 +219,8 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
         quantity:       e.quantity,
         category:       e.category,
         note:           e.note,
+        menuCategory:   e.menuCategory,
+        subcategory:    e.subcategory,
       ));
     }
     Navigator.of(context).pop();
@@ -270,18 +281,36 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
     final cartNames  = _cart.map((e) => e.name).toSet();
     final cartCounts = Map.fromEntries(_cart.map((e) => MapEntry(e.name, e.quantity)));
 
-    // Search overrides category filter; no category + no search → show hint
+    // Ocultar agotados (#4): los no disponibles no aparecen en el submenú.
+    // Search overrides category filter; no category + no search → show hint.
     final filtered = menuAll.where((p) {
+      if (!p.isAvailable) return false;
       if (_searchQuery.isNotEmpty) {
         return p.name.toLowerCase().contains(_searchQuery.toLowerCase());
       }
-      return _selectedMenuCat != null && p.category == _selectedMenuCat;
+      if (_selectedMenuCat == null || p.category != _selectedMenuCat) return false;
+      if (_selectedSubcat != null && p.subcategory != _selectedSubcat) return false;
+      return true;
     }).toList();
+
+    // Subcategorías disponibles de la categoría seleccionada.
+    final subcatsForCategory =
+        (_selectedMenuCat == null || _searchQuery.isNotEmpty)
+            ? <String>[]
+            : (menuAll
+                .where((p) =>
+                    p.category == _selectedMenuCat &&
+                    p.isAvailable &&
+                    p.subcategory != null)
+                .map((p) => p.subcategory!)
+                .toSet()
+                .toList()
+              ..sort());
 
     final showProducts     = _searchQuery.isNotEmpty || _selectedMenuCat != null;
     final isMicheladasCat  = _selectedMenuCat == 'Micheladas';
     final beersForMichelada = isMicheladasCat
-        ? menuAll.where((p) => p.category == "Fría's").toList()
+        ? menuAll.where((p) => p.category == "Fría's" && p.isAvailable).toList()
         : <ProductEntity>[];
     final micheladaPrice = menuAll
         .where((p) => p.category == 'Micheladas')
@@ -396,8 +425,22 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                         _CategoryWrap(
                           categories: menuCats,
                           selected: _selectedMenuCat,
-                          onSelect: (cat) =>
-                              setState(() => _selectedMenuCat = cat),
+                          onSelect: (cat) => setState(() {
+                            _selectedMenuCat = cat;
+                            _selectedSubcat = null;
+                          }),
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: AppDimensions.space12),
+                      ],
+
+                      // ── Subcategorías (si la categoría tiene) ─────────────
+                      if (subcatsForCategory.isNotEmpty) ...[
+                        _SubcategoryWrap(
+                          subcategories: subcatsForCategory,
+                          selected: _selectedSubcat,
+                          onSelect: (sub) =>
+                              setState(() => _selectedSubcat = sub),
                           isDark: isDark,
                         ),
                         const SizedBox(height: AppDimensions.space12),
@@ -622,6 +665,66 @@ class _CategoryWrap extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+// ── Subcategory chips (Todas + subcategorías) ─────────────────────────────────
+
+class _SubcategoryWrap extends StatelessWidget {
+  const _SubcategoryWrap({
+    required this.subcategories,
+    required this.selected,
+    required this.onSelect,
+    required this.isDark,
+  });
+
+  final List<String> subcategories;
+  final String? selected;
+  final void Function(String?) onSelect;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget chip(String label, bool isSel, VoidCallback onTap) {
+      return GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSel ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+            border: Border.all(
+              color: isSel
+                  ? AppColors.primary
+                  : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
+              width: isSel ? 1.5 : 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: AppTextStyles.labelSmall.copyWith(
+              color: isSel
+                  ? AppColors.primary
+                  : (isDark
+                      ? AppColors.darkOnSurfaceVariant
+                      : AppColors.lightOnSurfaceVariant),
+              fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        chip('Todas', selected == null, () => onSelect(null)),
+        for (final sub in subcategories)
+          chip(sub, sub == selected, () => onSelect(sub == selected ? null : sub)),
+      ],
     );
   }
 }
@@ -1465,6 +1568,8 @@ class _CartEntry {
     required this.category,
     this.quantity = 1,
     this.note,
+    this.menuCategory,
+    this.subcategory,
   });
 
   final String name;
@@ -1472,6 +1577,8 @@ class _CartEntry {
   final ProductCategory category;
   int quantity;
   String? note; // mutable for per-item note editing
+  final String? menuCategory; // menu grouping ("Micheladas", …)
+  final String? subcategory;  // menu subgroup ("Cerveza", "Soda", …)
 }
 
 // ── Cart strip ────────────────────────────────────────────────────────────────

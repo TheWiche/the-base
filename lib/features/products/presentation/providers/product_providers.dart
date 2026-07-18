@@ -36,6 +36,19 @@ final productsByCategoryProvider =
   return products.where((p) => p.category == category).toList();
 });
 
+/// Distinct non-empty subcategories within a category (sorted). Empty when the
+/// category has no subcategories assigned.
+final subcategoriesProvider =
+    Provider.family<List<String>, String>((ref, category) {
+  final products = ref.watch(productsProvider).valueOrNull ?? [];
+  final subs = <String>{};
+  for (final p in products.where((p) => p.category == category)) {
+    final s = p.subcategory;
+    if (s != null && s.isNotEmpty) subs.add(s);
+  }
+  return subs.toList()..sort();
+});
+
 // ── Use case ──────────────────────────────────────────────────────────────────
 
 final toggleAvailabilityUseCaseProvider = Provider<ToggleAvailabilityUseCase>(

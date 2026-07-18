@@ -166,7 +166,9 @@ final class OrderRepositoryImpl implements IOrderRepository {
         ..orderedAt = now
         ..status = OrderItemStatus.pending
         ..isPaid = false
-        ..note = params.note?.trim().isEmpty ?? true ? null : params.note!.trim();
+        ..note = params.note?.trim().isEmpty ?? true ? null : params.note!.trim()
+        ..menuCategory = params.menuCategory
+        ..subcategory = params.subcategory;
 
       // ── Atomic write: item + optional liquor adjustment ─────────────────
       await IsarService.write((db) async {
@@ -244,7 +246,9 @@ final class OrderRepositoryImpl implements IOrderRepository {
             ..orderedAt = now
             ..status = OrderItemStatus.pending
             ..isPaid = false
-            ..note = (note == null || note.isEmpty) ? null : note;
+            ..note = (note == null || note.isEmpty) ? null : note
+            ..menuCategory = params.menuCategory
+            ..subcategory = params.subcategory;
 
           await db.orderItems.put(orderModel);
           session.orderItems.add(orderModel);
@@ -303,6 +307,52 @@ final class OrderRepositoryImpl implements IOrderRepository {
 
       debugPrint('[OrderRepo] Item #$itemId cancelled.');
       return Ok(model.toEntity());
+    } on IsarError catch (e, st) {
+      return Err(DatabaseFailure(message: e.message, stackTrace: st));
+    } catch (e, st) {
+      return Err(DatabaseFailure(message: e.toString(), stackTrace: st));
+    }
+  }
+
+  @override
+  Future<Result<void>> settleLiquorItem(int itemId) async {
+    try {
+      final model = await _db.orderItems.get(itemId);
+      if (model == null) {
+        return Err(NotFoundFailure(message: 'Ítem #$itemId no encontrado.'));
+      }
+      if (model.category != ProductCategory.liquor) {
+        return Err(const BusinessRuleFailure(
+          message: 'Solo las botellas de licor se pueden completar.',
+        ));
+      }
+      if (model.isPaid) {
+        return Ok(null);
+      }
+
+      final now = DateTime.now();
+      final lineTotal = model.price * model.quantity;
+
+      await IsarService.write((db) async {
+        // 1. Marca la botella como pagada/entregada (sale de la cuenta y del radar).
+        model
+          ..isPaid = true
+          ..status = OrderItemStatus.delivered
+          ..deliveredAt = model.deliveredAt ?? now;
+        await db.orderItems.put(model);
+
+        // 2. Contrapartida de deuda: reduce la deuda de licor (pass-through).
+        //    NO se crea PaymentReceipt → no infla saldo/efectivo del mesero.
+        final settlement = WaiterBaseTransaction()
+          ..type = TransactionType.liquorSettlement
+          ..amount = lineTotal
+          ..timestamp = now
+          ..note = '${model.productName} ×${model.quantity}';
+        await db.waiterBaseTransactions.put(settlement);
+      });
+
+      debugPrint('[OrderRepo] Liquor item #$itemId settled: -\$$lineTotal debt.');
+      return const Ok(null);
     } on IsarError catch (e, st) {
       return Err(DatabaseFailure(message: e.message, stackTrace: st));
     } catch (e, st) {
@@ -609,6 +659,8 @@ extension _OrderItemMapper on OrderItem {
         isPaid: isPaid,
         paymentReceiptId: paymentReceiptId,
         note: note,
+        menuCategory: menuCategory,
+        subcategory: subcategory,
       );
 }
 

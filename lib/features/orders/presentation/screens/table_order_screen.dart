@@ -1,26 +1,30 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/errors/failures.dart';
-import '../../../../core/extensions/int_extensions.dart';
+import '../../../../core/settings/bar_settings_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/receipt_widgets.dart';
+import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../tables/domain/entities/table_session_entity.dart';
 import '../../domain/entities/order_item_entity.dart';
 import '../providers/order_providers.dart';
 import '../widgets/add_item_bottom_sheet.dart';
-import '../widgets/order_item_tile.dart';
+import '../widgets/factura_sheet.dart';
+import '../widgets/receipt_view.dart';
 
-/// Per-table order management screen.
+/// Per-table order management screen — estilo tiquete de papel.
 ///
-/// Receives [sessionId] from the router and:
-///   • Streams all items for the session via [tableOrderProvider].
-///   • Groups items into sections: Pending → Delivered → Paid → Cancelled.
-///   • FAB opens [AddItemBottomSheet] for adding standard or liquor items.
-///   • Bottom bar shows the running customer total + COBRAR CTA.
-///   • Long-pressing any non-cancelled, non-paid item opens the cancel menu.
+/// Muestra lo que ha consumido la mesa como un tiquete (bloques por hora,
+/// TOTAL/pagado/SALDO), con botonera Agregar / Cobrar / Factura / Comprobante.
+/// Las acciones por ítem (cancelar/repetir) se abren por toque largo.
 class TableOrderScreen extends ConsumerStatefulWidget {
   const TableOrderScreen({super.key, required this.sessionId});
 
@@ -39,64 +43,34 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
     final itemsAsync = ref.watch(tableOrderProvider(widget.sessionId));
     final sessionLive = ref.watch(tableSessionByIdProvider(widget.sessionId));
     if (sessionLive != null) _session = sessionLive;
+    final barName = ref.watch(barNameProvider);
 
     return Scaffold(
       appBar: _buildAppBar(_session),
-      // FAB va dentro del Stack del body para que quede por encima del bar.
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: Stack(
-              children: [
-                itemsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, _) => _OrderErrorBody(error: error),
-                  data: (items) => _OrderBody(
-                    items: items,
-                    onCancel: _cancelItem,
-                    onRepeat: _repeatItem,
-                    onDeleteCancelled: _deleteItem,
-                    onClearAllCancelled: _clearCancelled,
-                  ),
-                ),
-                Positioned(
-                  right: AppDimensions.pagePaddingH,
-                  bottom: AppDimensions.pagePaddingH,
-                  child: FloatingActionButton.extended(
-                    heroTag: 'add_item_${widget.sessionId}',
-                    onPressed: () => AddItemBottomSheet.show(
-                      context: context,
-                      tableSessionId: widget.sessionId,
-                      onAdd: (params) async {
-                        final failure = await ref
-                            .read(
-                              tableOrderProvider(widget.sessionId).notifier,
-                            )
-                            .addItem(params);
-                        if (failure != null && mounted) _showError(failure);
-                      },
+            child: itemsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _OrderErrorBody(error: error),
+              data: (items) => _session == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : _ReceiptBody(
+                      barName: barName,
+                      session: _session!,
+                      items: items,
+                      onLongPressItem: _showItemMenu,
                     ),
-                    backgroundColor: AppColors.brand,
-                    foregroundColor: const Color(0xFF1A0A00),
-                    icon: const Icon(Icons.add_rounded),
-                    label: Text(
-                      'AGREGAR',
-                      style: AppTextStyles.labelLarge.copyWith(
-                        color: const Color(0xFF1A0A00),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
-          // Bar de cobro pegado al fondo — en el body, no en bottomNavigationBar.
           itemsAsync.maybeWhen(
-            data: (items) => _CobrarBar(
+            data: (items) => _ActionBar(
               sessionId: widget.sessionId,
               items: items,
+              onAgregar: _openAddItem,
+              onFactura: () => FacturaSheet.show(context, widget.sessionId),
+              onComprobante: () => _showComprobante(items),
             ),
             orElse: () => const SizedBox.shrink(),
           ),
@@ -121,10 +95,8 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Mesa ${session.tableNumber}',
-                        style: AppTextStyles.headlineSmall,
-                      ),
+                      Text('Mesa ${session.tableNumber}',
+                          style: AppTextStyles.headlineSmall),
                       if (session.apodo != null)
                         Text(
                           '"${session.apodo}"',
@@ -136,13 +108,11 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
                     ],
                   ),
                   const SizedBox(width: AppDimensions.space6),
-                  Icon(
-                    Icons.edit_rounded,
-                    size: 14,
-                    color: isDark
-                        ? AppColors.brand.withOpacity(0.5)
-                        : AppColors.brand.withOpacity(0.6),
-                  ),
+                  Icon(Icons.edit_rounded,
+                      size: 14,
+                      color: isDark
+                          ? AppColors.brand.withOpacity(0.5)
+                          : AppColors.brand.withOpacity(0.6)),
                 ],
               ),
             ),
@@ -167,12 +137,135 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
             ),
             child: Text(
               session.statusLabel.toUpperCase(),
-              style: AppTextStyles.statusBadge.copyWith(
-                color: session.statusColor,
-              ),
+              style: AppTextStyles.statusBadge.copyWith(color: session.statusColor),
             ),
           ),
       ],
+    );
+  }
+
+  // ── Item actions ────────────────────────────────────────────────────────────
+
+  void _openAddItem() {
+    AddItemBottomSheet.show(
+      context: context,
+      tableSessionId: widget.sessionId,
+      onAdd: (params) async {
+        final failure = await ref
+            .read(tableOrderProvider(widget.sessionId).notifier)
+            .addItem(params);
+        if (failure != null && mounted) _showError(failure);
+      },
+    );
+  }
+
+  void _showItemMenu(OrderItemEntity item) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text(
+                '${item.quantity}× ${item.productName}',
+                style: AppTextStyles.titleMedium,
+              ),
+            ),
+            if (item.isLiquor && !item.isPaid && !item.isCancelled)
+              ListTile(
+                leading:
+                    const Icon(Icons.check_circle_rounded, color: AppColors.statusGreen),
+                title: const Text('Completar botella'),
+                subtitle: Text(
+                  'Pagada en barra/caja — baja la deuda, no entra a tu saldo',
+                  style: AppTextStyles.bodySmall,
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _settleLiquor(item);
+                },
+              ),
+            if (!item.isCancelled)
+              ListTile(
+                leading: const Icon(Icons.replay_rounded, color: AppColors.primary),
+                title: const Text('Repetir'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _repeatItem(item);
+                },
+              ),
+            if (!item.isCancelled && !item.isPaid)
+              ListTile(
+                leading: const Icon(Icons.cancel_rounded, color: AppColors.statusRed),
+                title: const Text('Cancelar ítem'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _cancelItem(item.id);
+                },
+              ),
+            if (item.isCancelled)
+              ListTile(
+                leading:
+                    const Icon(Icons.delete_forever_rounded, color: AppColors.statusRed),
+                title: const Text('Eliminar'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _deleteItem(item.id);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showComprobante(List<OrderItemEntity> items) async {
+    final receipts = ref.read(allTransferReceiptsProvider).valueOrNull ?? [];
+    final forSession = receipts
+        .where((r) =>
+            r.tableSessionId == widget.sessionId &&
+            r.photoPath != null &&
+            File(r.photoPath!).existsSync())
+        .toList()
+      ..sort((a, b) => b.paidAt.compareTo(a.paidAt));
+
+    if (forSession.isEmpty) {
+      _showInfo('Esta mesa no tiene comprobantes de transferencia.');
+      return;
+    }
+
+    final path = forSession.first.photoPath!;
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(child: InteractiveViewer(child: Image.file(File(path)))),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => Share.shareXFiles([XFile(path)]),
+                    icon: const Icon(Icons.share_rounded),
+                    label: const Text('Compartir'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Cerrar'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -181,6 +274,18 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
         .read(tableOrderProvider(widget.sessionId).notifier)
         .cancelItem(itemId);
     if (failure != null && mounted) _showError(failure);
+  }
+
+  Future<void> _settleLiquor(OrderItemEntity item) async {
+    final failure = await ref
+        .read(tableOrderProvider(widget.sessionId).notifier)
+        .settleLiquor(item.id);
+    if (!mounted) return;
+    if (failure != null) {
+      _showError(failure);
+    } else {
+      _showInfo('Botella completada: ${item.productName}');
+    }
   }
 
   Future<void> _repeatItem(OrderItemEntity item) async {
@@ -226,10 +331,6 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
           ),
           FilledButton.icon(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.brand,
-              foregroundColor: const Color(0xFF1A0A00),
-            ),
             icon: const Icon(Icons.replay_rounded),
             label: const Text('Repetir'),
           ),
@@ -257,13 +358,6 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
     if (failure != null && mounted) _showError(failure);
   }
 
-  Future<void> _clearCancelled() async {
-    final failure = await ref
-        .read(tableOrderProvider(widget.sessionId).notifier)
-        .clearCancelledItems();
-    if (failure != null && mounted) _showError(failure);
-  }
-
   Future<void> _showRenameDialog(TableSessionEntity session) async {
     final controller = TextEditingController(text: session.apodo ?? '');
 
@@ -272,10 +366,7 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           icon: const Icon(Icons.label_rounded, color: AppColors.brand),
-          title: Text(
-            'Apodo de la mesa',
-            style: AppTextStyles.headlineSmall,
-          ),
+          title: Text('Apodo de la mesa', style: AppTextStyles.headlineSmall),
           content: TextField(
             controller: controller,
             autofocus: true,
@@ -286,15 +377,13 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
               suffixIcon: controller.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () =>
-                          setDialogState(() => controller.clear()),
+                      onPressed: () => setDialogState(() => controller.clear()),
                     )
                   : null,
             ),
             maxLength: 40,
             onChanged: (_) => setDialogState(() {}),
-            onSubmitted: (_) =>
-                Navigator.of(ctx).pop(controller.text.trim()),
+            onSubmitted: (_) => Navigator.of(ctx).pop(controller.text.trim()),
           ),
           actionsAlignment: MainAxisAlignment.spaceEvenly,
           actions: [
@@ -305,18 +394,11 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
             if (session.apodo != null)
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(''),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.statusRed,
-                ),
+                style: TextButton.styleFrom(foregroundColor: AppColors.statusRed),
                 child: const Text('Quitar'),
               ),
             FilledButton(
-              onPressed: () =>
-                  Navigator.of(ctx).pop(controller.text.trim()),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.brand,
-                foregroundColor: const Color(0xFF1A0A00),
-              ),
+              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
               child: const Text('Guardar'),
             ),
           ],
@@ -325,7 +407,6 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
     );
 
     controller.dispose();
-    // null = dialog dismissed without explicit action → no-op
     if (result == null || !mounted) return;
 
     final failure = await ref
@@ -363,456 +444,166 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
   }
 }
 
-// ── Order body ─────────────────────────────────────────────────────────────────
+// ── Cuerpo del tiquete ──────────────────────────────────────────────────────────
 
-class _OrderBody extends StatelessWidget {
-  const _OrderBody({
+class _ReceiptBody extends StatelessWidget {
+  const _ReceiptBody({
+    required this.barName,
+    required this.session,
     required this.items,
-    required this.onCancel,
-    required this.onRepeat,
-    required this.onDeleteCancelled,
-    required this.onClearAllCancelled,
+    required this.onLongPressItem,
   });
 
+  final String barName;
+  final TableSessionEntity session;
   final List<OrderItemEntity> items;
-  final void Function(int itemId) onCancel;
-  final void Function(OrderItemEntity item) onRepeat;
-  final void Function(int itemId) onDeleteCancelled;
-  final VoidCallback onClearAllCancelled;
+  final void Function(OrderItemEntity item) onLongPressItem;
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const _EmptyOrderBody();
-
-    final pendingItems = items.where((i) => i.isActive).toList()
-      ..sort((a, b) => a.orderedAt.compareTo(b.orderedAt));
-
-    final deliveredItems = items.where((i) => i.isDelivered && !i.isPaid).toList()
-      ..sort((a, b) {
-        final aTime = a.deliveredAt ?? a.orderedAt;
-        final bTime = b.deliveredAt ?? b.orderedAt;
-        return bTime.compareTo(aTime); // newest delivered first
-      });
-
-    final paidItems = items.where((i) => i.isDelivered && i.isPaid).toList();
-
-    final cancelledItems = items.where((i) => i.isCancelled).toList();
-
-    return CustomScrollView(
-      slivers: [
-        // ── Pending ───────────────────────────────────────────────────
-        if (pendingItems.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              label: 'PENDIENTES',
-              count: pendingItems.length,
-              color: AppColors.statusOrange,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      child: ReceiptPaper(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ReceiptHeader(
+              barName: barName,
+              tableNumber: session.tableNumber,
+              apodo: session.apodo,
+              openedAt: session.openedAt,
             ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.pagePaddingH,
-            ),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => OrderItemTile(
-                  key: ValueKey(pendingItems[i].id),
-                  item: pendingItems[i],
-                  onCancel: () => onCancel(pendingItems[i].id),
-                  onRepeat: () => onRepeat(pendingItems[i]),
-                ),
-                childCount: pendingItems.length,
-              ),
-            ),
-          ),
-        ],
-
-        // ── Delivered (unpaid) ────────────────────────────────────────
-        if (deliveredItems.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              label: 'ENTREGADOS',
-              count: deliveredItems.length,
-              color: AppColors.statusBlue,
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.pagePaddingH,
-            ),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => OrderItemTile(
-                  key: ValueKey(deliveredItems[i].id),
-                  item: deliveredItems[i],
-                  onCancel: () => onCancel(deliveredItems[i].id),
-                  onRepeat: () => onRepeat(deliveredItems[i]),
-                ),
-                childCount: deliveredItems.length,
-              ),
-            ),
-          ),
-        ],
-
-        // ── Paid (settled) ────────────────────────────────────────────
-        if (paidItems.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              label: 'PAGADOS',
-              count: paidItems.length,
-              color: AppColors.statusGreen,
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.pagePaddingH,
-            ),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => OrderItemTile(
-                  key: ValueKey(paidItems[i].id),
-                  item: paidItems[i],
-                  // Paid items are immutable — suppress the cancel gesture,
-                  // but they can still be re-ordered ("otra de esa").
-                  onCancel: () {},
-                  onRepeat: () => onRepeat(paidItems[i]),
-                ),
-                childCount: paidItems.length,
-              ),
-            ),
-          ),
-        ],
-
-        // ── Cancelled ─────────────────────────────────────────────────
-        if (cancelledItems.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              label: 'CANCELADOS',
-              count: cancelledItems.length,
-              color: AppColors.statusRed,
-              onClear: onClearAllCancelled,
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.pagePaddingH,
-            ),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => OrderItemTile(
-                  key: ValueKey(cancelledItems[i].id),
-                  item: cancelledItems[i],
-                  onCancel: () {},
-                  onRepeat: () {},
-                  onDelete: () => onDeleteCancelled(cancelledItems[i].id),
-                ),
-                childCount: cancelledItems.length,
-              ),
-            ),
-          ),
-        ],
-
-        // Espacio para que el FAB no tape el último ítem
-        const SliverPadding(padding: EdgeInsets.only(bottom: 96)),
-      ],
-    );
-  }
-}
-
-// ── Section header ─────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.label,
-    required this.count,
-    required this.color,
-    this.onClear,
-  });
-
-  final String label;
-  final int count;
-  final Color color;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppDimensions.pagePaddingH,
-        AppDimensions.space20,
-        AppDimensions.pagePaddingH,
-        AppDimensions.space8,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 16,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: AppDimensions.space8),
-          Text(
-            label,
-            style: AppTextStyles.statusBadge.copyWith(color: color),
-          ),
-          const SizedBox(width: AppDimensions.space8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-            ),
-            child: Text(
-              '$count',
-              style: AppTextStyles.statusBadge.copyWith(color: color),
-            ),
-          ),
-          if (onClear != null) ...[
-            const Spacer(),
-            TextButton.icon(
-              onPressed: onClear,
-              style: TextButton.styleFrom(
-                foregroundColor: color,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.space8,
-                  vertical: AppDimensions.space4,
-                ),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                minimumSize: Size.zero,
-              ),
-              icon: Icon(Icons.delete_sweep_rounded, size: 16, color: color),
-              label: Text(
-                'LIMPIAR',
-                style: AppTextStyles.statusBadge.copyWith(color: color),
-              ),
-            ),
+            const DashedDivider(padding: EdgeInsets.symmetric(vertical: 10)),
+            ReceiptChronological(items: items, onLongPressItem: onLongPressItem),
+            const DashedDivider(padding: EdgeInsets.symmetric(vertical: 10)),
+            ReceiptFooter(items: items),
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
-// ── COBRAR bottom bar ──────────────────────────────────────────────────────────
+// ── Botonera inferior ────────────────────────────────────────────────────────────
 
-class _CobrarBar extends StatelessWidget {
-  const _CobrarBar({
+class _ActionBar extends StatelessWidget {
+  const _ActionBar({
     required this.sessionId,
     required this.items,
+    required this.onAgregar,
+    required this.onFactura,
+    required this.onComprobante,
   });
 
   final int sessionId;
   final List<OrderItemEntity> items;
+  final VoidCallback onAgregar;
+  final VoidCallback onFactura;
+  final VoidCallback onComprobante;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
-    // Only unpaid, non-cancelled items count toward what's still owed.
     final unpaidTotal = items
         .where((i) => !i.isCancelled && !i.isPaid)
-        .fold(0, (sum, i) => sum + i.lineTotal);
-
-    final pendingCount = items.where((i) => i.isActive).length;
+        .fold(0, (s, i) => s + i.lineTotal);
     final allPaid = items.isNotEmpty &&
         items.where((i) => !i.isCancelled).every((i) => i.isPaid);
 
-    final topBorderColor = allPaid
-        ? AppColors.statusGreen.withOpacity(0.5)
-        : (isDark ? AppColors.darkOutline : AppColors.lightOutline);
-
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        AppDimensions.pagePaddingH,
-        AppDimensions.space12,
-        AppDimensions.pagePaddingH,
-        AppDimensions.space12 + bottomInset,
-      ),
+      padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + bottomInset),
       decoration: BoxDecoration(
-        color: allPaid
-            ? AppColors.statusGreen.withOpacity(0.07)
-            : (isDark ? AppColors.darkSurface : AppColors.lightSurface),
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         border: Border(
-          top: BorderSide(width: 1.5, color: topBorderColor),
+          top: BorderSide(
+            width: 1,
+            color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+          ),
         ),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Running total / Cuenta saldada ───────────────────────────
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  allPaid ? 'CUENTA SALDADA' : 'TOTAL CUENTA',
-                  style: AppTextStyles.statusBadge.copyWith(
-                    color: allPaid
-                        ? AppColors.statusGreen
-                        : (isDark
-                            ? AppColors.darkOnSurfaceVariant
-                            : AppColors.lightOnSurfaceVariant),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onAgregar,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: const Color(0xFF241A05),
+                    minimumSize: const Size.fromHeight(52),
                   ),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Agregar'),
                 ),
-                const SizedBox(height: 2),
-                if (allPaid)
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle_rounded,
-                        color: AppColors.statusGreen,
-                        size: 20,
-                      ),
-                      const SizedBox(width: AppDimensions.space6),
-                      Text(
-                        'Todos los ítems cobrados',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.statusGreen,
-                        ),
-                      ),
-                    ],
-                  )
-                else ...[
-                  Text(
-                    unpaidTotal.toCop,
-                    style: AppTextStyles.headlineMedium.copyWith(
-                      color: isDark
-                          ? AppColors.darkOnSurface
-                          : AppColors.lightOnSurface,
-                    ),
-                  ),
-                  if (pendingCount > 0) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      '$pendingCount ítem${pendingCount == 1 ? '' : 's'} pendiente${pendingCount == 1 ? '' : 's'}',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.statusOrange,
-                      ),
-                    ),
-                  ],
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: AppDimensions.space16),
-
-          // ── COBRAR / Cerrar Mesa CTA ─────────────────────────────────
-          // minimumSize overrides the global theme (Size.fromHeight → ∞).
-          if (allPaid)
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                FilledButton.icon(
-                  onPressed: () => context.go('/tables'),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: allPaid
+                      ? () => context.go('/tables')
+                      : (unpaidTotal > 0
+                          ? () => context.push('/billing/$sessionId')
+                          : null),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.statusGreen,
                     foregroundColor: Colors.black,
-                    minimumSize: const Size(100, 48),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.space20,
-                      vertical: AppDimensions.space10,
-                    ),
+                    minimumSize: const Size.fromHeight(52),
                   ),
-                  icon: const Icon(Icons.check_circle_rounded),
-                  label: Text(
-                    'CERRAR MESA',
-                    style: AppTextStyles.labelLarge.copyWith(color: Colors.black),
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.space4),
-                TextButton(
-                  onPressed: () => context.pop(),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.statusGreen,
-                    minimumSize: const Size(60, 28),
-                    padding: EdgeInsets.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    'Seguir viendo',
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.statusGreen,
-                    ),
-                  ),
-                ),
-              ],
-            )
-          else
-            FilledButton.icon(
-              onPressed: unpaidTotal > 0
-                  ? () => context.push('/billing/$sessionId')
-                  : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.statusGreen,
-                foregroundColor: Colors.black,
-                minimumSize: const Size(100, 52),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.space24,
-                  vertical: AppDimensions.space12,
+                  icon: Icon(allPaid
+                      ? Icons.check_circle_rounded
+                      : Icons.point_of_sale_rounded),
+                  label: Text(allPaid ? 'Cerrar Mesa' : 'Cobrar'),
                 ),
               ),
-              icon: const Icon(Icons.point_of_sale_rounded),
-              label: Text(
-                'COBRAR',
-                style: AppTextStyles.labelLarge.copyWith(color: Colors.black),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onFactura,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor:
+                        isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
+                    side: BorderSide(
+                      color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                    ),
+                  ),
+                  icon: const Icon(Icons.receipt_long_rounded),
+                  label: const Text('Factura'),
+                ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onComprobante,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor:
+                        isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
+                    side: BorderSide(
+                      color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                    ),
+                  ),
+                  icon: const Icon(Icons.photo_camera_rounded),
+                  label: const Text('Comprobante'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Empty order state ──────────────────────────────────────────────────────────
-
-class _EmptyOrderBody extends StatelessWidget {
-  const _EmptyOrderBody();
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.receipt_long_rounded,
-              size: 80,
-              color: AppColors.brand.withOpacity(0.3),
-            ),
-            const SizedBox(height: AppDimensions.space16),
-            Text(
-              'Mesa vacía',
-              style: AppTextStyles.headlineMedium.copyWith(
-                color: AppColors.brand,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.space8),
-            Text(
-              'Usa el botón + para agregar el primer ítem al pedido.',
-              style: AppTextStyles.bodyLarge.copyWith(
-                color: isDark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Error state ────────────────────────────────────────────────────────────────
+// ── Error state ──────────────────────────────────────────────────────────────────
 
 class _OrderErrorBody extends StatelessWidget {
   const _OrderErrorBody({required this.error});
@@ -827,24 +618,15 @@ class _OrderErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              color: AppColors.statusRed,
-              size: 48,
-            ),
+            const Icon(Icons.error_outline_rounded,
+                color: AppColors.statusRed, size: 48),
             const SizedBox(height: AppDimensions.space12),
-            Text(
-              'Error al cargar el pedido',
-              style: AppTextStyles.headlineSmall.copyWith(
-                color: AppColors.statusRed,
-              ),
-            ),
+            Text('Error al cargar el pedido',
+                style: AppTextStyles.headlineSmall
+                    .copyWith(color: AppColors.statusRed)),
             const SizedBox(height: AppDimensions.space8),
-            Text(
-              error.toString(),
-              style: AppTextStyles.bodySmall,
-              textAlign: TextAlign.center,
-            ),
+            Text(error.toString(),
+                style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
           ],
         ),
       ),

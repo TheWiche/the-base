@@ -55,6 +55,13 @@ class OrderItem {
   /// Optional free-text note for the kitchen/bar (e.g. "sin hielo, con limón").
   String? note;
 
+  /// Menu category string ("Micheladas", "Fría's", …) captured at order time,
+  /// used by the factura to group items ("Agrupada"). Null → treated as "Otros".
+  String? menuCategory;
+
+  /// Optional menu subcategory ("Cerveza", "Soda", …).
+  String? subcategory;
+
   // ── Back-link to parent session ───────────────────────────────────────────
   @Backlink(to: 'orderItems')
   final tableSession = IsarLink<TableSession>();

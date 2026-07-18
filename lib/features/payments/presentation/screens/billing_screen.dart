@@ -230,6 +230,61 @@ class BillingScreen extends ConsumerWidget {
           Navigator.of(context).pop();
           _navigateToPayment(context, ref, method: method, subtotal: subtotal);
         },
+        onExact: () {
+          Navigator.of(context).pop();
+          _recordExactCash(context, ref, subtotal: subtotal);
+        },
+      ),
+    );
+  }
+
+  /// #9 — Pago directo: registra el pago en efectivo por el total exacto sin
+  /// abrir la pantalla de efectivo ni pedir monto recibido.
+  Future<void> _recordExactCash(
+    BuildContext context,
+    WidgetRef ref, {
+    required int subtotal,
+  }) async {
+    final selection = ref.read(billingSelectionProvider(sessionId));
+    final quantities = selection.selectedQuantities;
+    if (quantities.isEmpty) return;
+
+    final params = RecordPaymentParams(
+      tableSessionId: sessionId,
+      selectedItemIds: quantities.keys.toList(),
+      selectedQuantities: quantities,
+      amountPaid: subtotal,
+      billSubtotal: subtotal,
+      paymentMethod: PaymentMethod.cash,
+    );
+
+    final failure =
+        await ref.read(paymentNotifierProvider.notifier).recordPayment(params);
+    if (!context.mounted) return;
+
+    if (failure != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(failure.message),
+          backgroundColor: AppColors.statusRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    ref.read(billingSelectionProvider(sessionId).notifier).clearAll();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded,
+                color: AppColors.statusGreen, size: 18),
+            const SizedBox(width: AppDimensions.space8),
+            Text('Pago exacto registrado: ${subtotal.toCop}'),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -440,10 +495,14 @@ class _PaymentMethodSheet extends StatelessWidget {
   const _PaymentMethodSheet({
     required this.subtotal,
     required this.onSelected,
+    this.onExact,
   });
 
   final int subtotal;
   final void Function(PaymentMethod) onSelected;
+
+  /// Opcional: pago en efectivo por el total exacto sin teclado (#9).
+  final VoidCallback? onExact;
 
   @override
   Widget build(BuildContext context) {
@@ -503,6 +562,18 @@ class _PaymentMethodSheet extends StatelessWidget {
               color: AppColors.statusBlue,
               onTap: () => onSelected(PaymentMethod.transfer),
             ),
+
+            if (onExact != null) ...[
+              const SizedBox(height: AppDimensions.space12),
+              _MethodTile(
+                icon: Icons.check_circle_rounded,
+                label: 'Pago exacto',
+                description:
+                    'Registra ${subtotal.toCop} en efectivo, sin escribir monto.',
+                color: AppColors.primary,
+                onTap: onExact!,
+              ),
+            ],
           ],
         ),
       ),
@@ -677,7 +748,7 @@ Color _cuentaColor(int index) {
     Color(0xFFF97316), // orange
     Color(0xFF22C55E), // green
     Color(0xFFEC4899), // pink
-    Color(0xFF8B5CF6), // violet
+    Color(0xFF14B8A6), // teal
   ];
   return colors[index % colors.length];
 }

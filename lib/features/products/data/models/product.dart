@@ -18,6 +18,9 @@ class Product {
   @Index(type: IndexType.value)
   late String category;
 
+  /// Optional menu subcategory ("Cerveza", "Soda", …) — editable desde el CRUD.
+  String? subcategory;
+
   /// True for Licores / Vinos / Descorche — triggers the special debt rule.
   /// Standard cocktails and beers are false.
   late bool isLiquor;
