@@ -82,31 +82,21 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
             icon: const Icon(Icons.history_rounded),
             color: AppColors.brand,
           ),
-          IconButton(
-            onPressed: () => context.push('/products'),
-            tooltip: 'Menú / Agotados',
-            icon: const Icon(Icons.menu_book_rounded),
-            color: AppColors.brand,
-          ),
-          sessionsAsync.maybeWhen(
-            data: (sessions) => Padding(
-              padding: const EdgeInsets.only(right: AppDimensions.space16),
-              child: Center(
-                child: Text(
-                  sessions.isEmpty
-                      ? 'Sin mesas'
-                      : '${sessions.length} ${sessions.length == 1 ? 'mesa' : 'mesas'}',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: sessions.isEmpty
-                        ? (Theme.of(context).brightness == Brightness.dark
-                            ? AppColors.darkDisabled
-                            : AppColors.lightDisabled)
-                        : AppColors.statusGreen,
-                  ),
-                ),
+          // Acceso claro al Menú: botón con etiqueta, no un ícono suelto.
+          Padding(
+            padding: const EdgeInsets.only(right: AppDimensions.space12),
+            child: FilledButton.tonalIcon(
+              onPressed: () => context.push('/products'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary.withOpacity(0.15),
+                foregroundColor: AppColors.primary,
+                minimumSize: const Size(0, 38),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
+              icon: const Icon(Icons.restaurant_menu_rounded, size: 18),
+              label: Text('Menú', style: AppTextStyles.labelMedium),
             ),
-            orElse: () => const SizedBox.shrink(),
           ),
         ],
       ),
@@ -399,7 +389,7 @@ class _SessionsGridState extends State<_SessionsGrid>
         crossAxisCount: 2,
         crossAxisSpacing: AppDimensions.space12,
         mainAxisSpacing: AppDimensions.space12,
-        childAspectRatio: 0.88,
+        childAspectRatio: 1.32, // talones compactos, sin espacio muerto
       ),
       itemCount: widget.sessions.length,
       itemBuilder: (_, i) {
@@ -451,9 +441,10 @@ class _TableCard extends ConsumerWidget {
     return ReceiptStub(
       onTap: onTap,
       onLongPress: onLongPress,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // ── Encabezado: MESA N + tiempo ──────────────────────────
           Row(
@@ -463,7 +454,7 @@ class _TableCard extends ConsumerWidget {
                 child: Text(
                   'MESA ${session.tableNumber}',
                   style: AppTextStyles.receiptTitle.copyWith(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: AppColors.paperInk,
                   ),
                 ),
@@ -477,18 +468,16 @@ class _TableCard extends ConsumerWidget {
               ),
             ],
           ),
-          if (session.apodo != null)
-            Text(
-              '"${session.apodo}"',
-              style: AppTextStyles.receiptSmall.copyWith(
-                color: AppColors.paperInkSoft,
-                fontStyle: FontStyle.italic,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+          Text(
+            session.apodo != null ? '"${session.apodo}"' : ' ',
+            style: AppTextStyles.receiptSmall.copyWith(
+              color: AppColors.paperInkSoft,
+              fontStyle: FontStyle.italic,
             ),
-          const Spacer(),
-          const DashedDivider(padding: EdgeInsets.symmetric(vertical: 6)),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+          const DashedDivider(padding: EdgeInsets.symmetric(vertical: 5)),
 
           // ── Total + ítems ────────────────────────────────────────
           Row(
@@ -508,18 +497,19 @@ class _TableCard extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
 
           // ── Estado ───────────────────────────────────────────────
           Row(
             children: [
-              Icon(Icons.circle, size: 8, color: statusColor),
-              const SizedBox(width: 6),
+              Icon(Icons.circle, size: 7, color: statusColor),
+              const SizedBox(width: 5),
               Text(
                 session.statusLabel.toUpperCase(),
                 style: AppTextStyles.receiptSmall.copyWith(
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
+                  letterSpacing: 1.1,
                   color: statusColor,
                 ),
               ),

@@ -1,7 +1,7 @@
 name: the_base
 description: The Base — Billetera del Mesero. Offline-first waiter billing and KDS system.
 publish_to: "none"
-version: 1.7.0+18
+version: 1.8.0+19
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

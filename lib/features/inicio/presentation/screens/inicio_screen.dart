@@ -814,12 +814,28 @@ class _QuickActions extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppDimensions.space12),
-        _ActionCard(
-          icon: Icons.add_a_photo_rounded,
-          title: 'Captura suelta',
-          subtitle: 'Guardar comprobante sin mesa',
-          gradient: const [Color(0xFF1976D2), Color(0xFF0D47A1)],
-          onTap: () => context.push('/transferencias/captura-suelta'),
+        Row(
+          children: [
+            Expanded(
+              child: _ActionCard(
+                icon: Icons.add_a_photo_rounded,
+                title: 'Captura suelta',
+                subtitle: 'Comprobante sin mesa',
+                gradient: const [Color(0xFF1976D2), Color(0xFF0D47A1)],
+                onTap: () => context.push('/transferencias/captura-suelta'),
+              ),
+            ),
+            const SizedBox(width: AppDimensions.space12),
+            Expanded(
+              child: _ActionCard(
+                icon: Icons.restaurant_menu_rounded,
+                title: 'Menú',
+                subtitle: 'Productos y categorías',
+                gradient: const [AppColors.primary, AppColors.primaryDark],
+                onTap: () => context.push('/products'),
+              ),
+            ),
+          ],
         ),
       ],
     );

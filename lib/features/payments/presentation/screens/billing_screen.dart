@@ -44,6 +44,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   /// 0 = cronológica (bloques por hora) · 1 = agrupada (por categoría).
   int _mode = 0;
 
+  /// Categorías plegadas en la vista agrupada (flechita del encabezado).
+  final _collapsedCats = <String>{};
+
   int get sessionId => widget.sessionId;
 
   /// Auto-pop seguro: solo cuando esta ruta está al frente (si dispara con la
@@ -120,6 +123,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   selectableItems: selectableItems,
                   liquorItems: liquorItems,
                   selection: selection,
+                  collapsedCats: _collapsedCats,
+                  onToggleCat: (cat) => setState(() {
+                    _collapsedCats.contains(cat)
+                        ? _collapsedCats.remove(cat)
+                        : _collapsedCats.add(cat);
+                  }),
                   onToggle: (item) => ref
                       .read(billingSelectionProvider(sessionId).notifier)
                       .toggle(item.id, item.quantity),
@@ -244,6 +253,8 @@ class _BillingReceipt extends StatelessWidget {
     required this.selectableItems,
     required this.liquorItems,
     required this.selection,
+    required this.collapsedCats,
+    required this.onToggleCat,
     required this.onToggle,
     required this.onCompletar,
   });
@@ -255,6 +266,8 @@ class _BillingReceipt extends StatelessWidget {
   final List<OrderItemEntity> selectableItems;
   final List<OrderItemEntity> liquorItems;
   final BillingSelection selection;
+  final Set<String> collapsedCats;
+  final void Function(String) onToggleCat;
   final void Function(OrderItemEntity) onToggle;
   final void Function(OrderItemEntity) onCompletar;
 
@@ -354,8 +367,11 @@ class _BillingReceipt extends StatelessWidget {
           label: cat,
           count: byCat[cat]!.fold(0, (s, i) => s + i.quantity),
           subtotal: byCat[cat]!.fold(0, (s, i) => s + i.lineTotal),
+          collapsed: collapsedCats.contains(cat),
+          onToggle: () => onToggleCat(cat),
         ),
-        for (final it in byCat[cat]!) _line(it),
+        if (!collapsedCats.contains(cat))
+          for (final it in byCat[cat]!) _line(it),
       ],
     ];
   }

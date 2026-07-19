@@ -29,18 +29,22 @@ class ReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _ReceiptPainter(
-        color: color,
-        toothHeight: toothHeight,
-        toothWidth: toothWidth,
-      ),
-      child: Padding(
-        // El contenido se separa de los dientes arriba y abajo.
-        padding: padding.add(
-          EdgeInsets.symmetric(vertical: toothHeight + 8),
+    // RepaintBoundary: cachea el papel como raster — sin esto, cada frame de
+    // scroll repinta el zigzag de todas las tarjetas (jank en 120 Hz).
+    return RepaintBoundary(
+      child: CustomPaint(
+        painter: _ReceiptPainter(
+          color: color,
+          toothHeight: toothHeight,
+          toothWidth: toothWidth,
         ),
-        child: child,
+        child: Padding(
+          // El contenido se separa de los dientes arriba y abajo.
+          padding: padding.add(
+            EdgeInsets.symmetric(vertical: toothHeight + 8),
+          ),
+          child: child,
+        ),
       ),
     );
   }
@@ -71,15 +75,17 @@ class ReceiptStub extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stub = CustomPaint(
-      painter: _StubPainter(
-        color: color,
-        toothHeight: toothHeight,
-        toothWidth: toothWidth,
-      ),
-      child: Padding(
-        padding: padding.add(EdgeInsets.only(bottom: toothHeight + 4)),
-        child: child,
+    final stub = RepaintBoundary(
+      child: CustomPaint(
+        painter: _StubPainter(
+          color: color,
+          toothHeight: toothHeight,
+          toothWidth: toothWidth,
+        ),
+        child: Padding(
+          padding: padding.add(EdgeInsets.only(bottom: toothHeight + 4)),
+          child: child,
+        ),
       ),
     );
     if (onTap == null && onLongPress == null) return stub;
@@ -125,11 +131,9 @@ class _StubPainter extends CustomPainter {
     }
     path.close();
 
-    canvas.drawShadow(
+    canvas.drawPath(
       path.shift(const Offset(0, 2)),
-      Colors.black.withOpacity(0.3),
-      6,
-      false,
+      Paint()..color = Colors.black.withOpacity(0.2),
     );
     canvas.drawPath(path, Paint()..color = color);
   }
@@ -156,12 +160,11 @@ class _ReceiptPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final path = _buildPath(size);
 
-    // Sombra suave bajo el papel.
-    canvas.drawShadow(
+    // Sombra barata: relleno desplazado sin blur (drawShadow con blur causaba
+    // jank con Impeller apagado en el dispositivo de prueba).
+    canvas.drawPath(
       path.shift(const Offset(0, 3)),
-      Colors.black.withOpacity(0.35),
-      10,
-      false,
+      Paint()..color = Colors.black.withOpacity(0.22),
     );
 
     canvas.drawPath(path, Paint()..color = color);

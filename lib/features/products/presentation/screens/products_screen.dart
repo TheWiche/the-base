@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/result.dart';
+import '../../../../core/extensions/int_extensions.dart';
+import '../../../../core/settings/category_icon_provider.dart';
 import '../../../../core/settings/category_order_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
@@ -17,12 +19,30 @@ import 'category_manager_screen.dart';
 /// CRUD: crear (FAB), editar (tap en el ítem), eliminar (dentro del editor),
 /// cambiar precio, categoría y subcategoría, marcar licor. Además el toggle de
 /// Agotado (isAvailable). Los productos persisten entre turnos.
-class ProductsScreen extends ConsumerWidget {
+class ProductsScreen extends ConsumerStatefulWidget {
   const ProductsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProductsScreen> createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends ConsumerState<ProductsScreen> {
+  final _srchCtrl = TextEditingController();
+  String _search = '';
+  String? _selectedCat; // null = Todas
+
+  @override
+  void dispose() {
+    _srchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final productsAsync = ref.watch(productsProvider);
+    final icons = ref.watch(categoryIconsProvider);
+    final order = ref.watch(categoryOrderProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +54,7 @@ class ProductsScreen extends ConsumerWidget {
             Text(
               'Crea, edita y marca agotados',
               style: AppTextStyles.bodySmall.copyWith(
-                color: Theme.of(context).brightness == Brightness.dark
+                color: isDark
                     ? AppColors.darkOnSurfaceVariant
                     : AppColors.lightOnSurfaceVariant,
               ),
@@ -42,48 +62,31 @@ class ProductsScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Gestionar categorías',
-            icon: const Icon(Icons.category_rounded),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const CategoryManagerScreen(),
-              ),
-            ),
-          ),
-          productsAsync.maybeWhen(
-            data: (products) {
-              final agotadoCount = products.where((p) => !p.isAvailable).length;
-              if (agotadoCount == 0) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(right: AppDimensions.space16),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimensions.space8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.statusRed.withOpacity(0.15),
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusFull),
-                      border:
-                          Border.all(color: AppColors.statusRed.withOpacity(0.5)),
-                    ),
-                    child: Text(
-                      '$agotadoCount AGOTADO${agotadoCount > 1 ? 'S' : ''}',
-                      style: AppTextStyles.statusBadge
-                          .copyWith(color: AppColors.statusRed),
-                    ),
-                  ),
+          // Acceso claro al gestor de categorías, con etiqueta.
+          Padding(
+            padding: const EdgeInsets.only(right: AppDimensions.space12),
+            child: FilledButton.tonalIcon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const CategoryManagerScreen(),
                 ),
-              );
-            },
-            orElse: () => const SizedBox.shrink(),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary.withOpacity(0.15),
+                foregroundColor: AppColors.primary,
+                minimumSize: const Size(0, 38),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(Icons.category_rounded, size: 18),
+              label: Text('Categorías', style: AppTextStyles.labelMedium),
+            ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'add_product',
-        onPressed: () => _openEditor(context, ref, null),
+        onPressed: () => _openEditor(null),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Producto'),
       ),
@@ -91,231 +94,333 @@ class ProductsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _ErrorBody(error: e),
         data: (products) {
-          if (products.isEmpty) return _EmptyState(onCreate: () => _openEditor(context, ref, null));
-          return _ProductList(products: products, onEdit: (p) => _openEditor(context, ref, p));
+          if (products.isEmpty) {
+            return _EmptyState(onCreate: () => _openEditor(null));
+          }
+
+          // Categorías en el orden configurado.
+          final present = <String>{for (final p in products) p.category};
+          final categories = <String>[
+            ...order.where(present.contains),
+            ...present.where((c) => !order.contains(c)),
+          ];
+
+          final searching = _search.trim().isNotEmpty;
+          final shown = products.where((p) {
+            if (searching) {
+              return p.name.toLowerCase().contains(_search.toLowerCase());
+            }
+            return _selectedCat == null || p.category == _selectedCat;
+          }).toList();
+
+          final agotadoCount =
+              products.where((p) => !p.isAvailable).length;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Buscador + badge agotados ────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _srchCtrl,
+                        style: AppTextStyles.bodyMedium,
+                        decoration: InputDecoration(
+                          hintText: 'Buscar en el menú...',
+                          prefixIcon:
+                              const Icon(Icons.search_rounded, size: 20),
+                          suffixIcon: _search.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear_rounded,
+                                      size: 18),
+                                  onPressed: () {
+                                    _srchCtrl.clear();
+                                    setState(() => _search = '');
+                                  },
+                                )
+                              : null,
+                          isDense: true,
+                        ),
+                        onChanged: (v) => setState(() => _search = v),
+                      ),
+                    ),
+                    if (agotadoCount > 0) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.statusRed.withOpacity(0.14),
+                          borderRadius:
+                              BorderRadius.circular(AppDimensions.radiusFull),
+                        ),
+                        child: Text(
+                          '$agotadoCount',
+                          style: AppTextStyles.statusBadge
+                              .copyWith(color: AppColors.statusRed),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // ── Chips de categoría con ícono ─────────────────────
+              if (!searching)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _MenuCatChip(
+                        label: 'Todas',
+                        icon: Icons.apps_rounded,
+                        selected: _selectedCat == null,
+                        isDark: isDark,
+                        onTap: () => setState(() => _selectedCat = null),
+                      ),
+                      for (final cat in categories)
+                        _MenuCatChip(
+                          label: cat,
+                          icon: categoryIconFor(icons, cat),
+                          selected: _selectedCat == cat,
+                          isDark: isDark,
+                          onTap: () => setState(() => _selectedCat = cat),
+                        ),
+                    ],
+                  ),
+                ),
+
+              // ── Grilla de productos ──────────────────────────────
+              Expanded(
+                child: shown.isEmpty
+                    ? Center(
+                        child: Text('Sin resultados.',
+                            style: AppTextStyles.bodyMedium))
+                    : GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          mainAxisExtent: 116,
+                        ),
+                        itemCount: shown.length,
+                        itemBuilder: (_, i) => _ProductCard(
+                          key: ValueKey(shown[i].id),
+                          product: shown[i],
+                          isDark: isDark,
+                          onTap: () => _openEditor(shown[i]),
+                          onToggle: () => _toggle(shown[i]),
+                        ),
+                      ),
+              ),
+            ],
+          );
         },
       ),
     );
   }
 
-  void _openEditor(BuildContext context, WidgetRef ref, ProductEntity? existing) {
+  Future<void> _toggle(ProductEntity product) async {
+    final result =
+        await ref.read(toggleAvailabilityUseCaseProvider).call(product.id);
+    if (result.isErr && mounted) {
+      AppToast.error(context, (result as Err).failure.message);
+    }
+  }
+
+  void _openEditor(ProductEntity? existing) {
     final products = ref.read(productsProvider).valueOrNull ?? [];
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => _ProductEditorSheet(existing: existing, allProducts: products),
+      builder: (_) =>
+          _ProductEditorSheet(existing: existing, allProducts: products),
     );
   }
 }
 
-// ── Product list (grouped by category) ───────────────────────────────────────
+// ── Category chip (Menú) ──────────────────────────────────────────────────────
 
-class _ProductList extends ConsumerWidget {
-  const _ProductList({required this.products, required this.onEdit});
-
-  final List<ProductEntity> products;
-  final void Function(ProductEntity) onEdit;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final grouped = <String, List<ProductEntity>>{};
-    for (final p in products) {
-      (grouped[p.category] ??= []).add(p);
-    }
-    final categories = grouped.keys.toList();
-
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 96),
-      itemCount: categories.length,
-      itemBuilder: (_, ci) {
-        final category = categories[ci];
-        final items = grouped[category]!;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CategoryHeader(
-              category: category,
-              isLiquor: items.first.isLiquor,
-              availableCount: items.where((p) => p.isAvailable).length,
-              total: items.length,
-            ),
-            ...items.map(
-              (product) => _ProductTile(
-                key: ValueKey(product.id),
-                product: product,
-                onEdit: () => onEdit(product),
-                onToggle: () async {
-                  final result = await ref
-                      .read(toggleAvailabilityUseCaseProvider)
-                      .call(product.id);
-                  if (result.isErr && context.mounted) {
-                    AppToast.error(
-                        context, (result as Err).failure.message);
-                  }
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-// ── Category header ───────────────────────────────────────────────────────────
-
-class _CategoryHeader extends StatelessWidget {
-  const _CategoryHeader({
-    required this.category,
-    required this.isLiquor,
-    required this.availableCount,
-    required this.total,
+class _MenuCatChip extends StatelessWidget {
+  const _MenuCatChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.isDark,
+    required this.onTap,
   });
 
-  final String category;
-  final bool isLiquor;
-  final int availableCount;
-  final int total;
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final bool isDark;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isLiquor ? AppColors.statusPurple : AppColors.brand;
-
-    return Container(
-      margin: const EdgeInsets.only(top: AppDimensions.space16),
-      padding: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH,
-          AppDimensions.space8, AppDimensions.pagePaddingH, AppDimensions.space8),
-      color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
-      child: Row(
-        children: [
-          Icon(isLiquor ? Icons.wine_bar_rounded : Icons.local_bar_rounded,
-              color: color, size: AppDimensions.iconSm),
-          const SizedBox(width: AppDimensions.space8),
-          Expanded(
-            child: Text(category.toUpperCase(),
-                style: AppTextStyles.statusBadge.copyWith(color: color)),
+    final fg = selected
+        ? const Color(0xFF241A05)
+        : (isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary
+              : (isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? AppColors.primary
+                : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
           ),
-          Text(
-            '$availableCount / $total disponibles',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: isDark
-                  ? AppColors.darkOnSurfaceVariant
-                  : AppColors.lightOnSurfaceVariant,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: fg),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: fg,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Product tile ──────────────────────────────────────────────────────────────
+// ── Product card ──────────────────────────────────────────────────────────────
 
-class _ProductTile extends StatelessWidget {
-  const _ProductTile({
+class _ProductCard extends StatelessWidget {
+  const _ProductCard({
     super.key,
     required this.product,
+    required this.isDark,
+    required this.onTap,
     required this.onToggle,
-    required this.onEdit,
   });
 
   final ProductEntity product;
+  final bool isDark;
+  final VoidCallback onTap;
   final VoidCallback onToggle;
-  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isAvailable = product.isAvailable;
-    final nameColor = isAvailable
+    final available = product.isAvailable;
+    final nameColor = available
         ? (isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface)
         : (isDark ? AppColors.darkDisabled : AppColors.lightDisabled);
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isDark
-                ? AppColors.darkOutlineVariant
-                : AppColors.lightOutlineVariant,
-            width: 0.5,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 8, 6),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(
+            color: available
+                ? (isDark ? AppColors.darkOutline : AppColors.lightOutline)
+                : AppColors.statusRed.withOpacity(0.45),
           ),
         ),
-      ),
-      child: ListTile(
-        onTap: onEdit,
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.pagePaddingH, vertical: AppDimensions.space4),
-        title: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Text(product.name,
-                  style: AppTextStyles.bodyMedium.copyWith(color: nameColor)),
+              child: Text(
+                product.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  height: 1.25,
+                  color: nameColor,
+                  decoration:
+                      available ? null : TextDecoration.lineThrough,
+                ),
+              ),
             ),
-            if (product.subcategory != null) ...[
-              const SizedBox(width: AppDimensions.space8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.brand.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    product.price.toCop,
+                    style: AppTextStyles.titleSmall.copyWith(
+                      color: available
+                          ? (product.isLiquor
+                              ? AppColors.statusPurple
+                              : AppColors.secondaryDark)
+                          : (isDark
+                              ? AppColors.darkDisabled
+                              : AppColors.lightDisabled),
+                    ),
+                  ),
                 ),
-                child: Text(product.subcategory!,
-                    style: AppTextStyles.statusBadge
-                        .copyWith(color: AppColors.brand, fontSize: 9)),
-              ),
-            ],
-            if (!isAvailable) ...[
-              const SizedBox(width: AppDimensions.space8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.statusRed.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                  border:
-                      Border.all(color: AppColors.statusRed.withOpacity(0.5)),
+                if (product.subcategory != null)
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      product.subcategory!,
+                      style: AppTextStyles.statusBadge.copyWith(
+                          color: AppColors.primary, fontSize: 8.5),
+                    ),
+                  ),
+              ],
+            ),
+            Row(
+              children: [
+                Text(
+                  available ? 'Disponible' : 'AGOTADO',
+                  style: AppTextStyles.statusBadge.copyWith(
+                    fontSize: 9,
+                    color: available
+                        ? AppColors.statusGreen
+                        : AppColors.statusRed,
+                  ),
                 ),
-                child: Text('AGOTADO',
-                    style: AppTextStyles.statusBadge
-                        .copyWith(color: AppColors.statusRed, fontSize: 9)),
-              ),
-            ],
+                const Spacer(),
+                SizedBox(
+                  height: 28,
+                  child: Transform.scale(
+                    scale: 0.72,
+                    child: Switch(
+                      value: available,
+                      onChanged: (_) => onToggle(),
+                      activeColor: AppColors.statusGreen,
+                      materialTapTargetSize:
+                          MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
-        ),
-        subtitle: Text(
-          '\$ ${_fmt(product.price)}',
-          style: AppTextStyles.mono.copyWith(
-            fontSize: 12,
-            color: isAvailable
-                ? (product.isLiquor
-                    ? AppColors.statusPurple
-                    : AppColors.statusGreen)
-                : (isDark ? AppColors.darkDisabled : AppColors.lightDisabled),
-          ),
-        ),
-        trailing: Switch(
-          value: isAvailable,
-          onChanged: (_) => onToggle(),
-          activeColor: AppColors.statusGreen,
-          inactiveThumbColor:
-              isDark ? AppColors.darkDisabled : AppColors.lightDisabled,
         ),
       ),
     );
-  }
-
-  String _fmt(int n) {
-    final s = n.toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
-      buf.write(s[i]);
-    }
-    return buf.toString();
   }
 }
 

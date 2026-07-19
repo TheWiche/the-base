@@ -310,15 +310,22 @@ class ReceiptCategoryHeader extends StatelessWidget {
     required this.label,
     required this.count,
     required this.subtotal,
+    this.collapsed,
+    this.onToggle,
   });
 
   final String label;
   final int count;
   final int subtotal;
 
+  /// Si no es null, el encabezado es plegable: muestra la flecha y responde
+  /// al tap con [onToggle].
+  final bool? collapsed;
+  final VoidCallback? onToggle;
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final header = Padding(
       padding: const EdgeInsets.only(top: 10, bottom: 2),
       child: Row(
         children: [
@@ -335,8 +342,27 @@ class ReceiptCategoryHeader extends StatelessWidget {
             subtotal.toCop,
             style: AppTextStyles.receiptBodyBold.copyWith(color: AppColors.paperInk),
           ),
+          if (collapsed != null) ...[
+            const SizedBox(width: 4),
+            AnimatedRotation(
+              turns: collapsed! ? -0.25 : 0,
+              duration: const Duration(milliseconds: 180),
+              child: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 20,
+                color: AppColors.paperInkSoft,
+              ),
+            ),
+          ],
         ],
       ),
+    );
+
+    if (onToggle == null) return header;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onToggle,
+      child: header,
     );
   }
 }

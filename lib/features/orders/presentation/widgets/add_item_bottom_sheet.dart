@@ -575,43 +575,28 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                       ),
                     )
                   else
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.darkSurfaceVariant
-                            : AppColors.lightSurface,
-                        borderRadius:
-                            BorderRadius.circular(AppDimensions.radiusLg),
-                        border: Border.all(
-                          color: isDark
-                              ? AppColors.darkOutline
-                              : AppColors.lightOutline,
-                        ),
+                    // Grilla adaptativa: los productos fluyen en varias
+                    // columnas para aprovechar la pantalla.
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        mainAxisExtent: 88,
                       ),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < shown.length; i++) ...[
-                            _ProductRow(
-                              product: shown[i],
-                              inCartQty: _cart
-                                  .where((e) =>
-                                      e.name == shown[i].name ||
-                                      e.name.startsWith('${shown[i].name} ·'))
-                                  .fold(0, (s, e) => s + e.quantity),
-                              isDark: isDark,
-                              onAdd: () => _pickProduct(shown[i]),
-                            ),
-                            if (i < shown.length - 1)
-                              Divider(
-                                height: 1,
-                                indent: 16,
-                                endIndent: 16,
-                                color: isDark
-                                    ? AppColors.darkOutlineVariant
-                                    : AppColors.lightOutlineVariant,
-                              ),
-                          ],
-                        ],
+                      itemCount: shown.length,
+                      itemBuilder: (_, i) => _ProductCard(
+                        product: shown[i],
+                        inCartQty: _cart
+                            .where((e) =>
+                                e.name == shown[i].name ||
+                                e.name.startsWith('${shown[i].name} ·'))
+                            .fold(0, (s, e) => s + e.quantity),
+                        isDark: isDark,
+                        onAdd: () => _pickProduct(shown[i]),
                       ),
                     ),
 
@@ -817,10 +802,10 @@ class _SubChip extends StatelessWidget {
   }
 }
 
-// ── Product row (nombre · precio · +) ─────────────────────────────────────────
+// ── Product card (grilla compacta) ────────────────────────────────────────────
 
-class _ProductRow extends StatelessWidget {
-  const _ProductRow({
+class _ProductCard extends StatelessWidget {
+  const _ProductCard({
     required this.product,
     required this.inCartQty,
     required this.isDark,
@@ -834,59 +819,69 @@ class _ProductRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selected = inCartQty > 0;
     return InkWell(
       onTap: onAdd,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        child: Row(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(
+            color: selected
+                ? AppColors.primary
+                : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Text(
                 product.name,
-                style: AppTextStyles.bodyLarge.copyWith(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  height: 1.25,
                   color:
                       isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
                 ),
               ),
             ),
-            Text(
-              product.price.toCop,
-              style: AppTextStyles.titleMedium
-                  .copyWith(color: AppColors.secondaryDark),
-            ),
-            const SizedBox(width: 12),
-            Stack(
-              clipBehavior: Clip.none,
+            Row(
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary, width: 1.5),
-                    color: AppColors.primary.withOpacity(0.08),
+                Expanded(
+                  child: Text(
+                    product.price.toCop,
+                    style: AppTextStyles.titleSmall
+                        .copyWith(color: AppColors.secondaryDark),
                   ),
-                  child: const Icon(Icons.add_rounded,
-                      color: AppColors.primary, size: 22),
                 ),
-                if (inCartQty > 0)
-                  Positioned(
-                    top: -6,
-                    right: -6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondaryDark,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$inCartQty',
-                        style: AppTextStyles.statusBadge
-                            .copyWith(color: Colors.white, fontSize: 10),
-                      ),
-                    ),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.primary.withOpacity(0.12),
+                    border: Border.all(color: AppColors.primary),
                   ),
+                  child: Center(
+                    child: selected
+                        ? Text(
+                            '$inCartQty',
+                            style: AppTextStyles.labelMedium.copyWith(
+                              color: const Color(0xFF241A05),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          )
+                        : const Icon(Icons.add_rounded,
+                            color: AppColors.primary, size: 19),
+                  ),
+                ),
               ],
             ),
           ],
