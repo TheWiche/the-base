@@ -15,6 +15,7 @@ import '../../features/tables/presentation/screens/table_history_screen.dart';
 import '../../features/payments/presentation/providers/payment_providers.dart';
 import '../../features/payments/presentation/screens/billing_screen.dart';
 import '../../features/payments/presentation/screens/cash_payment_screen.dart';
+import '../../features/payments/presentation/screens/comprobantes_screen.dart';
 import '../../features/payments/presentation/screens/standalone_transfer_screen.dart';
 import '../../features/payments/presentation/screens/transfer_capture_screen.dart';
 import '../../features/products/presentation/screens/products_screen.dart';
@@ -217,6 +218,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/transferencias/captura-suelta',
         pageBuilder: (context, state) =>
             _slidePage(state.pageKey, const StandaloneTransferScreen()),
+      ),
+
+      GoRoute(
+        path: '/comprobantes',
+        pageBuilder: (context, state) =>
+            _slidePage(state.pageKey, const ComprobantesScreen()),
       ),
 
       GoRoute(

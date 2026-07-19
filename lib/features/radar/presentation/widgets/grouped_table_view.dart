@@ -19,10 +19,12 @@ class GroupedTableView extends StatelessWidget {
     super.key,
     required this.groups,
     required this.onDelivered,
+    required this.onDeliverAll,
   });
 
   final List<RadarTableGroup> groups;
   final void Function(int itemId) onDelivered;
+  final void Function(int sessionId) onDeliverAll;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +43,7 @@ class GroupedTableView extends StatelessWidget {
         return _TableGroupCard(
           group: group,
           onDelivered: onDelivered,
+          onDeliverAll: onDeliverAll,
         );
       },
     );
@@ -50,15 +53,21 @@ class GroupedTableView extends StatelessWidget {
 // ── Table group card ───────────────────────────────────────────────────────────
 
 class _TableGroupCard extends StatelessWidget {
-  const _TableGroupCard({required this.group, required this.onDelivered});
+  const _TableGroupCard({
+    required this.group,
+    required this.onDelivered,
+    required this.onDeliverAll,
+  });
 
   final RadarTableGroup group;
   final void Function(int itemId) onDelivered;
+  final void Function(int sessionId) onDeliverAll;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDark ? AppColors.darkOutline : AppColors.lightOutline;
+    final sessionId = group.items.first.item.tableSessionId;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppDimensions.space16),
@@ -90,6 +99,29 @@ class _TableGroupCard extends StatelessWidget {
                   onDelivered: () => onDelivered(radarItem.item.id),
                 );
               }).toList(),
+            ),
+          ),
+
+          // ── Entregar todo ─────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppDimensions.space12,
+              0,
+              AppDimensions.space12,
+              AppDimensions.space12,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => onDeliverAll(sessionId),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.statusGreen,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size.fromHeight(44),
+                ),
+                icon: const Icon(Icons.done_all_rounded, size: 20),
+                label: const Text('Entregar todo'),
+              ),
             ),
           ),
         ],

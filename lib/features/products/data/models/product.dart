@@ -21,6 +21,13 @@ class Product {
   /// Optional menu subcategory ("Cerveza", "Soda", …) — editable desde el CRUD.
   String? subcategory;
 
+  /// Producto combinable (ej. Michelada): al agregar se elige una "base".
+  bool isComposable = false;
+
+  /// Categorías cuyos productos sirven de base (ej. ["Fría's", "Gaseosas Solas"]).
+  /// Solo aplica cuando [isComposable] es true.
+  List<String> baseCategories = [];
+
   /// True for Licores / Vinos / Descorche — triggers the special debt rule.
   /// Standard cocktails and beers are false.
   late bool isLiquor;

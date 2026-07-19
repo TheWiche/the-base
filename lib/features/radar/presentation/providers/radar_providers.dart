@@ -64,6 +64,19 @@ final deliverItemProvider =
   };
 });
 
+/// Entrega TODOS los pendientes de una mesa a la vez (botón "Entregar todo").
+final deliverTableProvider =
+    Provider.autoDispose<Future<Failure?> Function(int sessionId)>((ref) {
+  final repo = ref.read(orderRepositoryProvider);
+  return (sessionId) async {
+    final result = await repo.markTableDelivered(sessionId);
+    return switch (result) {
+      Ok() => null,
+      Err(:final failure) => failure,
+    };
+  };
+});
+
 // ── Urgency color extension (re-exported for widgets) ────────────────────────
 
 extension RadarUrgencyUI on RadarUrgency {

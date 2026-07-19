@@ -1,18 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/settings/bar_settings_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/receipt_paper.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
-import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../tables/domain/entities/table_session_entity.dart';
 import '../../domain/entities/order_item_entity.dart';
 import '../providers/order_providers.dart';
@@ -69,8 +66,6 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
               sessionId: widget.sessionId,
               items: items,
               onAgregar: _openAddItem,
-              onFactura: () => FacturaSheet.show(context, widget.sessionId),
-              onComprobante: () => _showComprobante(items),
             ),
             orElse: () => const SizedBox.shrink(),
           ),
@@ -117,6 +112,12 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
               ),
             ),
       actions: [
+        if (session != null)
+          IconButton(
+            tooltip: 'Compartir factura',
+            icon: const Icon(Icons.share_rounded),
+            onPressed: () => FacturaSheet.show(context, widget.sessionId),
+          ),
         if (session != null)
           IconButton(
             tooltip: 'Repetir ronda',
@@ -221,53 +222,6 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
     );
   }
 
-  Future<void> _showComprobante(List<OrderItemEntity> items) async {
-    final receipts = ref.read(allTransferReceiptsProvider).valueOrNull ?? [];
-    final forSession = receipts
-        .where((r) =>
-            r.tableSessionId == widget.sessionId &&
-            r.photoPath != null &&
-            File(r.photoPath!).existsSync())
-        .toList()
-      ..sort((a, b) => b.paidAt.compareTo(a.paidAt));
-
-    if (forSession.isEmpty) {
-      _showInfo('Esta mesa no tiene comprobantes de transferencia.');
-      return;
-    }
-
-    final path = forSession.first.photoPath!;
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(child: InteractiveViewer(child: Image.file(File(path)))),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Share.shareXFiles([XFile(path)]),
-                    icon: const Icon(Icons.share_rounded),
-                    label: const Text('Compartir'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('Cerrar'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> _cancelItem(int itemId) async {
     final failure = await ref
@@ -303,12 +257,23 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
   Future<void> _repeatRound() async {
     final items =
         ref.read(tableOrderProvider(widget.sessionId)).valueOrNull ?? [];
-    final repeatable = items.where((i) => !i.isCancelled).toList();
+    final nonCancelled = items.where((i) => !i.isCancelled).toList();
 
-    if (repeatable.isEmpty) {
+    if (nonCancelled.isEmpty) {
       _showInfo('No hay ítems para repetir.');
       return;
     }
+
+    // Solo la ÚLTIMA ronda: el bloque de hora (minuto) más reciente.
+    String minuteKey(DateTime d) =>
+        '${d.year}-${d.month}-${d.day} ${d.hour}:${d.minute}';
+    final latestOrdered = nonCancelled
+        .map((i) => i.orderedAt)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+    final lastKey = minuteKey(latestOrdered);
+    final repeatable = nonCancelled
+        .where((i) => minuteKey(i.orderedAt) == lastKey)
+        .toList();
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -317,9 +282,8 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
             color: AppColors.brand, size: AppDimensions.iconXl),
         title: Text('¿Repetir ronda?', style: AppTextStyles.headlineSmall),
         content: Text(
-          'Se agregarán ${repeatable.length} '
-          '${repeatable.length == 1 ? 'ítem' : 'ítems'} nuevos (pendientes) '
-          'iguales a los actuales.',
+          'Se repetirá la última ronda: ${repeatable.length} '
+          '${repeatable.length == 1 ? 'ítem' : 'ítems'} nuevos (pendientes).',
           style: AppTextStyles.bodyMedium,
           textAlign: TextAlign.center,
         ),
@@ -416,32 +380,9 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
     if (failure != null && mounted) _showError(failure);
   }
 
-  void _showInfo(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded,
-                color: AppColors.statusGreen, size: 18),
-            const SizedBox(width: AppDimensions.space8),
-            Expanded(child: Text(message, style: AppTextStyles.bodyMedium)),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
+  void _showInfo(String message) => AppToast.success(context, message);
 
-  void _showError(Failure failure) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(failure.message),
-        backgroundColor: AppColors.statusRed,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  void _showError(Failure failure) => AppToast.error(context, failure.message);
 }
 
 // ── Cuerpo del tiquete ──────────────────────────────────────────────────────────
@@ -491,15 +432,11 @@ class _ActionBar extends StatelessWidget {
     required this.sessionId,
     required this.items,
     required this.onAgregar,
-    required this.onFactura,
-    required this.onComprobante,
   });
 
   final int sessionId;
   final List<OrderItemEntity> items;
   final VoidCallback onAgregar;
-  final VoidCallback onFactura;
-  final VoidCallback onComprobante;
 
   @override
   Widget build(BuildContext context) {
@@ -523,79 +460,38 @@ class _ActionBar extends StatelessWidget {
           ),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onAgregar,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: const Color(0xFF241A05),
-                    minimumSize: const Size.fromHeight(52),
-                  ),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Agregar'),
-                ),
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: onAgregar,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: const Color(0xFF241A05),
+                minimumSize: const Size.fromHeight(52),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: allPaid
-                      ? () => context.go('/tables')
-                      : (unpaidTotal > 0
-                          ? () => context.push('/billing/$sessionId')
-                          : null),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.statusGreen,
-                    foregroundColor: Colors.black,
-                    minimumSize: const Size.fromHeight(52),
-                  ),
-                  icon: Icon(allPaid
-                      ? Icons.check_circle_rounded
-                      : Icons.point_of_sale_rounded),
-                  label: Text(allPaid ? 'Cerrar Mesa' : 'Cobrar'),
-                ),
-              ),
-            ],
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Agregar'),
+            ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onFactura,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    foregroundColor:
-                        isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
-                    side: BorderSide(
-                      color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-                    ),
-                  ),
-                  icon: const Icon(Icons.receipt_long_rounded),
-                  label: const Text('Factura'),
-                ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: allPaid
+                  ? () => context.go('/tables')
+                  : (unpaidTotal > 0
+                      ? () => context.push('/billing/$sessionId')
+                      : null),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.statusGreen,
+                foregroundColor: Colors.black,
+                minimumSize: const Size.fromHeight(52),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onComprobante,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    foregroundColor:
-                        isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
-                    side: BorderSide(
-                      color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-                    ),
-                  ),
-                  icon: const Icon(Icons.photo_camera_rounded),
-                  label: const Text('Comprobante'),
-                ),
-              ),
-            ],
+              icon: Icon(allPaid
+                  ? Icons.check_circle_rounded
+                  : Icons.point_of_sale_rounded),
+              label: Text(allPaid ? 'Cerrar Mesa' : 'Cobrar'),
+            ),
           ),
         ],
       ),

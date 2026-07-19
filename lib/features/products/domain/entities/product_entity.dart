@@ -9,6 +9,8 @@ final class ProductEntity {
     required this.isLiquor,
     required this.isAvailable,
     this.subcategory,
+    this.isComposable = false,
+    this.baseCategories = const [],
   });
 
   final int id;
@@ -22,6 +24,12 @@ final class ProductEntity {
 
   /// Optional menu subcategory ("Cerveza", "Soda", …).
   final String? subcategory;
+
+  /// Producto combinable (elige una base al agregar).
+  final bool isComposable;
+
+  /// Categorías cuyos productos sirven de base.
+  final List<String> baseCategories;
 
   /// Whether the product follows the liquor debt rule instead of reducing
   /// the waiter's active balance.

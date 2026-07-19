@@ -80,6 +80,13 @@ abstract interface class IOrderRepository {
   /// Sets [OrderItemStatus.delivered] and stamps [deliveredAt].
   Future<Result<OrderItemEntity>> markDelivered(int itemId);
 
+  /// Marca TODOS los ítems pendientes de una mesa como entregados de una vez.
+  Future<Result<void>> markTableDelivered(int sessionId);
+
+  /// Stream de botellas de licor NO pagadas (de cualquier mesa) — para el
+  /// selector "Pagar Botella" en la Billetera.
+  Stream<List<OrderItemEntity>> watchUnpaidLiquorItems();
+
   /// Completa una botella de licor (pass-through): la marca como pagada/entregada
   /// y escribe una transacción [TransactionType.liquorSettlement] que reduce la
   /// deuda de licor por su [lineTotal]. NO crea un PaymentReceipt, así que NO

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/settings/category_order_provider.dart';
 import '../../data/repositories/product_repository_impl.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/i_product_repository.dart';
@@ -13,11 +14,27 @@ final productRepositoryProvider = Provider<IProductRepository>(
 
 // ── Reactive product list ─────────────────────────────────────────────────────
 
-/// All 44 menu products, sorted by canonical category order then by name.
-/// Fires on every [isAvailable] toggle.
-final productsProvider = StreamProvider<List<ProductEntity>>(
+/// Raw product stream from Isar (sorted by name within category by the repo).
+final _rawProductsProvider = StreamProvider<List<ProductEntity>>(
   (ref) => ref.watch(productRepositoryProvider).watchAll(),
 );
+
+/// Productos ordenados según el orden de categorías configurable.
+/// Fires on every [isAvailable] toggle o cambio de orden.
+final productsProvider = Provider<AsyncValue<List<ProductEntity>>>((ref) {
+  final order = ref.watch(categoryOrderProvider.notifier);
+  ref.watch(categoryOrderProvider); // rebuild al reordenar
+  return ref.watch(_rawProductsProvider).whenData((list) {
+    final sorted = [...list]
+      ..sort((a, b) {
+        final ci = order.indexOf(a.category).compareTo(order.indexOf(b.category));
+        if (ci != 0) return ci;
+        final si = (a.subcategory ?? '').compareTo(b.subcategory ?? '');
+        return si != 0 ? si : a.name.compareTo(b.name);
+      });
+    return sorted;
+  });
+});
 
 // ── Derived selectors ─────────────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/extensions/int_extensions.dart';
+import '../../../../core/services/table_counter_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -294,6 +295,10 @@ class _CierreScreenState extends ConsumerState<CierreScreen> {
       );
       return;
     }
+
+    // Reinicia la numeración de mesas: el próximo turno arranca en Mesa 1.
+    await TableCounterService().reset();
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -171,16 +171,70 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
 
   void _pickProduct(ProductEntity p) {
     if (!p.isAvailable) return;
+    if (p.isComposable && p.baseCategories.isNotEmpty) {
+      _pickComposableBase(p);
+      return;
+    }
     _addToCart(p.name, p.price,
         p.isLiquor ? ProductCategory.liquor : ProductCategory.standard,
         menuCategory: p.category);
   }
 
-  void _pickMichelada(ProductEntity beer, int price) {
-    final beerName = beer.name.replaceFirst('Cerveza ', '');
-    _addToCart('Michelada $beerName', price, ProductCategory.standard,
-        menuCategory: 'Micheladas', subcategory: 'Cerveza');
+  /// Selector de base para un producto combinable (ej. Michelada → cerveza/soda).
+  void _pickComposableBase(ProductEntity p) {
+    final all = ref.read(productsProvider).valueOrNull ?? [];
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${p.name} — elige la base',
+                  style: AppTextStyles.headlineSmall),
+              const SizedBox(height: 12),
+              for (final baseCat in p.baseCategories) ...[
+                Text(baseCat.toUpperCase(),
+                    style: AppTextStyles.statusBadge
+                        .copyWith(color: AppColors.primary)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: all
+                      .where((x) => x.category == baseCat && x.isAvailable)
+                      .map((opt) => ActionChip(
+                            label: Text(_baseLabel(opt.name)),
+                            onPressed: () {
+                              Navigator.of(ctx).pop();
+                              _addToCart(
+                                '${p.name} · ${_baseLabel(opt.name)}',
+                                p.price,
+                                ProductCategory.standard,
+                                menuCategory: p.category,
+                                subcategory: baseCat,
+                              );
+                            },
+                          ))
+                      .toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
+
+  /// Limpia prefijos genéricos ("Cerveza Águila" → "Águila").
+  String _baseLabel(String name) => name
+      .replaceFirst(RegExp(r'^(Cerveza|Soda|Gaseosa)\s+'), '')
+      .trim();
 
   void _pickCatalog(CatalogProduct p) =>
       _addToCart(p.name, p.price, p.category);
@@ -308,14 +362,6 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
               ..sort());
 
     final showProducts     = _searchQuery.isNotEmpty || _selectedMenuCat != null;
-    final isMicheladasCat  = _selectedMenuCat == 'Micheladas';
-    final beersForMichelada = isMicheladasCat
-        ? menuAll.where((p) => p.category == "Fría's" && p.isAvailable).toList()
-        : <ProductEntity>[];
-    final micheladaPrice = menuAll
-        .where((p) => p.category == 'Micheladas')
-        .map((p) => p.price)
-        .fold<int?>(null, (prev, p) => prev ?? p) ?? 8000;
 
     final totalItems = _cart.fold<int>(0, (s, e) => s + e.quantity);
 
@@ -453,27 +499,13 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                       if (showProducts && filtered.isEmpty)
                         _NoResultsHint(isDark: isDark),
 
-                      if (showProducts && filtered.isNotEmpty) ...[
+                      if (showProducts && filtered.isNotEmpty)
                         _ProductGrid(
                           products: filtered,
                           cartCounts: cartCounts,
                           onTap: _pickProduct,
                           isDark: isDark,
                         ),
-                        if (beersForMichelada.isNotEmpty) ...[
-                          const SizedBox(height: AppDimensions.space12),
-                          _SectionLabel(
-                              label: 'CERVEZA PARA MICHELADA', isDark: isDark),
-                          const SizedBox(height: AppDimensions.space8),
-                          _MicheladaChips(
-                            beers: beersForMichelada,
-                            micheladaPrice: micheladaPrice,
-                            onTap: _pickMichelada,
-                            cartNames: cartNames,
-                            isDark: isDark,
-                          ),
-                        ],
-                      ],
 
                       const SizedBox(height: AppDimensions.space16),
 
@@ -1378,122 +1410,6 @@ class _LiquorBanner extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-// ── Michelada beer chips ──────────────────────────────────────────────────────
-
-class _MicheladaChips extends StatelessWidget {
-  const _MicheladaChips({
-    required this.beers,
-    required this.micheladaPrice,
-    required this.onTap,
-    required this.cartNames,
-    required this.isDark,
-  });
-
-  final List<ProductEntity> beers;
-  final int micheladaPrice;
-  final void Function(ProductEntity, int) onTap;
-  final Set<String> cartNames;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    const color = AppColors.statusBlue;
-    return SizedBox(
-      height: 68,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: beers.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppDimensions.space8),
-        itemBuilder: (_, i) {
-          final beer       = beers[i];
-          final isAvail    = beer.isAvailable;
-          final chipColor  = isAvail
-              ? color
-              : (isDark ? AppColors.darkDisabled : AppColors.lightDisabled);
-          final beerName   = beer.name.replaceFirst('Cerveza ', '');
-          final isSelected = cartNames.contains('Michelada $beerName');
-
-          return GestureDetector(
-            onTap: isAvail ? () => onTap(beer, micheladaPrice) : null,
-            child: Opacity(
-              opacity: isAvail ? 1.0 : 0.4,
-              child: Container(
-                constraints: const BoxConstraints(minWidth: 80, maxWidth: 150),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.space10,
-                    vertical: AppDimensions.space8),
-                decoration: BoxDecoration(
-                  color: chipColor.withOpacity(isSelected ? 0.2 : 0.07),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  border: Border.all(
-                    color: isSelected ? chipColor : chipColor.withOpacity(0.4),
-                    width: isSelected ? 2 : 1,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isSelected
-                              ? Icons.check_circle_rounded
-                              : Icons.sports_bar_rounded,
-                          size: 12,
-                          color: chipColor,
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            'Michelada $beerName',
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: isDark
-                                  ? AppColors.darkOnSurface
-                                  : AppColors.lightOnSurface,
-                              fontWeight: isSelected ? FontWeight.w700 : null,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    if (!isAvail)
-                      Text('AGOTADO',
-                          style: AppTextStyles.statusBadge
-                              .copyWith(fontSize: 8, color: AppColors.statusRed))
-                    else
-                      Text(
-                        '\$${_fmt(micheladaPrice)}',
-                        style: AppTextStyles.mono.copyWith(
-                            fontSize: 11,
-                            color: chipColor,
-                            fontWeight: FontWeight.w700),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  String _fmt(int n) {
-    final s = n.toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
-      buf.write(s[i]);
-    }
-    return buf.toString();
   }
 }
 

@@ -212,6 +212,33 @@ final class ProductRepositoryImpl implements IProductRepository {
     await prefs.setInt(_kSeedVersionKey, 3);
   }
 
+  /// V4 — marca las Micheladas como combinables (base: cervezas o sodas).
+  Future<void> seedMigrateV4() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedVersion = prefs.getInt(_kSeedVersionKey) ?? 1;
+    if (storedVersion >= 4) return;
+
+    final micheladas = await IsarService.db.products
+        .filter()
+        .categoryEqualTo('Micheladas')
+        .findAll();
+    final toMark = micheladas
+        .where((p) => p.name.toLowerCase().startsWith('michelada'))
+        .toList();
+    if (toMark.isNotEmpty) {
+      for (final p in toMark) {
+        p
+          ..isComposable = true
+          ..baseCategories = ["Fría's", 'Gaseosas Solas'];
+      }
+      await IsarService.write((isar) async {
+        await isar.products.putAll(toMark);
+      });
+      debugPrint('[ProductRepository] Migration v4: ${toMark.length} micheladas combinables.');
+    }
+    await prefs.setInt(_kSeedVersionKey, 4);
+  }
+
   @override
   Stream<List<ProductEntity>> watchAll() {
     return IsarService.db.products
@@ -257,6 +284,8 @@ final class ProductRepositoryImpl implements IProductRepository {
     required String category,
     String? subcategory,
     required bool isLiquor,
+    bool isComposable = false,
+    List<String> baseCategories = const [],
   }) async {
     try {
       late int newId;
@@ -267,6 +296,8 @@ final class ProductRepositoryImpl implements IProductRepository {
           ..category = category.trim()
           ..subcategory = _clean(subcategory)
           ..isLiquor = isLiquor
+          ..isComposable = isComposable
+          ..baseCategories = baseCategories
           ..isAvailable = true;
         newId = await isar.products.put(product);
       });
@@ -287,6 +318,8 @@ final class ProductRepositoryImpl implements IProductRepository {
     required String category,
     String? subcategory,
     required bool isLiquor,
+    bool isComposable = false,
+    List<String> baseCategories = const [],
   }) async {
     try {
       await IsarService.write((isar) async {
@@ -297,7 +330,9 @@ final class ProductRepositoryImpl implements IProductRepository {
           ..price = price
           ..category = category.trim()
           ..subcategory = _clean(subcategory)
-          ..isLiquor = isLiquor;
+          ..isLiquor = isLiquor
+          ..isComposable = isComposable
+          ..baseCategories = baseCategories;
         await isar.products.put(product);
       });
       return const Ok(null);
@@ -324,6 +359,28 @@ final class ProductRepositoryImpl implements IProductRepository {
     }
   }
 
+  @override
+  Future<Result<void>> renameCategory(String from, String to) async {
+    final target = to.trim();
+    if (target.isEmpty || target == from) return const Ok(null);
+    try {
+      await IsarService.write((isar) async {
+        final affected =
+            await isar.products.filter().categoryEqualTo(from).findAll();
+        for (final p in affected) {
+          p.category = target;
+        }
+        if (affected.isNotEmpty) await isar.products.putAll(affected);
+      });
+      return const Ok(null);
+    } catch (e, st) {
+      return Err(DatabaseFailure(
+        message: 'No se pudo renombrar la categoría: $e',
+        stackTrace: st,
+      ));
+    }
+  }
+
   static String? _clean(String? s) {
     final t = s?.trim();
     return (t == null || t.isEmpty) ? null : t;
@@ -339,5 +396,7 @@ final class ProductRepositoryImpl implements IProductRepository {
         subcategory: p.subcategory,
         isLiquor: p.isLiquor,
         isAvailable: p.isAvailable,
+        isComposable: p.isComposable,
+        baseCategories: p.baseCategories,
       );
 }

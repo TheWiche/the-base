@@ -28,6 +28,13 @@ final class TableCounterService {
     return (prefs.getInt(_key) ?? 0) + 1;
   }
 
+  /// Reinicia el contador a 0 — la próxima mesa vuelve a ser Mesa 1.
+  /// Se llama al finalizar la jornada para que cada turno numere desde 1.
+  Future<void> reset() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_key, 0);
+  }
+
   /// Ensures the stored counter is at least [minimum].
   ///
   /// Called during app startup to migrate existing installations: sets the

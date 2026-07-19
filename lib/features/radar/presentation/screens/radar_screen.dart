@@ -5,12 +5,9 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/stagger_entrance.dart';
-import '../../../orders/domain/entities/pending_radar_item.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../providers/radar_providers.dart';
 import '../widgets/grouped_table_view.dart';
-import '../widgets/radar_item_tile.dart';
 
 /// El Radar — the KDS (Kitchen Display System) screen.
 ///
@@ -31,10 +28,10 @@ class RadarScreen extends ConsumerStatefulWidget {
 class _RadarScreenState extends ConsumerState<RadarScreen> {
   @override
   Widget build(BuildContext context) {
-    final viewMode = ref.watch(radarViewModeProvider);
     final radarAsync = ref.watch(pendingRadarItemsProvider);
     final pendingCount = ref.watch(pendingRadarCountProvider);
     final deliver = ref.read(deliverItemProvider);
+    final deliverAll = ref.read(deliverTableProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -52,66 +49,27 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
             if (pendingCount > 0) _PendingCountBadge(count: pendingCount),
           ],
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(52),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.pagePaddingH,
-              0,
-              AppDimensions.pagePaddingH,
-              AppDimensions.space8,
-            ),
-            child: SegmentedButton<RadarViewMode>(
-              segments: const [
-                ButtonSegment<RadarViewMode>(
-                  value: RadarViewMode.grouped,
-                  icon: Icon(Icons.table_restaurant_rounded),
-                  label: Text('Por Mesa'),
-                ),
-                ButtonSegment<RadarViewMode>(
-                  value: RadarViewMode.chronological,
-                  icon: Icon(Icons.view_list_rounded),
-                  label: Text('Cronológico'),
-                ),
-              ],
-              selected: {viewMode},
-              onSelectionChanged: (selection) {
-                ref.read(radarViewModeProvider.notifier).state = selection.first;
-              },
-              style: SegmentedButton.styleFrom(
-                selectedBackgroundColor: AppColors.brand.withOpacity(0.15),
-                selectedForegroundColor: AppColors.brand,
-                minimumSize: const Size(0, AppDimensions.tapTargetStd),
-              ),
-            ),
-          ),
-        ),
       ),
       body: radarAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _RadarErrorBody(error: error),
         data: (items) {
           if (items.isEmpty) return const _EmptyRadarBody();
-          return switch (viewMode) {
-            RadarViewMode.chronological => _ChronologicalView(
-                items: items,
-                onDelivered: (id) => _onDeliver(id, deliver),
-              ),
-            RadarViewMode.grouped => GroupedTableView(
-                groups: ref.watch(radarGroupedProvider),
-                onDelivered: (id) => _onDeliver(id, deliver),
-              ),
-          };
+          return GroupedTableView(
+            groups: ref.watch(radarGroupedProvider),
+            onDelivered: (id) => _onDeliver(id, deliver),
+            onDeliverAll: (sessionId) => _onDeliver(sessionId, deliverAll),
+          );
         },
       ),
     );
   }
 
   Future<void> _onDeliver(
-    int itemId,
-    Future<Failure?> Function(int) deliver,
+    int id,
+    Future<Failure?> Function(int) action,
   ) async {
-    final failure = await deliver(itemId);
+    final failure = await action(id);
     if (failure != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -121,86 +79,6 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
         ),
       );
     }
-  }
-}
-
-// ── Chronological flat view (staggered entrance on mount) ─────────────────────
-
-class _ChronologicalView extends StatefulWidget {
-  const _ChronologicalView({
-    required this.items,
-    required this.onDelivered,
-  });
-
-  final List<PendingRadarItem> items;
-  final void Function(int itemId) onDelivered;
-
-  @override
-  State<_ChronologicalView> createState() => _ChronologicalViewState();
-}
-
-class _ChronologicalViewState extends State<_ChronologicalView>
-    with SingleTickerProviderStateMixin {
-  static bool _hasPlayed = false;
-
-  late AnimationController _staggerCtrl;
-  late List<Animation<double>> _anims;
-
-  @override
-  void initState() {
-    super.initState();
-    _rebuild(widget.items.length);
-
-    if (_hasPlayed) {
-      _staggerCtrl.value = 1.0;
-    } else {
-      _staggerCtrl.forward();
-      _hasPlayed = true;
-    }
-  }
-
-  void _rebuild(int n) {
-    final count = n.clamp(1, 25);
-    _staggerCtrl = createStaggerController(vsync: this, itemCount: count);
-    _anims = buildStaggerAnimations(
-      controller: _staggerCtrl,
-      itemCount: count,
-    );
-  }
-
-  @override
-  void dispose() {
-    _staggerCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final sorted = [...widget.items]
-      ..sort((a, b) => a.item.orderedAt.compareTo(b.item.orderedAt));
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(
-        AppDimensions.pagePaddingH,
-        AppDimensions.space8,
-        AppDimensions.pagePaddingH,
-        AppDimensions.space64,
-      ),
-      itemCount: sorted.length,
-      itemBuilder: (context, index) {
-        final radarItem = sorted[index];
-        final anim = index < _anims.length ? _anims[index] : _anims.last;
-        return StaggerItem(
-          animation: anim,
-          child: RadarItemTile(
-            key: ValueKey(radarItem.item.id),
-            radarItem: radarItem,
-            showTableLabel: true,
-            onDelivered: () => widget.onDelivered(radarItem.item.id),
-          ),
-        );
-      },
-    );
   }
 }
 

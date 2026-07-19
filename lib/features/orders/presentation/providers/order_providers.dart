@@ -140,6 +140,25 @@ final tableOrderProvider =
   TableOrderNotifier.new,
 );
 
+// ── Botellas de licor no pagadas (para "Pagar Botella" en Billetera) ──────────
+
+final unpaidLiquorItemsProvider = StreamProvider<List<OrderItemEntity>>((ref) {
+  return ref.watch(orderRepositoryProvider).watchUnpaidLiquorItems();
+});
+
+/// Acción para saldar una botella desde cualquier pantalla (Billetera).
+final settleLiquorActionProvider =
+    Provider<Future<Failure?> Function(int itemId)>((ref) {
+  final repo = ref.read(orderRepositoryProvider);
+  return (itemId) async {
+    final result = await repo.settleLiquorItem(itemId);
+    return switch (result) {
+      Ok() => null,
+      Err(:final failure) => failure,
+    };
+  };
+});
+
 // ── Pending radar items (all tables) ──────────────────────────────────────────
 
 final pendingRadarItemsProvider =

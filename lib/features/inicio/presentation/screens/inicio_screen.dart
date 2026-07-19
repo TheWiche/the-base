@@ -695,13 +695,14 @@ class _StatCard extends StatelessWidget {
 
 // ── Quick Actions ──────────────────────────────────────────────────────────────
 
-class _QuickActions extends StatelessWidget {
+class _QuickActions extends ConsumerWidget {
   const _QuickActions({required this.isDark});
 
   final bool isDark;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingTransfers = ref.watch(pendingTransfersProvider).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -768,6 +769,46 @@ class _QuickActions extends StatelessWidget {
                     ? AppColors.darkOnBackground
                     : AppColors.lightOnSurface,
                 onTap: () => context.go('/cierre'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppDimensions.space12),
+        Row(
+          children: [
+            Expanded(
+              child: _ActionCard(
+                icon: Icons.verified_rounded,
+                title: pendingTransfers > 0
+                    ? 'Legalizar ($pendingTransfers)'
+                    : 'Legalizar',
+                subtitle: 'Transferencias en caja',
+                gradient: pendingTransfers > 0
+                    ? const [Color(0xFFE0872C), Color(0xFFB0651A)]
+                    : (isDark
+                        ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
+                        : [AppColors.lightSurfaceVariant, AppColors.lightSurface]),
+                textColor: pendingTransfers > 0
+                    ? Colors.white
+                    : (isDark
+                        ? AppColors.darkOnBackground
+                        : AppColors.lightOnSurface),
+                onTap: () => context.push('/legalizacion'),
+              ),
+            ),
+            const SizedBox(width: AppDimensions.space12),
+            Expanded(
+              child: _ActionCard(
+                icon: Icons.photo_library_rounded,
+                title: 'Comprobantes',
+                subtitle: 'Ver fotos guardadas',
+                gradient: isDark
+                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
+                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
+                textColor: isDark
+                    ? AppColors.darkOnBackground
+                    : AppColors.lightOnSurface,
+                onTap: () => context.push('/comprobantes'),
               ),
             ),
           ],

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/animated_amount.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
+import '../../../orders/domain/entities/order_item_entity.dart';
+import '../../../orders/presentation/providers/order_providers.dart';
 import '../../domain/entities/wallet_summary.dart';
 import '../providers/base_wallet_providers.dart';
 import '../widgets/financial_metric_card.dart';
@@ -109,41 +112,9 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
         false;
   }
 
-  void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded,
-                color: AppColors.statusGreen, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-                child: Text(message, style: AppTextStyles.bodyMedium)),
-          ],
-        ),
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  void _showSuccess(String message) => AppToast.success(context, message);
 
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_rounded,
-                color: AppColors.statusRed, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-                child: Text(message, style: AppTextStyles.bodyMedium)),
-          ],
-        ),
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  void _showError(String message) => AppToast.error(context, message);
 
   // ── Build ──────────────────────────────────────────────────────────────────
 
@@ -152,7 +123,6 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
     // Enriched summary includes verified transfers, tips, and served item totals
     // so Available Balance and Net Profit reflect real payment data.
     final walletAsync = ref.watch(enrichedWalletSummaryProvider);
-    final pendingTransferCount = ref.watch(pendingTransfersProvider).length;
 
     return Scaffold(
       body: walletAsync.when(
@@ -165,10 +135,8 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
             ? _ActiveDashboard(
                 summary: summary,
                 isActionLoading: _isActionLoading,
-                pendingTransferCount: pendingTransferCount,
                 onRequestIncrease: _handleRequestIncrease,
                 onRequestDecrease: _handleRequestDecrease,
-                onLegalizar: () => context.push('/legalizacion'),
               )
             : _NoShiftBody(
                 isLoading: _isActionLoading,
@@ -304,18 +272,14 @@ class _ActiveDashboard extends StatefulWidget {
   const _ActiveDashboard({
     required this.summary,
     required this.isActionLoading,
-    required this.pendingTransferCount,
     required this.onRequestIncrease,
     required this.onRequestDecrease,
-    required this.onLegalizar,
   });
 
   final WalletSummary summary;
   final bool isActionLoading;
-  final int pendingTransferCount;
   final VoidCallback onRequestIncrease;
   final VoidCallback onRequestDecrease;
-  final VoidCallback onLegalizar;
 
   @override
   State<_ActiveDashboard> createState() => _ActiveDashboardState();
@@ -489,10 +453,7 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
                         onPressed: widget.onRequestDecrease,
                       ),
                       const SizedBox(height: AppDimensions.space12),
-                      _LegalizarButton(
-                        pendingCount: widget.pendingTransferCount,
-                        onPressed: widget.onLegalizar,
-                      ),
+                      const _PagarBotellaButton(),
                       const SizedBox(height: AppDimensions.space64),
                     ],
                   ),
@@ -697,62 +658,117 @@ class _EmptyTransactions extends StatelessWidget {
   }
 }
 
-// ── Legalizar transferencias button ───────────────────────────────────────────
+// ── Pagar Botella button (#7) ──────────────────────────────────────────────────
 
-class _LegalizarButton extends StatelessWidget {
-  const _LegalizarButton({
-    required this.pendingCount,
-    required this.onPressed,
-  });
-
-  final int pendingCount;
-  final VoidCallback onPressed;
+class _PagarBotellaButton extends ConsumerWidget {
+  const _PagarBotellaButton();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasPending = pendingCount > 0;
+    final bottles = ref.watch(unpaidLiquorItemsProvider).valueOrNull ?? [];
+    final count = bottles.length;
+    final has = count > 0;
 
     return SizedBox(
       width: double.infinity,
       height: AppDimensions.buttonHeightMd,
       child: OutlinedButton.icon(
-        onPressed: onPressed,
+        onPressed: has ? () => _showPicker(context, ref, bottles) : null,
         style: OutlinedButton.styleFrom(
           side: BorderSide(
-            color: hasPending
-                ? AppColors.statusOrange
+            color: has
+                ? AppColors.statusPurple
                 : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
-            width: hasPending ? 2.0 : 1.5,
+            width: has ? 2.0 : 1.5,
           ),
-          backgroundColor: hasPending
-              ? AppColors.statusOrange.withOpacity(0.06)
-              : Colors.transparent,
+          backgroundColor:
+              has ? AppColors.statusPurple.withOpacity(0.06) : Colors.transparent,
         ),
         icon: Badge(
-          isLabelVisible: hasPending,
-          label: Text('$pendingCount'),
-          backgroundColor: AppColors.statusOrange,
-          child: Icon(
-            Icons.verified_rounded,
-            color: hasPending
-                ? AppColors.statusOrange
+          isLabelVisible: has,
+          label: Text('$count'),
+          backgroundColor: AppColors.statusPurple,
+          child: Icon(Icons.wine_bar_rounded,
+              color: has
+                  ? AppColors.statusPurple
+                  : (isDark
+                      ? AppColors.darkOnSurfaceVariant
+                      : AppColors.lightOnSurfaceVariant)),
+        ),
+        label: Text(
+          has ? 'Pagar Botella ($count)' : 'Sin botellas por pagar',
+          style: AppTextStyles.labelLarge.copyWith(
+            color: has
+                ? AppColors.statusPurple
                 : (isDark
                     ? AppColors.darkOnSurfaceVariant
                     : AppColors.lightOnSurfaceVariant),
           ),
         ),
-        label: Text(
-          hasPending
-              ? 'Legalizar Transferencias ($pendingCount)'
-              : 'Legalizar Transferencias',
-          style: AppTextStyles.labelLarge.copyWith(
-            color: hasPending
-                ? AppColors.statusOrange
-                : (isDark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant),
-          ),
+      ),
+    );
+  }
+
+  void _showPicker(
+    BuildContext context,
+    WidgetRef ref,
+    List<OrderItemEntity> bottles,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Completar botella',
+                  style: AppTextStyles.headlineSmall),
+            ),
+            Text(
+              'Baja la deuda de licor. No entra a tu saldo/efectivo.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.lightOnSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final b in bottles)
+                    ListTile(
+                      leading: const Icon(Icons.wine_bar_rounded,
+                          color: AppColors.statusPurple),
+                      title: Text(b.productName, style: AppTextStyles.bodyMedium),
+                      subtitle: Text('Mesa ${b.tableSessionId} · ${b.lineTotal.toCop}',
+                          style: AppTextStyles.bodySmall),
+                      trailing: const Icon(Icons.check_circle_outline_rounded),
+                      onTap: () async {
+                        Navigator.of(ctx).pop();
+                        final failure =
+                            await ref.read(settleLiquorActionProvider)(b.id);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(failure != null
+                                ? failure.message
+                                : 'Botella completada: ${b.productName}'),
+                            backgroundColor: failure != null
+                                ? AppColors.statusRed
+                                : AppColors.statusGreen,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
         ),
       ),
     );

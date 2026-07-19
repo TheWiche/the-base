@@ -553,6 +553,34 @@ final class OrderRepositoryImpl implements IOrderRepository {
   }
 
   @override
+  Future<Result<void>> markTableDelivered(int sessionId) async {
+    try {
+      final pending = await _db.orderItems
+          .filter()
+          .tableSessionIdEqualTo(sessionId)
+          .statusEqualTo(OrderItemStatus.pending)
+          .findAll();
+      if (pending.isEmpty) return const Ok(null);
+
+      final now = DateTime.now();
+      for (final m in pending) {
+        m
+          ..status = OrderItemStatus.delivered
+          ..deliveredAt = now;
+      }
+      await IsarService.write((db) async {
+        await db.orderItems.putAll(pending);
+      });
+      debugPrint('[OrderRepo] ${pending.length} items of table $sessionId delivered.');
+      return const Ok(null);
+    } on IsarError catch (e, st) {
+      return Err(DatabaseFailure(message: e.message, stackTrace: st));
+    } catch (e, st) {
+      return Err(DatabaseFailure(message: e.toString(), stackTrace: st));
+    }
+  }
+
+  @override
   Stream<List<OrderItemEntity>> watchTableItems(int sessionId) {
     return _db.orderItems
         .watchLazy(fireImmediately: true)
@@ -560,6 +588,23 @@ final class OrderRepositoryImpl implements IOrderRepository {
       final models = await _db.orderItems
           .filter()
           .tableSessionIdEqualTo(sessionId)
+          .sortByOrderedAt()
+          .findAll();
+      return models.map((m) => m.toEntity()).toList();
+    });
+  }
+
+  @override
+  Stream<List<OrderItemEntity>> watchUnpaidLiquorItems() {
+    return _db.orderItems
+        .watchLazy(fireImmediately: true)
+        .asyncMap((_) async {
+      final models = await _db.orderItems
+          .filter()
+          .categoryEqualTo(ProductCategory.liquor)
+          .isPaidEqualTo(false)
+          .not()
+          .statusEqualTo(OrderItemStatus.cancelled)
           .sortByOrderedAt()
           .findAll();
       return models.map((m) => m.toEntity()).toList();

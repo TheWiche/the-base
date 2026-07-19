@@ -20,10 +20,12 @@ abstract interface class IProductRepository {
     required String category,
     String? subcategory,
     required bool isLiquor,
+    bool isComposable = false,
+    List<String> baseCategories = const [],
   });
 
   /// Updates an existing product's editable fields (name, price, category,
-  /// subcategory, isLiquor). Availability is left untouched.
+  /// subcategory, isLiquor, composable). Availability is left untouched.
   Future<Result<void>> updateProduct({
     required int id,
     required String name,
@@ -31,8 +33,13 @@ abstract interface class IProductRepository {
     required String category,
     String? subcategory,
     required bool isLiquor,
+    bool isComposable = false,
+    List<String> baseCategories = const [],
   });
 
   /// Permanently deletes a product from the menu.
   Future<Result<void>> deleteProduct(int productId);
+
+  /// Renombra una categoría en TODOS los productos que la usan.
+  Future<Result<void>> renameCategory(String from, String to);
 }

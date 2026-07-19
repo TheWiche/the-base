@@ -8,6 +8,7 @@ import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/product_entity.dart';
 import '../providers/product_providers.dart';
+import 'category_manager_screen.dart';
 
 /// Menú — administración completa de productos.
 ///
@@ -39,6 +40,15 @@ class ProductsScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Gestionar categorías',
+            icon: const Icon(Icons.category_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const CategoryManagerScreen(),
+              ),
+            ),
+          ),
           productsAsync.maybeWhen(
             data: (products) {
               final agotadoCount = products.where((p) => !p.isAvailable).length;
@@ -332,6 +342,8 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   late final TextEditingController _category;
   late final TextEditingController _subcategory;
   late bool _isLiquor;
+  late bool _isComposable;
+  late Set<String> _baseCategories;
   bool _saving = false;
 
   bool get _isEdit => widget.existing != null;
@@ -345,6 +357,8 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     _category = TextEditingController(text: e?.category ?? '');
     _subcategory = TextEditingController(text: e?.subcategory ?? '');
     _isLiquor = e?.isLiquor ?? false;
+    _isComposable = e?.isComposable ?? false;
+    _baseCategories = {...?e?.baseCategories};
   }
 
   @override
@@ -458,6 +472,45 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                   ),
                 ),
               ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _isComposable,
+                onChanged: (v) => setState(() => _isComposable = v),
+                activeColor: AppColors.primary,
+                title: Text('Es combinable (elige base)',
+                    style: AppTextStyles.bodyMedium),
+                subtitle: Text(
+                  'Ej. Michelada: al agregar se elige cerveza o soda',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.lightOnSurfaceVariant,
+                  ),
+                ),
+              ),
+              if (_isComposable) ...[
+                const SizedBox(height: 4),
+                Text('Categorías-base',
+                    style: AppTextStyles.labelSmall
+                        .copyWith(color: AppColors.primary)),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: categories
+                      .where((c) => c != _category.text.trim())
+                      .map((c) => FilterChip(
+                            label: Text(c, style: AppTextStyles.labelSmall),
+                            selected: _baseCategories.contains(c),
+                            onSelected: (sel) => setState(() {
+                              if (sel) {
+                                _baseCategories.add(c);
+                              } else {
+                                _baseCategories.remove(c);
+                              }
+                            }),
+                          ))
+                      .toList(),
+                ),
+              ],
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: _saving ? null : _save,
@@ -489,6 +542,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     final category = _category.text.trim();
     final sub = _subcategory.text.trim();
 
+    final baseCats = _isComposable ? _baseCategories.toList() : <String>[];
     final result = _isEdit
         ? await repo.updateProduct(
             id: widget.existing!.id,
@@ -497,6 +551,8 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
             category: category,
             subcategory: sub.isEmpty ? null : sub,
             isLiquor: _isLiquor,
+            isComposable: _isComposable,
+            baseCategories: baseCats,
           )
         : await repo.addProduct(
             name: name,
@@ -504,6 +560,8 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
             category: category,
             subcategory: sub.isEmpty ? null : sub,
             isLiquor: _isLiquor,
+            isComposable: _isComposable,
+            baseCategories: baseCats,
           );
 
     if (!mounted) return;

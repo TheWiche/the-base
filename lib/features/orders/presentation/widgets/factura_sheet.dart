@@ -234,7 +234,8 @@ class _ReceiptContent extends StatelessWidget {
         ReceiptHeader(
           barName: barName,
           tableNumber: session.tableNumber,
-          apodo: session.apodo,
+          // Sin apodo: es interno del mesero; la factura es para el cliente.
+          apodo: null,
           openedAt: session.openedAt,
         ),
         const DashedDivider(padding: EdgeInsets.symmetric(vertical: 10)),

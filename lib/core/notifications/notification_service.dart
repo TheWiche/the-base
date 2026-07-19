@@ -59,7 +59,9 @@ final class NotificationService {
       _idTransfer,
       'Transferencias por legalizar',
       '$count transferencia${count == 1 ? '' : 's'} sin confirmar en caja',
-      _details(),
+      // Persistente (no se puede deslizar): solo se quita cuando el estado
+      // cambia y se llama cancelTransferAlert().
+      _details(ongoing: true),
     );
   }
 
@@ -73,8 +75,8 @@ final class NotificationService {
     await _plugin.cancel(_idRadar);
   }
 
-  static NotificationDetails _details() {
-    return const NotificationDetails(
+  static NotificationDetails _details({bool ongoing = false}) {
+    return NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
         _channelName,
@@ -82,6 +84,8 @@ final class NotificationService {
         importance: Importance.high,
         priority: Priority.high,
         icon: '@mipmap/ic_launcher',
+        ongoing: ongoing,
+        autoCancel: !ongoing,
       ),
     );
   }

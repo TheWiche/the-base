@@ -17,33 +17,43 @@ const ProductSchema = CollectionSchema(
   name: r'Product',
   id: -6222113721139403729,
   properties: {
-    r'category': PropertySchema(
+    r'baseCategories': PropertySchema(
       id: 0,
+      name: r'baseCategories',
+      type: IsarType.stringList,
+    ),
+    r'category': PropertySchema(
+      id: 1,
       name: r'category',
       type: IsarType.string,
     ),
     r'isAvailable': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'isAvailable',
       type: IsarType.bool,
     ),
+    r'isComposable': PropertySchema(
+      id: 3,
+      name: r'isComposable',
+      type: IsarType.bool,
+    ),
     r'isLiquor': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'isLiquor',
       type: IsarType.bool,
     ),
     r'name': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'name',
       type: IsarType.string,
     ),
     r'price': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'price',
       type: IsarType.long,
     ),
     r'subcategory': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'subcategory',
       type: IsarType.string,
     )
@@ -95,6 +105,13 @@ int _productEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.baseCategories.length * 3;
+  {
+    for (var i = 0; i < object.baseCategories.length; i++) {
+      final value = object.baseCategories[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.category.length * 3;
   bytesCount += 3 + object.name.length * 3;
   {
@@ -112,12 +129,14 @@ void _productSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.category);
-  writer.writeBool(offsets[1], object.isAvailable);
-  writer.writeBool(offsets[2], object.isLiquor);
-  writer.writeString(offsets[3], object.name);
-  writer.writeLong(offsets[4], object.price);
-  writer.writeString(offsets[5], object.subcategory);
+  writer.writeStringList(offsets[0], object.baseCategories);
+  writer.writeString(offsets[1], object.category);
+  writer.writeBool(offsets[2], object.isAvailable);
+  writer.writeBool(offsets[3], object.isComposable);
+  writer.writeBool(offsets[4], object.isLiquor);
+  writer.writeString(offsets[5], object.name);
+  writer.writeLong(offsets[6], object.price);
+  writer.writeString(offsets[7], object.subcategory);
 }
 
 Product _productDeserialize(
@@ -127,13 +146,15 @@ Product _productDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Product();
-  object.category = reader.readString(offsets[0]);
+  object.baseCategories = reader.readStringList(offsets[0]) ?? [];
+  object.category = reader.readString(offsets[1]);
   object.id = id;
-  object.isAvailable = reader.readBool(offsets[1]);
-  object.isLiquor = reader.readBool(offsets[2]);
-  object.name = reader.readString(offsets[3]);
-  object.price = reader.readLong(offsets[4]);
-  object.subcategory = reader.readStringOrNull(offsets[5]);
+  object.isAvailable = reader.readBool(offsets[2]);
+  object.isComposable = reader.readBool(offsets[3]);
+  object.isLiquor = reader.readBool(offsets[4]);
+  object.name = reader.readString(offsets[5]);
+  object.price = reader.readLong(offsets[6]);
+  object.subcategory = reader.readStringOrNull(offsets[7]);
   return object;
 }
 
@@ -145,16 +166,20 @@ P _productDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 1:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 2:
       return (reader.readBool(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -447,6 +472,232 @@ extension ProductQueryWhere on QueryBuilder<Product, Product, QWhereClause> {
 
 extension ProductQueryFilter
     on QueryBuilder<Product, Product, QFilterCondition> {
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'baseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'baseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'baseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'baseCategories',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'baseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'baseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'baseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'baseCategories',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'baseCategories',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'baseCategories',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'baseCategories',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'baseCategories',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'baseCategories',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'baseCategories',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'baseCategories',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      baseCategoriesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'baseCategories',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterFilterCondition> categoryEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -634,6 +885,16 @@ extension ProductQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isAvailable',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> isComposableEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isComposable',
         value: value,
       ));
     });
@@ -1011,6 +1272,18 @@ extension ProductQuerySortBy on QueryBuilder<Product, Product, QSortBy> {
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> sortByIsComposable() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isComposable', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByIsComposableDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isComposable', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> sortByIsLiquor() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isLiquor', Sort.asc);
@@ -1098,6 +1371,18 @@ extension ProductQuerySortThenBy
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> thenByIsComposable() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isComposable', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByIsComposableDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isComposable', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> thenByIsLiquor() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isLiquor', Sort.asc);
@@ -1149,6 +1434,12 @@ extension ProductQuerySortThenBy
 
 extension ProductQueryWhereDistinct
     on QueryBuilder<Product, Product, QDistinct> {
+  QueryBuilder<Product, Product, QDistinct> distinctByBaseCategories() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'baseCategories');
+    });
+  }
+
   QueryBuilder<Product, Product, QDistinct> distinctByCategory(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1159,6 +1450,12 @@ extension ProductQueryWhereDistinct
   QueryBuilder<Product, Product, QDistinct> distinctByIsAvailable() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isAvailable');
+    });
+  }
+
+  QueryBuilder<Product, Product, QDistinct> distinctByIsComposable() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isComposable');
     });
   }
 
@@ -1197,6 +1494,13 @@ extension ProductQueryProperty
     });
   }
 
+  QueryBuilder<Product, List<String>, QQueryOperations>
+      baseCategoriesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'baseCategories');
+    });
+  }
+
   QueryBuilder<Product, String, QQueryOperations> categoryProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'category');
@@ -1206,6 +1510,12 @@ extension ProductQueryProperty
   QueryBuilder<Product, bool, QQueryOperations> isAvailableProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isAvailable');
+    });
+  }
+
+  QueryBuilder<Product, bool, QQueryOperations> isComposableProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isComposable');
     });
   }
 
