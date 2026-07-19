@@ -364,18 +364,23 @@ class _BlockerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final (icon, title, detail, color) = switch (blocker) {
+    // (ícono, título, detalle, color, ruta para resolver, ¿push?)
+    final (icon, title, detail, color, route, usePush) = switch (blocker) {
       PendingRadarBlocker(:final count) => (
           Icons.radar_rounded,
-          'Pedidos Pendientes en El Radar',
+          'Pedidos Pendientes en el Radar',
           '$count ${count == 1 ? 'ítem pendiente' : 'ítems pendientes'} sin entregar.',
           AppColors.statusOrange,
+          '/radar',
+          false,
         ),
       OpenTablesBlocker(:final sessions) => (
           Icons.table_restaurant_rounded,
           'Mesas con Saldo Pendiente',
           _buildTablesDetail(sessions),
           AppColors.statusRed,
+          '/tables',
+          false,
         ),
       UnlegalizedTransfersBlocker(:final count, :final totalPending) => (
           Icons.smartphone_rounded,
@@ -383,53 +388,61 @@ class _BlockerCard extends StatelessWidget {
           '$count ${count == 1 ? 'transferencia' : 'transferencias'} '
               '(${totalPending.toCop}) sin verificar en caja.',
           AppColors.statusBlue,
+          '/legalizacion',
+          true,
         ),
     };
 
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.space16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(color: color.withOpacity(0.35), width: 1.5),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: AppDimensions.tapTargetStd,
-            height: AppDimensions.tapTargetStd,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+    // Tarjeta suave (fondo tintado) y navegable: tap → ir a resolver.
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      onTap: () => usePush ? context.push(route) : context.go(route),
+      child: Container(
+        padding: const EdgeInsets.all(AppDimensions.space16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(isDark ? 0.10 : 0.07),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(color: color.withOpacity(0.30), width: 1.2),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: AppDimensions.tapTargetStd,
+              height: AppDimensions.tapTargetStd,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.14),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: AppDimensions.iconLg),
             ),
-            child: Icon(icon, color: color, size: AppDimensions.iconLg),
-          ),
-          const SizedBox(width: AppDimensions.space16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style:
-                      AppTextStyles.labelLarge.copyWith(color: color),
-                ),
-                const SizedBox(height: AppDimensions.space4),
-                Text(
-                  detail,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
+            const SizedBox(width: AppDimensions.space16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.labelLarge.copyWith(color: color),
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppDimensions.space4),
+                  Text(
+                    detail,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: isDark
+                          ? AppColors.darkOnSurfaceVariant
+                          : AppColors.lightOnSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Icon(Icons.warning_rounded,
-              color: color.withOpacity(0.6), size: AppDimensions.iconSm),
-        ],
+            Icon(Icons.warning_rounded,
+                color: color.withOpacity(0.7), size: AppDimensions.iconSm),
+            const SizedBox(width: AppDimensions.space4),
+            Icon(Icons.chevron_right_rounded, color: color),
+          ],
+        ),
       ),
     );
   }
