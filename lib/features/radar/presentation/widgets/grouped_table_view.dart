@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/receipt_widgets.dart';
+import '../../../orders/domain/entities/order_item_entity.dart';
 import '../../../orders/domain/entities/pending_radar_item.dart';
-import 'radar_item_tile.dart';
+import '../providers/radar_providers.dart';
 
-/// The "Por Mesa" view of El Radar.
-///
-/// Renders each [RadarTableGroup] as a card with a sticky table header,
-/// followed by its pending items — oldest-first within the group.
-///
-/// Groups are sorted by their oldest item (most urgent table appears first),
-/// ensuring the waiter's attention is drawn to the tables that have been
-/// waiting longest.
-class GroupedTableView extends StatelessWidget {
+/// El Radar "Por Mesa" — cada mesa es una COMANDA de papel (tiquete de cocina):
+/// encabezado con la mesa y el pedido más viejo, líneas de tiquete con su
+/// badge de minutos y nota, y un botón-sello "Entregar todo" al pie.
+class GroupedTableView extends ConsumerWidget {
   const GroupedTableView({
     super.key,
     required this.groups,
@@ -27,7 +26,10 @@ class GroupedTableView extends StatelessWidget {
   final void Function(int sessionId) onDeliverAll;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Tick de 30s para mantener frescos los minutos transcurridos.
+    ref.watch(radarClockProvider);
+
     if (groups.isEmpty) return const _EmptyRadar();
 
     return ListView.builder(
@@ -38,22 +40,19 @@ class GroupedTableView extends StatelessWidget {
         AppDimensions.space64,
       ),
       itemCount: groups.length,
-      itemBuilder: (context, index) {
-        final group = groups[index];
-        return _TableGroupCard(
-          group: group,
-          onDelivered: onDelivered,
-          onDeliverAll: onDeliverAll,
-        );
-      },
+      itemBuilder: (context, index) => _ComandaCard(
+        group: groups[index],
+        onDelivered: onDelivered,
+        onDeliverAll: onDeliverAll,
+      ),
     );
   }
 }
 
-// ── Table group card ───────────────────────────────────────────────────────────
+// ── Comanda (una mesa) ─────────────────────────────────────────────────────────
 
-class _TableGroupCard extends StatelessWidget {
-  const _TableGroupCard({
+class _ComandaCard extends StatelessWidget {
+  const _ComandaCard({
     required this.group,
     required this.onDelivered,
     required this.onDeliverAll,
@@ -65,168 +64,188 @@ class _TableGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? AppColors.darkOutline : AppColors.lightOutline;
     final sessionId = group.items.first.item.tableSessionId;
+    final oldest = group.items
+        .map((i) => i.item.elapsedMinutes)
+        .fold(0, (a, b) => a > b ? a : b);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppDimensions.space16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(color: borderColor, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Table header ─────────────────────────────────────────────
-          _TableGroupHeader(group: group),
-
-          // ── Item rows ─────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.space12,
-              0,
-              AppDimensions.space12,
-              AppDimensions.space8,
-            ),
-            child: Column(
-              children: group.items.map((radarItem) {
-                return RadarItemTile(
-                  key: ValueKey(radarItem.item.id),
-                  radarItem: radarItem,
-                  showTableLabel: false, // header already identifies the table
-                  onDelivered: () => onDelivered(radarItem.item.id),
-                );
-              }).toList(),
-            ),
-          ),
-
-          // ── Entregar todo ─────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.space12,
-              0,
-              AppDimensions.space12,
-              AppDimensions.space12,
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => onDeliverAll(sessionId),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.statusGreen,
-                  foregroundColor: Colors.black,
-                  minimumSize: const Size.fromHeight(44),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppDimensions.space16),
+      child: ReceiptPaper(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Encabezado ─────────────────────────────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'MESA ${group.tableNumber}',
+                        style: AppTextStyles.receiptTitle.copyWith(
+                          fontSize: 16,
+                          color: AppColors.paperInk,
+                        ),
+                      ),
+                      if (group.tableApodo != null)
+                        Text(
+                          '"${group.tableApodo}"',
+                          style: AppTextStyles.receiptSmall.copyWith(
+                            color: AppColors.paperInkSoft,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                icon: const Icon(Icons.done_all_rounded, size: 20),
-                label: const Text('Entregar todo'),
-              ),
+                _ElapsedBadge(minutes: oldest),
+              ],
             ),
-          ),
-        ],
+            const DashedDivider(padding: EdgeInsets.symmetric(vertical: 8)),
+
+            // ── Líneas de la comanda ───────────────────────────────
+            for (final radarItem in group.items)
+              _ComandaLine(
+                key: ValueKey(radarItem.item.id),
+                item: radarItem.item,
+                onDelivered: () => onDelivered(radarItem.item.id),
+              ),
+
+            const DashedDivider(padding: EdgeInsets.symmetric(vertical: 8)),
+
+            // ── Entregar todo (sello) ──────────────────────────────
+            FilledButton.icon(
+              onPressed: () => onDeliverAll(sessionId),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.statusGreen,
+                foregroundColor: Colors.black,
+                minimumSize: const Size.fromHeight(42),
+              ),
+              icon: const Icon(Icons.done_all_rounded, size: 18),
+              label: const Text('Entregar todo'),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Table group header ─────────────────────────────────────────────────────────
+// ── Línea de comanda (swipe → entregar) ───────────────────────────────────────
 
-class _TableGroupHeader extends StatelessWidget {
-  const _TableGroupHeader({required this.group});
+class _ComandaLine extends StatelessWidget {
+  const _ComandaLine({
+    super.key,
+    required this.item,
+    required this.onDelivered,
+  });
 
-  final RadarTableGroup group;
+  final OrderItemEntity item;
+  final VoidCallback onDelivered;
+
+  Color get _urgencyColor => switch (item.urgency) {
+        RadarUrgency.normal => AppColors.secondaryDark,
+        RadarUrgency.warning => AppColors.statusOrange,
+        RadarUrgency.critical => AppColors.statusRed,
+      };
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.space16,
-        vertical: AppDimensions.space12,
+    return Dismissible(
+      key: ValueKey('dismiss_${item.id}'),
+      direction: DismissDirection.startToEnd,
+      confirmDismiss: (_) async {
+        onDelivered();
+        return false; // el stream refresca la lista; no removemos localmente
+      },
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 12),
+        color: AppColors.statusGreen.withOpacity(0.25),
+        child: const Icon(Icons.done_rounded, color: AppColors.statusGreen),
       ),
-      decoration: BoxDecoration(
-        color: AppColors.brand.withOpacity(0.1),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusLg),
-        ),
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-            width: 1.0,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Table icon
-          Container(
-            padding: const EdgeInsets.all(AppDimensions.space6),
-            decoration: BoxDecoration(
-              color: AppColors.brand.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Minutos
+            SizedBox(
+              width: 44,
+              child: Text(
+                '${item.elapsedMinutes}m',
+                style: AppTextStyles.receiptBodyBold
+                    .copyWith(color: _urgencyColor),
+              ),
             ),
-            child: const Icon(
-              Icons.table_restaurant_rounded,
-              color: AppColors.brand,
-              size: AppDimensions.iconSm,
-            ),
-          ),
-          const SizedBox(width: AppDimensions.space12),
-
-          // Table name + apodo
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Mesa ${group.tableNumber}',
-                  style: AppTextStyles.headlineSmall.copyWith(
-                    color: AppColors.brand,
-                  ),
-                ),
-                if (group.tableApodo != null)
+            // Producto + nota
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    '"${group.tableApodo}"',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: isDark
-                          ? AppColors.darkOnSurfaceVariant
-                          : AppColors.lightOnSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
+                    '${item.quantity}× ${item.productName}',
+                    style: AppTextStyles.receiptBody
+                        .copyWith(color: AppColors.paperInk),
                   ),
-              ],
+                  if (item.note != null && item.note!.isNotEmpty)
+                    Text(
+                      '↳ ${item.note}',
+                      style: AppTextStyles.receiptSmall.copyWith(
+                        color: AppColors.paperInkSoft,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
+            // Entregar esta línea
+            IconButton(
+              onPressed: onDelivered,
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Entregado',
+              icon: const Icon(
+                Icons.check_circle_outline_rounded,
+                color: AppColors.secondaryDark,
+                size: 22,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-          // Pending count badge
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.badgePaddingH,
-                vertical: AppDimensions.badgePaddingV),
-            decoration: BoxDecoration(
-              color: group.pendingCount > 2
-                  ? AppColors.statusRed.withOpacity(0.15)
-                  : AppColors.statusOrange.withOpacity(0.15),
-              borderRadius:
-                  BorderRadius.circular(AppDimensions.radiusFull),
-              border: Border.all(
-                color: group.pendingCount > 2
-                    ? AppColors.statusRed.withOpacity(0.5)
-                    : AppColors.statusOrange.withOpacity(0.5),
-              ),
-            ),
-            child: Text(
-              '${group.pendingCount} pendiente${group.pendingCount == 1 ? '' : 's'}',
-              style: AppTextStyles.statusBadge.copyWith(
-                color: group.pendingCount > 2
-                    ? AppColors.statusRed
-                    : AppColors.statusOrange,
-              ),
-            ),
-          ),
-        ],
+// ── Elapsed badge del encabezado ──────────────────────────────────────────────
+
+class _ElapsedBadge extends StatelessWidget {
+  const _ElapsedBadge({required this.minutes});
+
+  final int minutes;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = minutes >= 10
+        ? AppColors.statusRed
+        : (minutes >= 5 ? AppColors.statusOrange : AppColors.secondaryDark);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        minutes < 1 ? 'ahora' : 'hace ${minutes}m',
+        style: AppTextStyles.receiptSmall.copyWith(
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
       ),
     );
   }
@@ -239,38 +258,25 @@ class _EmptyRadar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: _RadarEmptyContent(),
-    );
-  }
-}
-
-class _RadarEmptyContent extends StatelessWidget {
-  const _RadarEmptyContent();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.radar_rounded,
-          size: 80,
-          color: AppColors.statusGreen.withOpacity(0.4),
-        ),
-        const SizedBox(height: AppDimensions.space16),
-        Text(
-          'Sin pedidos pendientes',
-          style: AppTextStyles.headlineMedium.copyWith(
-            color: AppColors.statusGreen,
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.radar_rounded,
+            size: 80,
+            color: AppColors.statusGreen.withOpacity(0.4),
           ),
-        ),
-        const SizedBox(height: AppDimensions.space8),
-        Text(
-          'Todo entregado. El radar está limpio.',
-          style: AppTextStyles.bodyLarge,
-        ),
-      ],
+          const SizedBox(height: AppDimensions.space16),
+          Text(
+            'Comanda limpia',
+            style: AppTextStyles.headlineMedium
+                .copyWith(color: AppColors.statusGreen),
+          ),
+          const SizedBox(height: AppDimensions.space8),
+          Text('Todo entregado. Estás al día.', style: AppTextStyles.bodyLarge),
+        ],
+      ),
     );
   }
 }

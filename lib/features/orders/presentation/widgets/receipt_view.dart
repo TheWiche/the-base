@@ -191,7 +191,7 @@ class ReceiptChronological extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final entry in blocks.entries) ...[
-          _TimeHeader(label: entry.key),
+          ReceiptTimeHeader(label: entry.key),
           for (final it in entry.value)
             ReceiptItemLine(
               quantity: it.quantity,
@@ -210,8 +210,8 @@ class ReceiptChronological extends StatelessWidget {
   }
 }
 
-class _TimeHeader extends StatelessWidget {
-  const _TimeHeader({required this.label});
+class ReceiptTimeHeader extends StatelessWidget {
+  const ReceiptTimeHeader({super.key, required this.label});
   final String label;
 
   @override
@@ -274,7 +274,7 @@ class ReceiptGrouped extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final cat in cats) ...[
-          _CategoryHeader(
+          ReceiptCategoryHeader(
             label: cat,
             count: byCat[cat]!.fold(0, (s, i) => s + i.quantity),
             subtotal: byCat[cat]!.fold(0, (s, i) => s + i.lineTotal),
@@ -304,8 +304,9 @@ class ReceiptGrouped extends StatelessWidget {
   }
 }
 
-class _CategoryHeader extends StatelessWidget {
-  const _CategoryHeader({
+class ReceiptCategoryHeader extends StatelessWidget {
+  const ReceiptCategoryHeader({
+    super.key,
     required this.label,
     required this.count,
     required this.subtotal,

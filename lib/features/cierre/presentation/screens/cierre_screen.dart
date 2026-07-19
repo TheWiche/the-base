@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/services/table_counter_service.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -286,13 +287,8 @@ class _CierreScreenState extends ConsumerState<CierreScreen> {
     if (!mounted) return;
 
     if (result.isErr) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al finalizar: ${(result as Err).failure.message}'),
-          backgroundColor: AppColors.statusRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppToast.error(
+          context, 'Error al finalizar: ${(result as Err).failure.message}');
       return;
     }
 
@@ -300,21 +296,7 @@ class _CierreScreenState extends ConsumerState<CierreScreen> {
     await TableCounterService().reset();
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded,
-                color: AppColors.statusGreen, size: 18),
-            const SizedBox(width: AppDimensions.space8),
-            Text('Jornada finalizada. ¡Hasta mañana!',
-                style: AppTextStyles.bodyMedium),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    AppToast.success(context, 'Jornada finalizada. ¡Hasta mañana!');
     await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) context.go('/');
   }

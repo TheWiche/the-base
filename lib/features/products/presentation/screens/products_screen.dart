@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/result.dart';
+import '../../../../core/settings/category_order_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../domain/entities/product_entity.dart';
 import '../providers/product_providers.dart';
 import 'category_manager_screen.dart';
@@ -148,14 +150,8 @@ class _ProductList extends ConsumerWidget {
                       .read(toggleAvailabilityUseCaseProvider)
                       .call(product.id);
                   if (result.isErr && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content:
-                            Text('Error: ${(result as Err).failure.message}'),
-                        backgroundColor: AppColors.statusRed,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
+                    AppToast.error(
+                        context, (result as Err).failure.message);
                   }
                 },
               ),
@@ -339,8 +335,8 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _price;
-  late final TextEditingController _category;
-  late final TextEditingController _subcategory;
+  String? _selectedCategory;
+  String? _selectedSubcategory;
   late bool _isLiquor;
   late bool _isComposable;
   late Set<String> _baseCategories;
@@ -354,8 +350,8 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     final e = widget.existing;
     _name = TextEditingController(text: e?.name ?? '');
     _price = TextEditingController(text: e == null ? '' : e.price.toString());
-    _category = TextEditingController(text: e?.category ?? '');
-    _subcategory = TextEditingController(text: e?.subcategory ?? '');
+    _selectedCategory = e?.category;
+    _selectedSubcategory = e?.subcategory;
     _isLiquor = e?.isLiquor ?? false;
     _isComposable = e?.isComposable ?? false;
     _baseCategories = {...?e?.baseCategories};
@@ -365,20 +361,49 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   void dispose() {
     _name.dispose();
     _price.dispose();
-    _category.dispose();
-    _subcategory.dispose();
     super.dispose();
+  }
+
+  /// Prompt genérico para crear un nombre nuevo (categoría / subcategoría).
+  Future<String?> _promptNew(String title) {
+    final ctrl = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(hintText: 'Nombre'),
+          onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+              child: const Text('Crear')),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final categories = <String>{
-      for (final p in widget.allProducts) p.category,
-    }.toList()
-      ..sort();
+    // Lista viva: orden configurado + categorías presentes en productos.
+    final order = ref.watch(categoryOrderProvider);
+    final fromProducts = <String>{for (final p in widget.allProducts) p.category};
+    final categories = <String>[
+      ...order,
+      ...fromProducts.where((c) => !order.contains(c)),
+    ];
     final subcategories = <String>{
       for (final p in widget.allProducts)
-        if (p.category == _category.text && p.subcategory != null) p.subcategory!,
+        if (p.category == _selectedCategory && p.subcategory != null)
+          p.subcategory!,
+      if (_selectedSubcategory != null) _selectedSubcategory!,
     }.toList()
       ..sort();
 
@@ -430,34 +455,74 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                 },
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _category,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Categoría'),
-                onChanged: (_) => setState(() {}),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+              // ── Categoría: lista viva + crear nueva al vuelo ─────────
+              Text('Categoría',
+                  style: AppTextStyles.labelSmall
+                      .copyWith(color: AppColors.primary)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final c in categories)
+                    ChoiceChip(
+                      label: Text(c, style: AppTextStyles.labelSmall),
+                      selected: _selectedCategory == c,
+                      onSelected: (_) => setState(() {
+                        _selectedCategory = c;
+                        _selectedSubcategory = null;
+                      }),
+                    ),
+                  ActionChip(
+                    avatar: const Icon(Icons.add_rounded, size: 16),
+                    label: Text('Nueva', style: AppTextStyles.labelSmall),
+                    onPressed: () async {
+                      final name = await _promptNew('Nueva categoría');
+                      if (name == null || name.isEmpty) return;
+                      ref.read(categoryOrderProvider.notifier).add(name);
+                      setState(() {
+                        _selectedCategory = name;
+                        _selectedSubcategory = null;
+                      });
+                    },
+                  ),
+                ],
               ),
-              if (categories.isNotEmpty)
-                _SuggestionChips(
-                  values: categories,
-                  onTap: (v) => setState(() => _category.text = v),
-                ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _subcategory,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Subcategoría (opcional)',
-                  hintText: 'Ej: Cerveza, Soda',
-                ),
-                onChanged: (_) => setState(() {}),
+
+              // ── Subcategoría (opcional): existentes + crear nueva ────
+              Text('Subcategoría (opcional)',
+                  style: AppTextStyles.labelSmall
+                      .copyWith(color: AppColors.primary)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  ChoiceChip(
+                    label: Text('Ninguna', style: AppTextStyles.labelSmall),
+                    selected: _selectedSubcategory == null,
+                    onSelected: (_) =>
+                        setState(() => _selectedSubcategory = null),
+                  ),
+                  for (final s in subcategories)
+                    ChoiceChip(
+                      label: Text(s, style: AppTextStyles.labelSmall),
+                      selected: _selectedSubcategory == s,
+                      onSelected: (_) =>
+                          setState(() => _selectedSubcategory = s),
+                    ),
+                  ActionChip(
+                    avatar: const Icon(Icons.add_rounded, size: 16),
+                    label: Text('Nueva', style: AppTextStyles.labelSmall),
+                    onPressed: () async {
+                      final name = await _promptNew('Nueva subcategoría');
+                      if (name == null || name.isEmpty) return;
+                      setState(() => _selectedSubcategory = name);
+                    },
+                  ),
+                ],
               ),
-              if (subcategories.isNotEmpty)
-                _SuggestionChips(
-                  values: subcategories,
-                  onTap: (v) => setState(() => _subcategory.text = v),
-                ),
               const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
@@ -496,7 +561,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                   spacing: 6,
                   runSpacing: 4,
                   children: categories
-                      .where((c) => c != _category.text.trim())
+                      .where((c) => c != _selectedCategory)
                       .map((c) => FilterChip(
                             label: Text(c, style: AppTextStyles.labelSmall),
                             selected: _baseCategories.contains(c),
@@ -535,12 +600,16 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    final category = _selectedCategory?.trim() ?? '';
+    if (category.isEmpty) {
+      AppToast.error(context, 'Elige o crea una categoría.');
+      return;
+    }
     setState(() => _saving = true);
     final repo = ref.read(productRepositoryProvider);
     final name = _name.text.trim();
     final price = int.parse(_price.text);
-    final category = _category.text.trim();
-    final sub = _subcategory.text.trim();
+    final sub = _selectedSubcategory?.trim() ?? '';
 
     final baseCats = _isComposable ? _baseCategories.toList() : <String>[];
     final result = _isEdit
@@ -567,12 +636,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     if (!mounted) return;
     if (result.isErr) {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text((result as Err).failure.message),
-          backgroundColor: AppColors.statusRed,
-        ),
-      );
+      AppToast.error(context, (result as Err).failure.message);
       return;
     }
     Navigator.of(context).pop();
@@ -603,40 +667,10 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     if (!mounted) return;
     if (result.isErr) {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text((result as Err).failure.message),
-          backgroundColor: AppColors.statusRed,
-        ),
-      );
+      AppToast.error(context, (result as Err).failure.message);
       return;
     }
     Navigator.of(context).pop();
-  }
-}
-
-class _SuggestionChips extends StatelessWidget {
-  const _SuggestionChips({required this.values, required this.onTap});
-
-  final List<String> values;
-  final void Function(String) onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 4,
-        children: values
-            .map((v) => ActionChip(
-                  label: Text(v, style: AppTextStyles.labelSmall),
-                  onPressed: () => onTap(v),
-                  visualDensity: VisualDensity.compact,
-                ))
-            .toList(),
-      ),
-    );
   }
 }
 

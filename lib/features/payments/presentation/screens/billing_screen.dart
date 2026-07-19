@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/settings/bar_settings_provider.dart';
+import '../../../../core/settings/category_order_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/receipt_paper.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../orders/domain/entities/order_item_entity.dart';
@@ -20,38 +23,63 @@ import '../providers/payment_providers.dart';
 
 /// Pantalla de Cobrar — estilo tiquete.
 ///
-/// Los ítems se listan como líneas de tiquete seleccionables (tap = cobrar).
-/// Las botellas de licor no se seleccionan: se "Completan" (pass-through).
-/// Barra inferior: total seleccionado + Cobrar → hoja de método (incl. Pago exacto).
-class BillingScreen extends ConsumerWidget {
+/// El cliente puede ver esta pantalla: NO se muestra el apodo de la mesa.
+/// Toggle Cronológica (bloques por hora) / Agrupada (por categoría).
+/// Los ítems se seleccionan por toque; botellas de licor se "Completan"
+/// (pass-through). Barra inferior: total seleccionado + Cobrar.
+class BillingScreen extends ConsumerStatefulWidget {
   const BillingScreen({super.key, required this.sessionId});
 
   final int sessionId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final itemsAsync = ref.watch(tableOrderProvider(sessionId));
-    final session = ref.watch(tableSessionByIdProvider(sessionId));
-    final selection = ref.watch(billingSelectionProvider(sessionId));
-    final barName = ref.watch(barNameProvider);
+  ConsumerState<BillingScreen> createState() => _BillingScreenState();
+}
 
-    // Auto-pop cuando el último ítem cobrable queda pagado.
-    ref.listen(tableOrderProvider(sessionId), (_, next) {
-      next.whenData((items) {
-        final billable = items.where((i) => !i.isCancelled).toList();
-        final selectable = billable.where((i) => !i.isPaid).toList();
-        if (billable.isNotEmpty && selectable.isEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted && context.canPop()) context.pop();
-          });
-        }
-      });
+class _BillingScreenState extends ConsumerState<BillingScreen> {
+  /// Cache: la sesión puede cerrarse (todo pagado) y salir del stream de
+  /// activas — sin cache la pantalla quedaba cargando para siempre (bug v1.5.0).
+  TableSessionEntity? _session;
+
+  /// 0 = cronológica (bloques por hora) · 1 = agrupada (por categoría).
+  int _mode = 0;
+
+  int get sessionId => widget.sessionId;
+
+  /// Auto-pop seguro: solo cuando esta ruta está al frente (si dispara con la
+  /// pantalla de transferencia encima, cerraría la ruta equivocada).
+  void _maybeAutoPop(List<OrderItemEntity> items) {
+    final billable = items.where((i) => !i.isCancelled).toList();
+    final unpaid = billable.where((i) => !i.isPaid).toList();
+    if (billable.isEmpty || unpaid.isNotEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      if (context.canPop()) context.pop();
     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final itemsAsync = ref.watch(tableOrderProvider(sessionId));
+    final sessionLive = ref.watch(tableSessionByIdProvider(sessionId));
+    if (sessionLive != null) _session = sessionLive;
+    final barName = ref.watch(barNameProvider);
+    final selection = ref.watch(billingSelectionProvider(sessionId));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Cambios en caliente (pago registrado con esta pantalla cubierta).
+    ref.listen(tableOrderProvider(sessionId), (_, next) {
+      next.whenData(_maybeAutoPop);
+    });
+    // Reevaluar al reconstruir (p. ej. al volver de la transferencia).
+    itemsAsync.whenData(_maybeAutoPop);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          session == null ? 'Cobrar' : 'Cobrar — Mesa ${session.tableNumber}',
+          _session == null ? 'Cobrar' : 'Cobrar — Mesa ${_session!.tableNumber}',
           style: AppTextStyles.headlineSmall,
         ),
         actions: [
@@ -66,35 +94,46 @@ class BillingScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _ErrorBody(error: e),
         data: (items) {
-          if (session == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
           final billable = items.where((i) => !i.isCancelled).toList();
           final unpaid = billable.where((i) => !i.isPaid).toList();
-          final selectableItems =
-              unpaid.where((i) => !i.isLiquor).toList()
-                ..sort((a, b) => a.orderedAt.compareTo(b.orderedAt));
+          final selectableItems = unpaid.where((i) => !i.isLiquor).toList()
+            ..sort((a, b) => a.orderedAt.compareTo(b.orderedAt));
           final liquorItems = unpaid.where((i) => i.isLiquor).toList();
 
-          return _BillingReceipt(
-            barName: barName,
-            session: session,
-            allItems: items,
-            selectableItems: selectableItems,
-            liquorItems: liquorItems,
-            selection: selection,
-            onToggle: (item) => ref
-                .read(billingSelectionProvider(sessionId).notifier)
-                .toggle(item.id, item.quantity),
-            onCompletar: (item) => _settleLiquor(context, ref, item),
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: PillToggle(
+                  options: const ['Cronológica', 'Agrupada'],
+                  selectedIndex: _mode,
+                  onChanged: (i) => setState(() => _mode = i),
+                  isDark: isDark,
+                ),
+              ),
+              Expanded(
+                child: _BillingReceipt(
+                  barName: barName,
+                  session: _session,
+                  grouped: _mode == 1,
+                  categoryOrder: ref.watch(categoryOrderProvider.notifier),
+                  selectableItems: selectableItems,
+                  liquorItems: liquorItems,
+                  selection: selection,
+                  onToggle: (item) => ref
+                      .read(billingSelectionProvider(sessionId).notifier)
+                      .toggle(item.id, item.quantity),
+                  onCompletar: _settleLiquor,
+                ),
+              ),
+            ],
           );
         },
       ),
       bottomNavigationBar: itemsAsync.maybeWhen(
         data: (items) {
-          final billable = items.where((i) => !i.isCancelled).toList();
-          final selectable = billable
-              .where((i) => !i.isPaid && !i.isLiquor)
+          final selectable = items
+              .where((i) => !i.isCancelled && !i.isPaid && !i.isLiquor)
               .toList();
           if (selectable.isEmpty) return const SizedBox.shrink();
           final subtotal = selection.subtotalOf(selectable);
@@ -108,7 +147,7 @@ class BillingScreen extends ConsumerWidget {
                 .read(billingSelectionProvider(sessionId).notifier)
                 .clearAll(),
             onCobrar: subtotal > 0
-                ? () => _showPaymentMethodSheet(context, ref, subtotal: subtotal)
+                ? () => _showPaymentMethodSheet(subtotal: subtotal)
                 : null,
           );
         },
@@ -117,31 +156,21 @@ class BillingScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _settleLiquor(
-      BuildContext context, WidgetRef ref, OrderItemEntity item) async {
+  Future<void> _settleLiquor(OrderItemEntity item) async {
     final failure = await ref
         .read(tableOrderProvider(sessionId).notifier)
         .settleLiquor(item.id);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(failure != null
-            ? failure.message
-            : 'Botella completada: ${item.productName}'),
-        backgroundColor:
-            failure != null ? AppColors.statusRed : AppColors.statusGreen,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (!mounted) return;
+    if (failure != null) {
+      AppToast.error(context, failure.message);
+    } else {
+      AppToast.success(context, 'Botella completada: ${item.productName}');
+    }
   }
 
   // ── Payment method sheet ─────────────────────────────────────────────────────
 
-  void _showPaymentMethodSheet(
-    BuildContext context,
-    WidgetRef ref, {
-    required int subtotal,
-  }) {
+  void _showPaymentMethodSheet({required int subtotal}) {
     showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
@@ -150,19 +179,17 @@ class BillingScreen extends ConsumerWidget {
         subtotal: subtotal,
         onSelected: (method) {
           Navigator.of(context).pop();
-          _navigateToPayment(context, ref, method: method, subtotal: subtotal);
+          _navigateToPayment(method: method, subtotal: subtotal);
         },
         onExact: () {
           Navigator.of(context).pop();
-          _recordExactCash(context, ref, subtotal: subtotal);
+          _recordExactCash(subtotal: subtotal);
         },
       ),
     );
   }
 
-  void _navigateToPayment(
-    BuildContext context,
-    WidgetRef ref, {
+  void _navigateToPayment({
     required PaymentMethod method,
     required int subtotal,
   }) {
@@ -180,12 +207,8 @@ class BillingScreen extends ConsumerWidget {
     context.push(path, extra: args);
   }
 
-  /// #9 — Pago exacto: efectivo por el total sin escribir monto.
-  Future<void> _recordExactCash(
-    BuildContext context,
-    WidgetRef ref, {
-    required int subtotal,
-  }) async {
+  /// Pago exacto: efectivo por el total sin escribir monto.
+  Future<void> _recordExactCash({required int subtotal}) async {
     final selection = ref.read(billingSelectionProvider(sessionId));
     final quantities = selection.selectedQuantities;
     if (quantities.isEmpty) return;
@@ -200,24 +223,13 @@ class BillingScreen extends ConsumerWidget {
     );
     final failure =
         await ref.read(paymentNotifierProvider.notifier).recordPayment(params);
-    if (!context.mounted) return;
+    if (!mounted) return;
     if (failure != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(failure.message),
-          backgroundColor: AppColors.statusRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppToast.error(context, failure.message);
       return;
     }
     ref.read(billingSelectionProvider(sessionId).notifier).clearAll();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Pago exacto registrado: ${subtotal.toCop}'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    AppToast.success(context, 'Pago exacto registrado: ${subtotal.toCop}');
   }
 }
 
@@ -227,7 +239,8 @@ class _BillingReceipt extends StatelessWidget {
   const _BillingReceipt({
     required this.barName,
     required this.session,
-    required this.allItems,
+    required this.grouped,
+    required this.categoryOrder,
     required this.selectableItems,
     required this.liquorItems,
     required this.selection,
@@ -236,8 +249,9 @@ class _BillingReceipt extends StatelessWidget {
   });
 
   final String barName;
-  final TableSessionEntity session;
-  final List<OrderItemEntity> allItems;
+  final TableSessionEntity? session;
+  final bool grouped;
+  final CategoryOrderNotifier categoryOrder;
   final List<OrderItemEntity> selectableItems;
   final List<OrderItemEntity> liquorItems;
   final BillingSelection selection;
@@ -252,12 +266,21 @@ class _BillingReceipt extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ReceiptHeader(
-              barName: barName,
-              tableNumber: session.tableNumber,
-              apodo: session.apodo,
-              openedAt: session.openedAt,
-            ),
+            if (session != null)
+              ReceiptHeader(
+                barName: barName,
+                tableNumber: session!.tableNumber,
+                // Sin apodo: el cliente puede ver esta pantalla.
+                apodo: null,
+                openedAt: session!.openedAt,
+              )
+            else
+              Text(
+                barName.toUpperCase(),
+                style: AppTextStyles.receiptTitle
+                    .copyWith(color: AppColors.paperInk),
+                textAlign: TextAlign.center,
+              ),
             const DashedDivider(padding: EdgeInsets.symmetric(vertical: 10)),
             Text(
               'TOCA PARA SELECCIONAR',
@@ -266,17 +289,17 @@ class _BillingReceipt extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
-            for (final item in selectableItems)
-              _SelectableLine(
-                item: item,
-                selected: selection.isSelected(item.id),
-                onTap: () => onToggle(item),
-              ),
+            if (grouped)
+              ..._buildGrouped(context)
+            else
+              ..._buildChronological(context),
             if (selectableItems.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
-                  'Nada por cobrar (solo botellas).',
+                  liquorItems.isEmpty
+                      ? 'Nada por cobrar.'
+                      : 'Nada por cobrar (solo botellas).',
                   style: AppTextStyles.receiptBody
                       .copyWith(color: AppColors.paperInkSoft),
                   textAlign: TextAlign.center,
@@ -300,10 +323,54 @@ class _BillingReceipt extends StatelessWidget {
       ),
     );
   }
+
+  /// Cronológica: bloques por hora de pedido.
+  List<Widget> _buildChronological(BuildContext context) {
+    final blocks = <String, List<OrderItemEntity>>{};
+    for (final it in selectableItems) {
+      final key = DateFormat('HH:mm', 'es_CO').format(it.orderedAt);
+      blocks.putIfAbsent(key, () => []).add(it);
+    }
+    return [
+      for (final entry in blocks.entries) ...[
+        ReceiptTimeHeader(label: entry.key),
+        for (final it in entry.value) _line(it),
+      ],
+    ];
+  }
+
+  /// Agrupada: encabezados por categoría (orden configurable) con subtotal.
+  List<Widget> _buildGrouped(BuildContext context) {
+    final byCat = <String, List<OrderItemEntity>>{};
+    for (final it in selectableItems) {
+      byCat.putIfAbsent(it.menuCategoryOrOther, () => []).add(it);
+    }
+    final cats = byCat.keys.toList()
+      ..sort((a, b) =>
+          categoryOrder.indexOf(a).compareTo(categoryOrder.indexOf(b)));
+    return [
+      for (final cat in cats) ...[
+        ReceiptCategoryHeader(
+          label: cat,
+          count: byCat[cat]!.fold(0, (s, i) => s + i.quantity),
+          subtotal: byCat[cat]!.fold(0, (s, i) => s + i.lineTotal),
+        ),
+        for (final it in byCat[cat]!) _line(it),
+      ],
+    ];
+  }
+
+  Widget _line(OrderItemEntity item) => _SelectableLine(
+        key: ValueKey(item.id),
+        item: item,
+        selected: selection.isSelected(item.id),
+        onTap: () => onToggle(item),
+      );
 }
 
 class _SelectableLine extends StatelessWidget {
   const _SelectableLine({
+    super.key,
     required this.item,
     required this.selected,
     required this.onTap,
@@ -457,10 +524,7 @@ class _BottomBar extends StatelessWidget {
               TextButton(onPressed: onSelectAll, child: const Text('Todos')),
               TextButton(onPressed: onClearAll, child: const Text('Ninguno')),
               const Spacer(),
-              Text(
-                subtotal.toCop,
-                style: AppTextStyles.headlineSmall,
-              ),
+              Text(subtotal.toCop, style: AppTextStyles.headlineSmall),
             ],
           ),
           const SizedBox(height: 6),
@@ -544,8 +608,7 @@ class _PaymentMethodSheet extends StatelessWidget {
             _MethodTile(
               icon: Icons.smartphone_rounded,
               label: 'Transferencia',
-              description:
-                  'Nequi, Daviplata u otro. Requiere foto del comprobante.',
+              description: 'Foto del comprobante y listo.',
               color: AppColors.statusBlue,
               onTap: () => onSelected(PaymentMethod.transfer),
             ),

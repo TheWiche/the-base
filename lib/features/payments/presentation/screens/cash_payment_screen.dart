@@ -8,6 +8,7 @@ import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../domain/entities/payment_receipt_entity.dart';
 import '../providers/payment_providers.dart';
 
@@ -166,33 +167,16 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
     }
 
     if (!mounted) return;
-    await _showPaymentConfirmation();
-    if (mounted) context.pop();
+    AppToast.success(
+      context,
+      _changeGiven > 0
+          ? 'Pago registrado. Vuelto: ${_changeGiven.toCop}'
+          : 'Pago registrado: ${widget.args.billSubtotal.toCop}',
+    );
+    context.pop();
   }
 
-  Future<void> _showPaymentConfirmation() {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _PaymentConfirmationDialog(
-        method: 'Efectivo',
-        amountPaid: _receivedAmount,
-        changeGiven: _changeGiven,
-        subtotal: widget.args.billSubtotal,
-        onClose: () => Navigator.of(context).pop(),
-      ),
-    );
-  }
-
-  void _showError(Failure failure) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(failure.message),
-        backgroundColor: AppColors.statusRed,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  void _showError(Failure failure) => AppToast.error(context, failure.message);
 }
 
 // ── Bill total card ────────────────────────────────────────────────────────────
@@ -324,133 +308,6 @@ class _ChangeDisplay extends StatelessWidget {
   }
 }
 
-// ── Payment confirmation dialog ────────────────────────────────────────────────
-
-class _PaymentConfirmationDialog extends StatelessWidget {
-  const _PaymentConfirmationDialog({
-    required this.method,
-    required this.amountPaid,
-    required this.changeGiven,
-    required this.subtotal,
-    required this.onClose,
-    this.verificationCode,
-    this.transferMethodLabel,
-  });
-
-  final String method;
-  final int amountPaid;
-  final int changeGiven;
-  final int subtotal;
-  final String? verificationCode;
-  final String? transferMethodLabel;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return AlertDialog(
-      icon: const Icon(
-        Icons.check_circle_rounded,
-        color: AppColors.statusGreen,
-        size: 48,
-      ),
-      title: Text(
-        'Pago Registrado',
-        style: AppTextStyles.headlineSmall,
-        textAlign: TextAlign.center,
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ConfirmRow(
-            label: 'Método',
-            value: transferMethodLabel != null
-                ? '$method · $transferMethodLabel'
-                : method,
-            color: AppColors.statusGreen,
-            isDark: isDark,
-          ),
-          _ConfirmRow(
-            label: 'Total cobrado',
-            value: subtotal.toCop,
-            color: isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
-            isDark: isDark,
-          ),
-          if (amountPaid != subtotal)
-            _ConfirmRow(
-              label: 'Recibido',
-              value: amountPaid.toCop,
-              color: isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
-              isDark: isDark,
-            ),
-          if (changeGiven > 0)
-            _ConfirmRow(
-              label: 'Vuelto',
-              value: changeGiven.toCop,
-              color: AppColors.brand,
-              isDark: isDark,
-            ),
-          if (verificationCode != null)
-            _ConfirmRow(
-              label: 'Código verificación',
-              value: verificationCode!,
-              color: AppColors.statusBlue,
-              isDark: isDark,
-            ),
-        ],
-      ),
-      actionsAlignment: MainAxisAlignment.center,
-      actions: [
-        FilledButton.icon(
-          onPressed: onClose,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.statusGreen,
-            foregroundColor: Colors.black,
-          ),
-          icon: const Icon(Icons.arrow_back_rounded),
-          label: const Text('VOLVER AL PEDIDO'),
-        ),
-      ],
-    );
-  }
-}
-
-class _ConfirmRow extends StatelessWidget {
-  const _ConfirmRow({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.isDark,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: isDark
-                  ? AppColors.darkOnSurfaceVariant
-                  : AppColors.lightOnSurfaceVariant,
-            ),
-          ),
-          Text(value, style: AppTextStyles.labelLarge.copyWith(color: color)),
-        ],
-      ),
-    );
-  }
-}
-
 // ── Thousands separator formatter ──────────────────────────────────────────────
 
 class _ThousandsSeparatorFormatter extends TextInputFormatter {
@@ -463,20 +320,16 @@ class _ThousandsSeparatorFormatter extends TextInputFormatter {
     if (digits.isEmpty) return newValue.copyWith(text: '');
     final number = int.tryParse(digits);
     if (number == null) return oldValue;
-    final formatted = _format(number);
-    return newValue.copyWith(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-
-  String _format(int n) {
-    final s = n.toString();
+    final s = number.toString();
     final buf = StringBuffer();
     for (var i = 0; i < s.length; i++) {
       if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
       buf.write(s[i]);
     }
-    return buf.toString();
+    final formatted = buf.toString();
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
   }
 }

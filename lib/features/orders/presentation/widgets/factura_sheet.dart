@@ -11,6 +11,7 @@ import '../../../../core/settings/bar_settings_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/receipt_paper.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../tables/domain/entities/table_session_entity.dart';
@@ -41,7 +42,6 @@ class FacturaSheet extends ConsumerStatefulWidget {
 
 class _FacturaSheetState extends ConsumerState<FacturaSheet> {
   final _boundaryKey = GlobalKey();
-  int _mode = 0; // 0 = cronológica, 1 = agrupada
   bool _sharing = false;
 
   @override
@@ -77,18 +77,7 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
                 ),
               ),
             ),
-            // ── Toggle Cronológica / Agrupada ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: PillToggle(
-                options: const ['Cronológica', 'Agrupada'],
-                selectedIndex: _mode,
-                onChanged: (i) => setState(() => _mode = i),
-                isDark: isDark,
-              ),
-            ),
-            const SizedBox(height: 12),
-            // ── Tiquete ──
+            // ── Tiquete (formato agrupado, listo para compartir) ──
             Expanded(
               child: SingleChildScrollView(
                 controller: scrollCtrl,
@@ -102,7 +91,7 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
                             barName: barName,
                             session: session,
                             items: items,
-                            grouped: _mode == 1,
+                            grouped: true,
                           ),
                   ),
                 ),
@@ -184,9 +173,7 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
       await Share.shareXFiles([XFile(file.path)]);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo generar la imagen.')),
-        );
+        AppToast.error(context, 'No se pudo generar la imagen.');
       }
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -201,10 +188,11 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
     final text = buildReceiptText(
       barName: barName,
       tableNumber: session.tableNumber,
-      apodo: session.apodo,
+      // Sin apodo: la factura es para el cliente.
+      apodo: null,
       openedAt: session.openedAt,
       items: items,
-      grouped: _mode == 1,
+      grouped: true,
     );
     await Share.share(text, subject: 'Factura Mesa ${session.tableNumber}');
   }

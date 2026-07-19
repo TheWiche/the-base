@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 
-import '../../../../core/constants/financial_constants.dart';
 import '../../../../core/database/isar_service.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/result.dart';

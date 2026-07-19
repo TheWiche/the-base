@@ -46,6 +46,101 @@ class ReceiptPaper extends StatelessWidget {
   }
 }
 
+/// Talón de tiquete compacto: papel crema con borde superior recto (redondeado
+/// leve) y zigzag SOLO abajo — como un tiquete arrancado del talonario.
+/// Usado por las tarjetas de mesa y otras vistas compactas.
+class ReceiptStub extends StatelessWidget {
+  const ReceiptStub({
+    super.key,
+    required this.child,
+    this.color = AppColors.paper,
+    this.padding = const EdgeInsets.fromLTRB(12, 12, 12, 8),
+    this.toothHeight = 7,
+    this.toothWidth = 14,
+    this.onTap,
+    this.onLongPress,
+  });
+
+  final Widget child;
+  final Color color;
+  final EdgeInsets padding;
+  final double toothHeight;
+  final double toothWidth;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final stub = CustomPaint(
+      painter: _StubPainter(
+        color: color,
+        toothHeight: toothHeight,
+        toothWidth: toothWidth,
+      ),
+      child: Padding(
+        padding: padding.add(EdgeInsets.only(bottom: toothHeight + 4)),
+        child: child,
+      ),
+    );
+    if (onTap == null && onLongPress == null) return stub;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: stub,
+    );
+  }
+}
+
+class _StubPainter extends CustomPainter {
+  _StubPainter({
+    required this.color,
+    required this.toothHeight,
+    required this.toothWidth,
+  });
+
+  final Color color;
+  final double toothHeight;
+  final double toothWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    const r = 6.0; // radio superior leve
+
+    final teeth = (w / toothWidth).floor().clamp(1, 200);
+    final step = w / teeth;
+
+    final path = Path()
+      ..moveTo(0, r)
+      ..quadraticBezierTo(0, 0, r, 0)
+      ..lineTo(w - r, 0)
+      ..quadraticBezierTo(w, 0, w, r)
+      ..lineTo(w, h - toothHeight);
+    // Zigzag inferior (derecha → izquierda).
+    for (var i = teeth - 1; i >= 0; i--) {
+      path.lineTo(step * i + step / 2, h);
+      path.lineTo(step * i, h - toothHeight);
+    }
+    path.close();
+
+    canvas.drawShadow(
+      path.shift(const Offset(0, 2)),
+      Colors.black.withOpacity(0.3),
+      6,
+      false,
+    );
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_StubPainter old) =>
+      old.color != color ||
+      old.toothHeight != toothHeight ||
+      old.toothWidth != toothWidth;
+}
+
 class _ReceiptPainter extends CustomPainter {
   _ReceiptPainter({
     required this.color,

@@ -239,6 +239,62 @@ final class ProductRepositoryImpl implements IProductRepository {
     await prefs.setInt(_kSeedVersionKey, 4);
   }
 
+  /// V5 — modelo michelada correcto: UNA "Michelada" combinable reemplaza los
+  /// 5 productos heredados de la categoría (variantes fijas de cerveza/soda).
+  Future<void> seedMigrateV5() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedVersion = prefs.getInt(_kSeedVersionKey) ?? 1;
+    if (storedVersion >= 5) return;
+
+    const legacy = {
+      "Michelada Fría's",
+      'Hatsu Frambuesa',
+      'Hatsu Sandía',
+      'Soda Bretaña',
+      'Soda Ginger',
+    };
+
+    await IsarService.write((isar) async {
+      // 1. Eliminar las variantes fijas de la categoría Micheladas.
+      final micheladas = await isar.products
+          .filter()
+          .categoryEqualTo('Micheladas')
+          .findAll();
+      final toDelete = micheladas
+          .where((p) => legacy.contains(p.name))
+          .map((p) => p.id)
+          .toList();
+      if (toDelete.isNotEmpty) await isar.products.deleteAll(toDelete);
+
+      // 2. Asegurar la Michelada combinable única.
+      final remaining = await isar.products
+          .filter()
+          .categoryEqualTo('Micheladas')
+          .findAll();
+      final existing = remaining
+          .where((p) => p.name.toLowerCase() == 'michelada')
+          .toList();
+      if (existing.isEmpty) {
+        await isar.products.put(Product()
+          ..name = 'Michelada'
+          ..price = 8000
+          ..category = 'Micheladas'
+          ..isLiquor = false
+          ..isComposable = true
+          ..baseCategories = ["Fría's", 'Gaseosas Solas']
+          ..isAvailable = true);
+      } else {
+        final m = existing.first
+          ..isComposable = true
+          ..baseCategories = ["Fría's", 'Gaseosas Solas'];
+        await isar.products.put(m);
+      }
+    });
+
+    debugPrint('[ProductRepository] Migration v5: Michelada combinable única.');
+    await prefs.setInt(_kSeedVersionKey, 5);
+  }
+
   @override
   Stream<List<ProductEntity>> watchAll() {
     return IsarService.db.products

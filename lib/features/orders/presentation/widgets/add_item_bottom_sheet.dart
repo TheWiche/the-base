@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../catalog/domain/entities/catalog_product.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../../../products/domain/entities/product_entity.dart';
@@ -198,7 +199,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                   style: AppTextStyles.headlineSmall),
               const SizedBox(height: 12),
               for (final baseCat in p.baseCategories) ...[
-                Text(baseCat.toUpperCase(),
+                Text(_baseGroupTitle(baseCat),
                     style: AppTextStyles.statusBadge
                         .copyWith(color: AppColors.primary)),
                 const SizedBox(height: 6),
@@ -231,10 +232,20 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
     );
   }
 
-  /// Limpia prefijos genéricos ("Cerveza Águila" → "Águila").
+  /// Limpia prefijos/sufijos genéricos ("Cerveza Águila" → "Águila",
+  /// "Bretaña Sola" → "Bretaña").
   String _baseLabel(String name) => name
       .replaceFirst(RegExp(r'^(Cerveza|Soda|Gaseosa)\s+'), '')
+      .replaceFirst(RegExp(r'\s+Sola$'), '')
       .trim();
+
+  /// Título amigable del grupo de base ("Fría's" → CERVEZA, sodas → SODA).
+  String _baseGroupTitle(String category) {
+    final c = category.toLowerCase();
+    if (c.contains('fría') || c.contains('cerve')) return 'CERVEZA';
+    if (c.contains('gaseosa') || c.contains('soda')) return 'SODA';
+    return category.toUpperCase();
+  }
 
   void _pickCatalog(CatalogProduct p) =>
       _addToCart(p.name, p.price, p.category);
@@ -291,11 +302,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
       category: _category,
     ));
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:  Text('"$name" guardado en acceso rápido.'),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ));
+      AppToast.success(context, '"$name" guardado en acceso rápido.');
     }
   }
 

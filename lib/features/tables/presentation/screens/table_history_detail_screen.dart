@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/extensions/int_extensions.dart';
+import '../../../../core/settings/bar_settings_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../orders/domain/entities/order_item_entity.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
+import '../../../orders/presentation/widgets/receipt_view.dart';
 import '../../domain/entities/table_session_entity.dart';
 
 /// Read-only view of a closed [TableSessionEntity] — all items displayed,
@@ -56,7 +60,11 @@ class _TableHistoryDetailScreenState
               ),
               data: (items) => items.isEmpty
                   ? const _EmptyBody()
-                  : _ReadOnlyBody(items: items),
+                  : _ReceiptDetailBody(
+                      session: _session,
+                      items: items,
+                      barName: ref.watch(barNameProvider),
+                    ),
             ),
           ),
           // ── Reactivar bar ──────────────────────────────────────────────
@@ -174,265 +182,43 @@ class _TableHistoryDetailScreenState
     }
   }
 
-  void _showError(Failure failure) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(failure.message),
-        backgroundColor: AppColors.statusRed,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  void _showError(Failure failure) => AppToast.error(context, failure.message);
 }
 
-// ── Read-only item list ────────────────────────────────────────────────────────
+// ── Detalle = tiquete completo (read-only) ────────────────────────────────────
 
-class _ReadOnlyBody extends StatelessWidget {
-  const _ReadOnlyBody({required this.items});
-
-  final List<OrderItemEntity> items;
-
-  @override
-  Widget build(BuildContext context) {
-    final pending =
-        items.where((i) => i.isActive).toList();
-    final delivered =
-        items.where((i) => i.isDelivered && !i.isPaid).toList();
-    final paid = items.where((i) => i.isPaid).toList();
-    final cancelled = items.where((i) => i.isCancelled).toList();
-
-    return CustomScrollView(
-      slivers: [
-        if (pending.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              label: 'PENDIENTES',
-              count: pending.length,
-              color: AppColors.statusOrange,
-            ),
-          ),
-          _ItemSliver(items: pending),
-        ],
-        if (delivered.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              label: 'ENTREGADOS',
-              count: delivered.length,
-              color: AppColors.statusBlue,
-            ),
-          ),
-          _ItemSliver(items: delivered),
-        ],
-        if (paid.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              label: 'PAGADOS',
-              count: paid.length,
-              color: AppColors.statusGreen,
-            ),
-          ),
-          _ItemSliver(items: paid),
-        ],
-        if (cancelled.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              label: 'CANCELADOS',
-              count: cancelled.length,
-              color: AppColors.statusRed,
-            ),
-          ),
-          _ItemSliver(items: cancelled),
-        ],
-        const SliverPadding(padding: EdgeInsets.only(bottom: 96)),
-      ],
-    );
-  }
-}
-
-class _ItemSliver extends StatelessWidget {
-  const _ItemSliver({required this.items});
-
-  final List<OrderItemEntity> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.pagePaddingH,
-      ),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (_, i) => _ReadOnlyItemTile(item: items[i]),
-          childCount: items.length,
-        ),
-      ),
-    );
-  }
-}
-
-// ── Read-only tile ─────────────────────────────────────────────────────────────
-
-class _ReadOnlyItemTile extends StatelessWidget {
-  const _ReadOnlyItemTile({required this.item});
-
-  final OrderItemEntity item;
-
-  static final _fmt = DateFormat('HH:mm', 'es_CO');
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = item.isCancelled
-        ? (isDark ? AppColors.darkDisabled : AppColors.lightDisabled)
-        : (isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppDimensions.space8),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.space16,
-        vertical: AppDimensions.space12,
-      ),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        border: Border.all(
-          color: item.isCancelled
-              ? AppColors.statusRed.withValues(alpha: 0.25)
-              : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        children: [
-          // Category icon
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: item.isCancelled
-                  ? AppColors.statusRed.withValues(alpha: 0.08)
-                  : item.categoryColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-            ),
-            child: Icon(
-              item.isCancelled ? Icons.cancel_rounded : item.categoryIcon,
-              color: item.isCancelled ? AppColors.statusRed : item.categoryColor,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: AppDimensions.space12),
-
-          // Name + meta
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.quantity > 1
-                      ? '${item.productName}  ×${item.quantity}'
-                      : item.productName,
-                  style: AppTextStyles.titleMedium.copyWith(
-                    color: textColor,
-                    decoration: item.isCancelled
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                    decorationColor: AppColors.statusRed,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: AppDimensions.space2),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      size: 10,
-                      color: isDark
-                          ? AppColors.darkDisabled
-                          : AppColors.lightDisabled,
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      _fmt.format(item.orderedAt),
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: isDark
-                            ? AppColors.darkDisabled
-                            : AppColors.lightDisabled,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Price
-          Text(
-            item.lineTotal.toCop,
-            style: AppTextStyles.titleMedium.copyWith(
-              color: item.isCancelled
-                  ? AppColors.statusRed.withValues(alpha: 0.5)
-                  : item.categoryColor,
-              decoration: item.isCancelled
-                  ? TextDecoration.lineThrough
-                  : TextDecoration.none,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Section header ─────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.label,
-    required this.count,
-    required this.color,
+class _ReceiptDetailBody extends StatelessWidget {
+  const _ReceiptDetailBody({
+    required this.session,
+    required this.items,
+    required this.barName,
   });
 
-  final String label;
-  final int count;
-  final Color color;
+  final TableSessionEntity? session;
+  final List<OrderItemEntity> items;
+  final String barName;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppDimensions.pagePaddingH,
-        AppDimensions.space16,
-        AppDimensions.pagePaddingH,
-        AppDimensions.space8,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 14,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: AppDimensions.space8),
-          Text(label, style: AppTextStyles.statusBadge.copyWith(color: color)),
-          const SizedBox(width: AppDimensions.space8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-            ),
-            child: Text(
-              '$count',
-              style: AppTextStyles.statusBadge.copyWith(color: color),
-            ),
-          ),
-        ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: ReceiptPaper(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (session != null)
+              ReceiptHeader(
+                barName: barName,
+                tableNumber: session!.tableNumber,
+                apodo: session!.apodo,
+                openedAt: session!.openedAt,
+              ),
+            const DashedDivider(padding: EdgeInsets.symmetric(vertical: 10)),
+            ReceiptGrouped(items: items),
+            const DashedDivider(padding: EdgeInsets.symmetric(vertical: 10)),
+            ReceiptFooter(items: items, showThanks: true),
+          ],
+        ),
       ),
     );
   }

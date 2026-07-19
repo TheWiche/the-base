@@ -9,6 +9,7 @@ import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../payments/domain/entities/payment_receipt_entity.dart';
 import '../providers/dashboard_providers.dart';
 
@@ -46,8 +47,6 @@ class _LegalizationScreenState extends ConsumerState<LegalizationScreen>
   }
 
   Future<void> _onLegalizar(PaymentReceiptEntity receipt) async {
-    final messenger = ScaffoldMessenger.of(context);
-
     final failure = await ref
         .read(legalizationProvider.notifier)
         .legalizeTransfer(receipt.id);
@@ -55,32 +54,12 @@ class _LegalizationScreenState extends ConsumerState<LegalizationScreen>
     if (!mounted) return;
 
     if (failure != null) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(failure.message),
-          backgroundColor: AppColors.statusRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppToast.error(context, failure.message);
       return;
     }
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.verified_rounded,
-                color: AppColors.statusGreen, size: 18),
-            const SizedBox(width: AppDimensions.space8),
-            Text(
-              'Transferencia de ${receipt.amountPaid.toCop} legalizada.',
-              style: AppTextStyles.bodyMedium,
-            ),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    AppToast.success(
+        context, 'Transferencia de ${receipt.amountPaid.toCop} legalizada.');
   }
 
   @override
@@ -568,13 +547,7 @@ class _VerificationCodeRow extends StatelessWidget {
           GestureDetector(
             onTap: () {
               Clipboard.setData(ClipboardData(text: code));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Código $code copiado'),
-                  duration: const Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              AppToast.info(context, 'Código $code copiado');
             },
             child: Icon(Icons.copy_rounded,
                 size: AppDimensions.iconSm,

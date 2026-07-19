@@ -47,6 +47,7 @@ Future<void> main() async {
   await ProductRepositoryImpl().seedMigrateV2();
   await ProductRepositoryImpl().seedMigrateV3();
   await ProductRepositoryImpl().seedMigrateV4();
+  await ProductRepositoryImpl().seedMigrateV5();
   await _migrateTableCounter();
   await NotificationService.initialize();
   final prefs = await SharedPreferences.getInstance();

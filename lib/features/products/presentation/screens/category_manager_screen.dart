@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/settings/category_order_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../providers/product_providers.dart';
 
 /// Gestor de categorías: crear, renombrar, eliminar y reordenar.
@@ -99,12 +100,10 @@ class CategoryManagerScreen extends ConsumerWidget {
   Future<void> _delete(
       BuildContext context, WidgetRef ref, String cat, int count) async {
     if (count > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'No puedes eliminar "$cat": tiene $count producto${count == 1 ? '' : 's'}. Muévelos o cámbiales la categoría primero.'),
-          backgroundColor: AppColors.statusRed,
-        ),
+      AppToast.error(
+        context,
+        'No puedes eliminar "$cat": tiene $count producto${count == 1 ? '' : 's'}. '
+        'Cámbiales la categoría primero.',
       );
       return;
     }

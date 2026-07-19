@@ -751,17 +751,12 @@ class _PagarBotellaButton extends ConsumerWidget {
                         final failure =
                             await ref.read(settleLiquorActionProvider)(b.id);
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(failure != null
-                                ? failure.message
-                                : 'Botella completada: ${b.productName}'),
-                            backgroundColor: failure != null
-                                ? AppColors.statusRed
-                                : AppColors.statusGreen,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                        if (failure != null) {
+                          AppToast.error(context, failure.message);
+                        } else {
+                          AppToast.success(
+                              context, 'Botella completada: ${b.productName}');
+                        }
                       },
                     ),
                 ],

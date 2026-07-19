@@ -6,10 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/result.dart';
+import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/services/table_counter_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../../core/widgets/stagger_entrance.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../../domain/entities/table_session_entity.dart';
@@ -193,26 +197,13 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
     if (!mounted) return;
 
     if (result case Err(:final failure)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(failure.message),
-          backgroundColor: AppColors.statusRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppToast.error(context, failure.message);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Mesa ${session.tableNumber} eliminada.'),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      AppToast.success(context, 'Mesa ${session.tableNumber} eliminada.');
     }
   }
 
   Future<void> _showNewTableDialog(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
     final counter = TableCounterService();
 
     // Preview the next number without committing it yet.
@@ -232,13 +223,7 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
               .call(tableNumber: assignedNumber, apodo: apodo);
           if (!mounted) return;
           if (result.isErr) {
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text((result as Err).failure.message),
-                backgroundColor: AppColors.statusRed,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            AppToast.error(context, (result as Err).failure.message);
           }
         },
       ),
@@ -435,9 +420,9 @@ class _SessionsGridState extends State<_SessionsGrid>
   }
 }
 
-// ── Table card ────────────────────────────────────────────────────────────────
+// ── Table card — talón de tiquete ─────────────────────────────────────────────
 
-class _TableCard extends StatelessWidget {
+class _TableCard extends ConsumerWidget {
   const _TableCard({
     super.key,
     required this.session,
@@ -450,113 +435,97 @@ class _TableCard extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget build(BuildContext context, WidgetRef ref) {
     final statusColor = session.statusColor;
     final elapsed = _elapsedLabel(session.openedAt);
 
-    return GestureDetector(
+    // Total que lleva la cuenta (ítems no cancelados) — en vivo.
+    final items = ref.watch(tableOrderProvider(session.id)).valueOrNull ?? [];
+    final total = items
+        .where((i) => !i.isCancelled)
+        .fold(0, (s, i) => s + i.lineTotal);
+    final itemCount = items
+        .where((i) => !i.isCancelled)
+        .fold(0, (s, i) => s + i.quantity);
+
+    return ReceiptStub(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(
-            color: statusColor.withOpacity(0.55),
-            width: AppDimensions.cardBorderWidth + 0.5,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // ── Table number circle ──────────────────────────────────
-            Container(
-              width: 68,
-              height: 68,
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.12),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: statusColor.withOpacity(0.35),
-                  width: 2.0,
-                ),
-              ),
-              child: Center(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // ── Encabezado: MESA N + tiempo ──────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
                 child: Text(
-                  '${session.tableNumber}',
-                  style: AppTextStyles.headlineLarge.copyWith(
-                    color: statusColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 30,
+                  'MESA ${session.tableNumber}',
+                  style: AppTextStyles.receiptTitle.copyWith(
+                    fontSize: 16,
+                    color: AppColors.paperInk,
                   ),
                 ),
               ),
-            ),
-
-            const SizedBox(height: AppDimensions.space8),
-
-            // ── "Mesa N" label ───────────────────────────────────────
-            Text(
-              'Mesa ${session.tableNumber}',
-              style: AppTextStyles.titleMedium.copyWith(
-                color: isDark
-                    ? AppColors.darkOnSurface
-                    : AppColors.lightOnSurface,
-              ),
-            ),
-
-            // ── Apodo (nickname) ─────────────────────────────────────
-            if (session.apodo != null) ...[
-              const SizedBox(height: AppDimensions.space2),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.space12,
-                ),
-                child: Text(
-                  '"${session.apodo}"',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.brand,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
+              Text(
+                elapsed,
+                style: AppTextStyles.receiptSmall.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: _elapsedColor(session.openedAt),
                 ),
               ),
             ],
-
-            const SizedBox(height: AppDimensions.space10),
-
-            // ── Status badge ─────────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.badgePaddingH,
-                vertical: AppDimensions.badgePaddingV,
-              ),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                border: Border.all(color: statusColor.withOpacity(0.4)),
-              ),
-              child: Text(
-                session.statusLabel.toUpperCase(),
-                style: AppTextStyles.statusBadge.copyWith(color: statusColor),
-              ),
-            ),
-
-            const SizedBox(height: AppDimensions.space6),
-
-            // ── Elapsed time ─────────────────────────────────────────
+          ),
+          if (session.apodo != null)
             Text(
-              elapsed,
-              style: AppTextStyles.mono.copyWith(
-                fontSize: 11,
-                color: _elapsedColor(session.openedAt, isDark),
+              '"${session.apodo}"',
+              style: AppTextStyles.receiptSmall.copyWith(
+                color: AppColors.paperInkSoft,
+                fontStyle: FontStyle.italic,
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
-          ],
-        ),
+          const Spacer(),
+          const DashedDivider(padding: EdgeInsets.symmetric(vertical: 6)),
+
+          // ── Total + ítems ────────────────────────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                itemCount == 0
+                    ? 'sin pedidos'
+                    : '$itemCount ítem${itemCount == 1 ? '' : 's'}',
+                style: AppTextStyles.receiptSmall
+                    .copyWith(color: AppColors.paperInkSoft),
+              ),
+              Text(
+                total.toCop,
+                style: AppTextStyles.receiptBodyBold
+                    .copyWith(color: AppColors.paperInk),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // ── Estado ───────────────────────────────────────────────
+          Row(
+            children: [
+              Icon(Icons.circle, size: 8, color: statusColor),
+              const SizedBox(width: 6),
+              Text(
+                session.statusLabel.toUpperCase(),
+                style: AppTextStyles.receiptSmall.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                  color: statusColor,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -569,11 +538,11 @@ class _TableCard extends StatelessWidget {
     return '${d.inMinutes}m';
   }
 
-  Color _elapsedColor(DateTime openedAt, bool isDark) {
+  Color _elapsedColor(DateTime openedAt) {
     final d = DateTime.now().difference(openedAt);
     if (d.inHours >= 2) return AppColors.statusRed;
     if (d.inHours >= 1) return AppColors.statusOrange;
-    return isDark ? AppColors.darkDisabled : AppColors.lightDisabled;
+    return AppColors.paperInkSoft;
   }
 }
 

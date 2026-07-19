@@ -5,6 +5,7 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../providers/radar_providers.dart';
 import '../widgets/grouped_table_view.dart';
@@ -71,13 +72,7 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
   ) async {
     final failure = await action(id);
     if (failure != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(failure.message),
-          backgroundColor: AppColors.statusRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppToast.error(context, failure.message);
     }
   }
 }

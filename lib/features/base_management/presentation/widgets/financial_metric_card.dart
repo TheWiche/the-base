@@ -40,8 +40,6 @@ class FinancialMetricCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final surfaceColor =
         isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant;
-    final borderColor =
-        isDark ? AppColors.darkOutline : AppColors.lightOutline;
 
     return Container(
       decoration: BoxDecoration(
