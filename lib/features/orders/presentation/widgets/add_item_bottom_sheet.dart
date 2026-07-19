@@ -251,7 +251,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                       onTap: () {
                         Navigator.of(ctx).pop();
                         _addToCart(
-                          '${p.name} · ${_baseLabel(opt.name)}',
+                          '${_composedPrefix(p.name)} · ${_baseLabel(opt.name)}',
                           p.price,
                           ProductCategory.standard,
                           menuCategory: p.category,
@@ -306,6 +306,12 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
   String _baseLabel(String name) => name
       .replaceFirst(RegExp(r'^(Cerveza|Soda|Gaseosa)\s+'), '')
       .replaceFirst(RegExp(r'\s+Sola$'), '')
+      .trim();
+
+  /// Nombre compacto de la línea compuesta: "Michelada de Cerveza" → "M. Cerveza"
+  /// (así "M. Cerveza · Águila Light" cabe en el tiquete).
+  String _composedPrefix(String productName) => productName
+      .replaceFirst(RegExp(r'^Michelada\s+(de\s+)?', caseSensitive: false), 'M. ')
       .trim();
 
   String _baseGroupTitle(String category) {

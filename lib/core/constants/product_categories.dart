@@ -7,7 +7,7 @@ const List<String> kCategoryOrder = [
   'Granizados',
   "Fría's",
   'Micheladas',
-  'Gaseosas Solas',
+  'Sodas',
   'Cocteles Paletas',
   'Mojitos',
   'Sangría',

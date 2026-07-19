@@ -295,6 +295,120 @@ final class ProductRepositoryImpl implements IProductRepository {
     await prefs.setInt(_kSeedVersionKey, 5);
   }
 
+  /// V6 — nombres cortos (la categoría da el contexto), "Gaseosas Solas" →
+  /// "Sodas" (productos sin el sufijo "Sola"), dos micheladas combinables
+  /// (Cerveza → Fría's, Soda → Sodas) y Smirnoff Tamarindo en Granizados.
+  Future<void> seedMigrateV6() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedVersion = prefs.getInt(_kSeedVersionKey) ?? 1;
+    if (storedVersion >= 6) return;
+
+    // Prefijos redundantes por categoría → nombre corto.
+    const prefixByCategory = {
+      'Granizados': 'Granizado ',
+      "Fría's": 'Cerveza ',
+      'Mojitos': 'Mojito ',
+      'Sangría': 'Sangría ',
+    };
+
+    await IsarService.write((isar) async {
+      final all = await isar.products.where().anyId().findAll();
+      final toPut = <Product>[];
+
+      for (final p in all) {
+        var changed = false;
+
+        // 1. Gaseosas Solas → Sodas (+ quitar sufijo " Sola").
+        if (p.category == 'Gaseosas Solas') {
+          p.category = 'Sodas';
+          final short = p.name.replaceFirst(RegExp(r'\s+Solas?$'), '').trim();
+          if (short.isNotEmpty) p.name = short;
+          changed = true;
+        }
+
+        // 2. Nombres cortos: quitar el prefijo que ya dice la categoría.
+        final prefix = prefixByCategory[p.category];
+        if (prefix != null && p.name.startsWith(prefix)) {
+          final short = p.name.substring(prefix.length).trim();
+          if (short.isNotEmpty) {
+            p.name = short;
+            changed = true;
+          }
+        }
+
+        if (changed) toPut.add(p);
+      }
+      if (toPut.isNotEmpty) await isar.products.putAll(toPut);
+
+      // 3. Micheladas: una de Cerveza (base Fría's) y una de Soda (base Sodas).
+      final micheladas = await isar.products
+          .filter()
+          .categoryEqualTo('Micheladas')
+          .findAll();
+      final oldSingle = micheladas
+          .where((p) => p.name.toLowerCase() == 'michelada')
+          .map((p) => p.id)
+          .toList();
+      if (oldSingle.isNotEmpty) await isar.products.deleteAll(oldSingle);
+
+      final names = micheladas.map((p) => p.name.toLowerCase()).toSet();
+      if (!names.contains('michelada de cerveza')) {
+        await isar.products.put(Product()
+          ..name = 'Michelada de Cerveza'
+          ..price = 8000
+          ..category = 'Micheladas'
+          ..isLiquor = false
+          ..isComposable = true
+          ..baseCategories = ["Fría's"]
+          ..isAvailable = true);
+      }
+      if (!names.contains('michelada de soda')) {
+        await isar.products.put(Product()
+          ..name = 'Michelada de Soda'
+          ..price = 8000
+          ..category = 'Micheladas'
+          ..isLiquor = false
+          ..isComposable = true
+          ..baseCategories = ['Sodas']
+          ..isAvailable = true);
+      }
+
+      // 4. Smirnoff Tamarindo en Granizados.
+      final granizados = await isar.products
+          .filter()
+          .categoryEqualTo('Granizados')
+          .findAll();
+      final hasTamarindo = granizados
+          .any((p) => p.name.toLowerCase().contains('smirnoff tamarindo'));
+      if (!hasTamarindo) {
+        await isar.products.put(Product()
+          ..name = 'Smirnoff Tamarindo'
+          ..price = 12000
+          ..category = 'Granizados'
+          ..isLiquor = false
+          ..isComposable = false
+          ..baseCategories = []
+          ..isAvailable = true);
+      }
+    });
+
+    // 5. Prefs coherentes: orden e íconos de categorías conservan la renombrada.
+    final rawOrder = prefs.getString('thebase_category_order');
+    if (rawOrder != null) {
+      await prefs.setString(
+          'thebase_category_order', rawOrder.replaceAll('Gaseosas Solas', 'Sodas'));
+    }
+    final rawIcons = prefs.getString('thebase_category_icons');
+    if (rawIcons != null) {
+      await prefs.setString(
+          'thebase_category_icons', rawIcons.replaceAll('Gaseosas Solas', 'Sodas'));
+    }
+
+    debugPrint('[ProductRepository] Migration v6: nombres cortos + Sodas + '
+        '2 micheladas + Smirnoff Tamarindo.');
+    await prefs.setInt(_kSeedVersionKey, 6);
+  }
+
   @override
   Stream<List<ProductEntity>> watchAll() {
     return IsarService.db.products
