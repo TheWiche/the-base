@@ -389,7 +389,8 @@ class _SessionsGridState extends State<_SessionsGrid>
         crossAxisCount: 2,
         crossAxisSpacing: AppDimensions.space12,
         mainAxisSpacing: AppDimensions.space12,
-        childAspectRatio: 1.32, // talones compactos, sin espacio muerto
+        // Altura exacta del contenido del talón — sin espacio muerto.
+        mainAxisExtent: 118,
       ),
       itemCount: widget.sessions.length,
       itemBuilder: (_, i) {

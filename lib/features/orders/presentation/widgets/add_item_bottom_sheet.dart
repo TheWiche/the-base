@@ -149,46 +149,152 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
   /// Selector de base para un producto combinable (ej. Michelada → cerveza/soda).
   void _pickComposableBase(ProductEntity p) {
     final all = ref.read(productsProvider).valueOrNull ?? [];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    IconData groupIcon(String cat) {
+      final title = _baseGroupTitle(cat);
+      if (title == 'CERVEZA') return Icons.sports_bar_rounded;
+      if (title == 'SODA') return Icons.local_drink_rounded;
+      return Icons.local_bar_rounded;
+    }
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (ctx) => SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${p.name} — elige la base',
-                  style: AppTextStyles.headlineSmall),
-              const SizedBox(height: 12),
-              for (final baseCat in p.baseCategories) ...[
-                Text(_baseGroupTitle(baseCat),
-                    style: AppTextStyles.statusBadge
-                        .copyWith(color: AppColors.primary)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: all
-                      .where((x) => x.category == baseCat && x.isAvailable)
-                      .map((opt) => ActionChip(
-                            label: Text(_baseLabel(opt.name)),
-                            onPressed: () {
-                              Navigator.of(ctx).pop();
-                              _addToCart(
-                                '${p.name} · ${_baseLabel(opt.name)}',
-                                p.price,
-                                ProductCategory.standard,
-                                menuCategory: p.category,
-                                subcategory: baseCat,
-                              );
-                            },
-                          ))
-                      .toList(),
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color:
+                        isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
-                const SizedBox(height: 12),
+              ),
+              // ── Encabezado ─────────────────────────────────────────
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.local_bar_rounded,
+                        color: AppColors.primary, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.name, style: AppTextStyles.headlineSmall),
+                        Text(
+                          'Elige la base  ·  ${p.price.toCop}',
+                          style: AppTextStyles.labelMedium
+                              .copyWith(color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // ── Grupos de base ─────────────────────────────────────
+              for (final baseCat in p.baseCategories) ...[
+                Row(
+                  children: [
+                    Icon(groupIcon(baseCat),
+                        size: 16, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Text(_baseGroupTitle(baseCat),
+                        style: AppTextStyles.statusBadge
+                            .copyWith(color: AppColors.primary)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    mainAxisExtent: 50,
+                  ),
+                  itemCount: all
+                      .where((x) => x.category == baseCat && x.isAvailable)
+                      .length,
+                  itemBuilder: (_, i) {
+                    final opt = all
+                        .where((x) => x.category == baseCat && x.isAvailable)
+                        .elementAt(i);
+                    return InkWell(
+                      borderRadius:
+                          BorderRadius.circular(AppDimensions.radiusLg),
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _addToCart(
+                          '${p.name} · ${_baseLabel(opt.name)}',
+                          p.price,
+                          ProductCategory.standard,
+                          menuCategory: p.category,
+                          subcategory: baseCat,
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.darkSurfaceVariant
+                              : AppColors.lightSurface,
+                          borderRadius:
+                              BorderRadius.circular(AppDimensions.radiusLg),
+                          border: Border.all(
+                            color: isDark
+                                ? AppColors.darkOutline
+                                : AppColors.lightOutline,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _baseLabel(opt.name),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: isDark
+                                      ? AppColors.darkOnSurface
+                                      : AppColors.lightOnSurface,
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.add_rounded,
+                                color: AppColors.primary, size: 18),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
               ],
             ],
           ),
@@ -541,25 +647,37 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
 
                   const SizedBox(height: 14),
 
-                  // Título de sección + conteo.
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          searching ? 'Resultados' : (_selectedMenuCat ?? ''),
-                          style: AppTextStyles.headlineMedium,
+                  // Título de sección + conteo (+ precio único si es uniforme).
+                  Builder(builder: (context) {
+                    final uniform = shown.isNotEmpty &&
+                        shown.every((p) => p.price == shown.first.price);
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            searching ? 'Resultados' : (_selectedMenuCat ?? ''),
+                            style: AppTextStyles.headlineMedium,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '${shown.length} producto${shown.length == 1 ? '' : 's'}',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: isDark
-                              ? AppColors.darkOnSurfaceVariant
-                              : AppColors.lightOnSurfaceVariant,
+                        if (uniform && shown.length > 1) ...[
+                          Text(
+                            '${shown.first.price.toCop} c/u  ·  ',
+                            style: AppTextStyles.titleSmall
+                                .copyWith(color: AppColors.secondaryDark),
+                          ),
+                        ],
+                        Text(
+                          '${shown.length} producto${shown.length == 1 ? '' : 's'}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: isDark
+                                ? AppColors.darkOnSurfaceVariant
+                                : AppColors.lightOnSurfaceVariant,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  }),
                   const SizedBox(height: 8),
 
                   // Lista de productos.
@@ -576,29 +694,35 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                     )
                   else
                     // Grilla adaptativa: los productos fluyen en varias
-                    // columnas para aprovechar la pantalla.
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        mainAxisExtent: 88,
-                      ),
-                      itemCount: shown.length,
-                      itemBuilder: (_, i) => _ProductCard(
-                        product: shown[i],
-                        inCartQty: _cart
-                            .where((e) =>
-                                e.name == shown[i].name ||
-                                e.name.startsWith('${shown[i].name} ·'))
-                            .fold(0, (s, e) => s + e.quantity),
-                        isDark: isDark,
-                        onAdd: () => _pickProduct(shown[i]),
-                      ),
-                    ),
+                    // columnas. Si toda la sección comparte precio, se muestra
+                    // una sola vez en el encabezado (no repetido por tarjeta).
+                    Builder(builder: (context) {
+                      final uniform = shown.length > 1 &&
+                          shown.every((p) => p.price == shown.first.price);
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          mainAxisExtent: uniform ? 62 : 84,
+                        ),
+                        itemCount: shown.length,
+                        itemBuilder: (_, i) => _ProductCard(
+                          product: shown[i],
+                          showPrice: !uniform,
+                          inCartQty: _cart
+                              .where((e) =>
+                                  e.name == shown[i].name ||
+                                  e.name.startsWith('${shown[i].name} ·'))
+                              .fold(0, (s, e) => s + e.quantity),
+                          isDark: isDark,
+                          onAdd: () => _pickProduct(shown[i]),
+                        ),
+                      );
+                    }),
 
                   const SizedBox(height: 14),
 
@@ -810,6 +934,7 @@ class _ProductCard extends StatelessWidget {
     required this.inCartQty,
     required this.isDark,
     required this.onAdd,
+    this.showPrice = false,
   });
 
   final ProductEntity product;
@@ -817,14 +942,50 @@ class _ProductCard extends StatelessWidget {
   final bool isDark;
   final VoidCallback onAdd;
 
+  /// Solo cuando la sección tiene precios mixtos — si el precio es uniforme,
+  /// se muestra una vez en el encabezado y las tarjetas quedan limpias.
+  final bool showPrice;
+
   @override
   Widget build(BuildContext context) {
     final selected = inCartQty > 0;
+
+    final plusButton = Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: selected ? AppColors.primary : AppColors.primary.withOpacity(0.12),
+        border: Border.all(color: AppColors.primary),
+      ),
+      child: Center(
+        child: selected
+            ? Text(
+                '$inCartQty',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: const Color(0xFF241A05),
+                  fontWeight: FontWeight.w800,
+                ),
+              )
+            : const Icon(Icons.add_rounded, color: AppColors.primary, size: 19),
+      ),
+    );
+
+    final name = Text(
+      product.name,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: AppTextStyles.bodyMedium.copyWith(
+        height: 1.2,
+        color: isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
+      ),
+    );
+
     return InkWell(
       onTap: onAdd,
       borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+        padding: const EdgeInsets.fromLTRB(12, 8, 10, 8),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface,
           borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
@@ -835,57 +996,32 @@ class _ProductCard extends StatelessWidget {
             width: selected ? 1.6 : 1,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                product.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  height: 1.25,
-                  color:
-                      isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
-                ),
+        child: showPrice
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: name),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.price.toCop,
+                          style: AppTextStyles.titleSmall
+                              .copyWith(color: AppColors.secondaryDark),
+                        ),
+                      ),
+                      plusButton,
+                    ],
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: name),
+                  const SizedBox(width: 8),
+                  plusButton,
+                ],
               ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    product.price.toCop,
-                    style: AppTextStyles.titleSmall
-                        .copyWith(color: AppColors.secondaryDark),
-                  ),
-                ),
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: selected
-                        ? AppColors.primary
-                        : AppColors.primary.withOpacity(0.12),
-                    border: Border.all(color: AppColors.primary),
-                  ),
-                  child: Center(
-                    child: selected
-                        ? Text(
-                            '$inCartQty',
-                            style: AppTextStyles.labelMedium.copyWith(
-                              color: const Color(0xFF241A05),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          )
-                        : const Icon(Icons.add_rounded,
-                            color: AppColors.primary, size: 19),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
