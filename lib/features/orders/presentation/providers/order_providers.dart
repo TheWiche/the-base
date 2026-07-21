@@ -55,7 +55,15 @@ final activeSessionsProvider = StreamProvider<List<TableSessionEntity>>((ref) {
 
 /// Manages item list and actions for a single active table session.
 /// Scoped per [sessionId] using the `.family` modifier.
-class TableOrderNotifier extends FamilyAsyncNotifier<List<OrderItemEntity>, int> {
+///
+/// `autoDispose`: without it, every table ever watched in the app session
+/// (e.g. from a card in the Mesas grid) would keep its Isar stream
+/// subscription alive forever, even after the card scrolls off-screen or the
+/// table closes — a real leak once the grid started watching this provider
+/// per card for live totals. autoDispose lets Riverpod tear it down the
+/// moment nothing watches it, and cheaply re-subscribe if watched again.
+class TableOrderNotifier
+    extends AutoDisposeFamilyAsyncNotifier<List<OrderItemEntity>, int> {
   int get sessionId => arg;
 
   @override
@@ -135,8 +143,8 @@ class TableOrderNotifier extends FamilyAsyncNotifier<List<OrderItemEntity>, int>
       };
 }
 
-final tableOrderProvider =
-    AsyncNotifierProviderFamily<TableOrderNotifier, List<OrderItemEntity>, int>(
+final tableOrderProvider = AsyncNotifierProvider.autoDispose
+    .family<TableOrderNotifier, List<OrderItemEntity>, int>(
   TableOrderNotifier.new,
 );
 

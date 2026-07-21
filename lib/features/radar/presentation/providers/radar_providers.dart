@@ -7,23 +7,6 @@ import '../../../orders/domain/entities/pending_radar_item.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../../../orders/domain/usecases/mark_item_delivered_usecase.dart';
 
-// ── Radar view mode ────────────────────────────────────────────────────────────
-
-enum RadarViewMode {
-  /// Flat list sorted by orderedAt ASC (oldest first).
-  chronological,
-
-  /// Items grouped by table, each group sorted by orderedAt ASC.
-  /// Groups themselves ordered by oldest item first (most urgent table at top).
-  grouped,
-}
-
-// ── View mode state ────────────────────────────────────────────────────────────
-
-final radarViewModeProvider = StateProvider<RadarViewMode>(
-  (ref) => RadarViewMode.grouped,
-);
-
 // ── Clock ticker for live elapsed-time display ────────────────────────────────
 //
 // Emits DateTime.now() every 30 seconds. RadarItemTile watches this provider

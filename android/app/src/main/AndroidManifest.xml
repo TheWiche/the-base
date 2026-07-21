@@ -1,9 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Cámara para captura de fotos de transferencias -->
+    <!-- Cámara para captura de fotos de transferencias (vía image_picker,
+         no el plugin `camera`). required="false": la app no debe bloquear su
+         instalación en dispositivos/emuladores sin cámara física — solo
+         deshabilita ese flujo puntual si no hay hardware. -->
     <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-feature android:name="android.hardware.camera" android:required="true"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
     <!-- Almacenamiento para guardar fotos en TheBase_Transferencias -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"

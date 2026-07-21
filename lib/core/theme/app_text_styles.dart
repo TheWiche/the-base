@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
@@ -8,6 +7,10 @@ import 'app_colors.dart';
 /// Font: Nunito — geometric, rounded, excellent heavy-weight variants.
 /// All weights skew bold: minimum w600 for body, w900 for display figures.
 /// Letter-spacing is slightly relaxed on small sizes to avoid crowding.
+///
+/// Fonts are bundled locally (`assets/fonts/`, declared in pubspec.yaml)
+/// instead of fetched via google_fonts at runtime — this app is offline-first
+/// and must render correctly on first launch with zero connectivity.
 abstract final class AppTextStyles {
   // ── Base font families ─────────────────────────────────────────────
 
@@ -17,7 +20,8 @@ abstract final class AppTextStyles {
     double letterSpacing = 0.0,
     double height = 1.25,
   }) =>
-      GoogleFonts.nunito(
+      TextStyle(
+        fontFamily: 'Nunito',
         fontSize: size,
         fontWeight: weight,
         letterSpacing: letterSpacing,
@@ -160,8 +164,8 @@ abstract final class AppTextStyles {
       );
 
   // ── Monospace / Tiquete — facturas, cifras, códigos ────────────────
-  // Space Mono da el carácter analógico de "papel térmico". Se carga vía
-  // google_fonts igual que Nunito (mismo modelo de caché offline).
+  // Space Mono da el carácter analógico de "papel térmico". Bundleada
+  // localmente (dos pesos estáticos: Regular 400 y Bold 700).
 
   static TextStyle _mono({
     required double size,
@@ -169,7 +173,8 @@ abstract final class AppTextStyles {
     double letterSpacing = 0.0,
     double height = 1.35,
   }) =>
-      GoogleFonts.spaceMono(
+      TextStyle(
+        fontFamily: 'SpaceMono',
         fontSize: size,
         fontWeight: weight,
         letterSpacing: letterSpacing,
