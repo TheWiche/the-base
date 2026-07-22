@@ -430,14 +430,14 @@ class _TableCard extends ConsumerWidget {
     final statusColor = session.statusColor;
     final elapsed = _elapsedLabel(session.openedAt);
 
-    // Total que lleva la cuenta (ítems no cancelados) — en vivo.
+    // Saldo pendiente de la cuenta (ítems no cancelados y AÚN NO pagados) —
+    // en vivo. Filtrar solo por !isCancelled hacía que una mesa reactivada
+    // (ya saldada, con una ronda nueva) mostrara el total histórico completo
+    // en vez del saldo real que se debe.
     final items = ref.watch(tableOrderProvider(session.id)).valueOrNull ?? [];
-    final total = items
-        .where((i) => !i.isCancelled)
-        .fold(0, (s, i) => s + i.lineTotal);
-    final itemCount = items
-        .where((i) => !i.isCancelled)
-        .fold(0, (s, i) => s + i.quantity);
+    final unpaid = items.where((i) => !i.isCancelled && !i.isPaid);
+    final total = unpaid.fold(0, (s, i) => s + i.lineTotal);
+    final itemCount = unpaid.fold(0, (s, i) => s + i.quantity);
 
     return ReceiptStub(
       onTap: onTap,
