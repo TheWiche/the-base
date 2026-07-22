@@ -501,11 +501,11 @@ class _ShiftBanner extends StatelessWidget {
                   const SizedBox(height: 2),
                   AnimatedAmount(
                     amount: balance,
-                    style: AppTextStyles.headlineMedium.copyWith(
+                    style: AppTextStyles.receiptTotal.copyWith(
+                      fontSize: 22,
                       color: balance >= 0
                           ? AppColors.statusGreen
                           : AppColors.statusRed,
-                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ],
@@ -694,14 +694,26 @@ class _StatCard extends StatelessWidget {
 }
 
 // ── Quick Actions ──────────────────────────────────────────────────────────────
+//
+// 3 filas de uso diario siempre visibles + una sección "Más opciones" plegable
+// para lo ocasional (Captura suelta, Comprobantes, Ajustes) — reduce el scroll
+// por defecto sin esconder nada de forma permanente.
 
-class _QuickActions extends ConsumerWidget {
+class _QuickActions extends ConsumerStatefulWidget {
   const _QuickActions({required this.isDark});
 
   final bool isDark;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_QuickActions> createState() => _QuickActionsState();
+}
+
+class _QuickActionsState extends ConsumerState<_QuickActions> {
+  bool _showMore = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
     final pendingTransfers = ref.watch(pendingTransfersProvider).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -778,6 +790,16 @@ class _QuickActions extends ConsumerWidget {
           children: [
             Expanded(
               child: _ActionCard(
+                icon: Icons.restaurant_menu_rounded,
+                title: 'Menú',
+                subtitle: 'Productos y categorías',
+                gradient: const [AppColors.primary, AppColors.primaryDark],
+                onTap: () => context.push('/products'),
+              ),
+            ),
+            const SizedBox(width: AppDimensions.space12),
+            Expanded(
+              child: _ActionCard(
                 icon: Icons.verified_rounded,
                 title: pendingTransfers > 0
                     ? 'Legalizar ($pendingTransfers)'
@@ -796,46 +818,111 @@ class _QuickActions extends ConsumerWidget {
                 onTap: () => context.push('/legalizacion'),
               ),
             ),
-            const SizedBox(width: AppDimensions.space12),
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.photo_library_rounded,
-                title: 'Comprobantes',
-                subtitle: 'Ver fotos guardadas',
-                gradient: isDark
-                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
-                textColor: isDark
-                    ? AppColors.darkOnBackground
-                    : AppColors.lightOnSurface,
-                onTap: () => context.push('/comprobantes'),
-              ),
-            ),
           ],
         ),
+
+        // ── Más opciones (plegable) ──────────────────────────────────
         const SizedBox(height: AppDimensions.space12),
-        Row(
-          children: [
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.add_a_photo_rounded,
-                title: 'Captura suelta',
-                subtitle: 'Comprobante sin mesa',
-                gradient: const [Color(0xFF1976D2), Color(0xFF0D47A1)],
-                onTap: () => context.push('/transferencias/captura-suelta'),
-              ),
+        InkWell(
+          onTap: () => setState(() => _showMore = !_showMore),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Text(
+                  _showMore ? 'Menos opciones' : 'Más opciones',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                AnimatedRotation(
+                  turns: _showMore ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.primary, size: 20),
+                ),
+              ],
             ),
-            const SizedBox(width: AppDimensions.space12),
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.restaurant_menu_rounded,
-                title: 'Menú',
-                subtitle: 'Productos y categorías',
-                gradient: const [AppColors.primary, AppColors.primaryDark],
-                onTap: () => context.push('/products'),
-              ),
+          ),
+        ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 220),
+          crossFadeState:
+              _showMore ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          firstChild: Padding(
+            padding: const EdgeInsets.only(top: AppDimensions.space8),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ActionCard(
+                        icon: Icons.add_a_photo_rounded,
+                        title: 'Captura suelta',
+                        subtitle: 'Comprobante sin mesa',
+                        gradient: const [Color(0xFF1976D2), Color(0xFF0D47A1)],
+                        onTap: () =>
+                            context.push('/transferencias/captura-suelta'),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimensions.space12),
+                    Expanded(
+                      child: _ActionCard(
+                        icon: Icons.photo_library_rounded,
+                        title: 'Comprobantes',
+                        subtitle: 'Ver fotos guardadas',
+                        gradient: isDark
+                            ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
+                            : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
+                        textColor: isDark
+                            ? AppColors.darkOnBackground
+                            : AppColors.lightOnSurface,
+                        onTap: () => context.push('/comprobantes'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimensions.space12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ActionCard(
+                        icon: Icons.bar_chart_rounded,
+                        title: 'Reportes',
+                        subtitle: 'Turnos y ganancia',
+                        gradient: isDark
+                            ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
+                            : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
+                        textColor: isDark
+                            ? AppColors.darkOnBackground
+                            : AppColors.lightOnSurface,
+                        onTap: () => context.push('/reportes'),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimensions.space12),
+                    Expanded(
+                      child: _ActionCard(
+                        icon: Icons.settings_rounded,
+                        title: 'Ajustes',
+                        subtitle: 'Bar, base y tema',
+                        gradient: isDark
+                            ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
+                            : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
+                        textColor: isDark
+                            ? AppColors.darkOnBackground
+                            : AppColors.lightOnSurface,
+                        onTap: () => context.push('/settings'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
+          secondChild: const SizedBox(width: double.infinity),
         ),
       ],
     );

@@ -203,7 +203,7 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
                 title: const Text('Cancelar ítem'),
                 onTap: () {
                   Navigator.of(ctx).pop();
-                  _cancelItem(item.id);
+                  _cancelItem(item);
                 },
               ),
             if (item.isCancelled)
@@ -223,11 +223,26 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
   }
 
 
-  Future<void> _cancelItem(int itemId) async {
+  Future<void> _cancelItem(OrderItemEntity item) async {
     final failure = await ref
         .read(tableOrderProvider(widget.sessionId).notifier)
-        .cancelItem(itemId);
-    if (failure != null && mounted) _showError(failure);
+        .cancelItem(item.id);
+    if (!mounted) return;
+    if (failure != null) {
+      _showError(failure);
+      return;
+    }
+    AppToast.success(
+      context,
+      'Cancelado: ${item.productName}',
+      actionLabel: 'Deshacer',
+      onAction: () async {
+        final undoFailure = await ref
+            .read(tableOrderProvider(widget.sessionId).notifier)
+            .uncancelItem(item.id);
+        if (undoFailure != null && mounted) _showError(undoFailure);
+      },
+    );
   }
 
   Future<void> _settleLiquor(OrderItemEntity item) async {

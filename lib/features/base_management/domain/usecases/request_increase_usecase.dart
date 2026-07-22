@@ -22,7 +22,7 @@ final class RequestIncreaseUseCase {
 
   final IBaseRepository _repository;
 
-  Future<Result<BaseTransactionEntity>> call() async {
+  Future<Result<BaseTransactionEntity>> call({required int amount}) async {
     // Guard: increases require an initialized shift.
     final isInitialized = await _repository.hasInitialBase();
     if (!isInitialized) {
@@ -33,6 +33,6 @@ final class RequestIncreaseUseCase {
       );
     }
 
-    return _repository.requestIncrease();
+    return _repository.requestIncrease(amount: amount);
   }
 }

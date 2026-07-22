@@ -117,8 +117,12 @@ class _PhotoTile extends StatelessWidget {
     final label = DateFormat('d MMM · HH:mm', 'es_CO').format(modified);
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.primary.withOpacity(0.35)),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -128,13 +132,28 @@ class _PhotoTile extends StatelessWidget {
               right: 0,
               bottom: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                color: Colors.black.withOpacity(0.55),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.75)],
+                  ),
+                ),
                 child: Text(
                   label,
-                  style: AppTextStyles.labelSmall.copyWith(color: Colors.white),
+                  style: AppTextStyles.mono.copyWith(
+                    fontSize: 11,
+                    color: Colors.white,
+                  ),
                 ),
               ),
+            ),
+            Positioned(
+              top: 6,
+              left: 6,
+              child: Icon(Icons.receipt_rounded,
+                  size: 16, color: AppColors.primary.withOpacity(0.9)),
             ),
           ],
         ),

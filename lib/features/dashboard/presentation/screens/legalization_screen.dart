@@ -10,6 +10,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../payments/domain/entities/payment_receipt_entity.dart';
 import '../providers/dashboard_providers.dart';
 
@@ -206,210 +208,122 @@ class _TransferReceiptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final accentColor =
         isPending ? AppColors.statusOrange : AppColors.statusGreen;
     final method = receipt.transferMethod;
     final methodColor = method?.displayColor ?? AppColors.statusBlue;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(
-          color: accentColor.withOpacity(0.3),
-          width: 1.5,
-        ),
-      ),
+    return ReceiptPaper(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Header strip ────────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.space16,
-              vertical: AppDimensions.space12,
-            ),
-            decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.08),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppDimensions.radiusLg),
-              ),
-            ),
-            child: Row(
-              children: [
-                // Platform badge
-                if (method != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.space8,
-                      vertical: AppDimensions.space4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: methodColor.withOpacity(0.15),
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusFull),
-                      border: Border.all(
-                          color: methodColor.withOpacity(0.4)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(method.displayIcon,
-                            color: methodColor,
-                            size: AppDimensions.iconSm),
-                        const SizedBox(width: AppDimensions.space4),
-                        Text(
-                          method.displayLabel.toUpperCase(),
-                          style: AppTextStyles.statusBadge
-                              .copyWith(color: methodColor),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppDimensions.space8),
-                ],
-
-                Expanded(
-                  child: Text(
-                    'Mesa ${receipt.tableSessionId}',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: isDark
-                          ? AppColors.darkOnSurfaceVariant
-                          : AppColors.lightOnSurfaceVariant,
-                    ),
-                  ),
+          // ── Encabezado: plataforma + mesa + estado ──────────────
+          Row(
+            children: [
+              if (method != null) ...[
+                Icon(method.displayIcon, color: methodColor, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  method.displayLabel.toUpperCase(),
+                  style: AppTextStyles.receiptSmall
+                      .copyWith(color: methodColor, fontWeight: FontWeight.w700),
                 ),
-
-                // Status indicator
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.badgePaddingH,
-                    vertical: AppDimensions.badgePaddingV,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.12),
-                    borderRadius:
-                        BorderRadius.circular(AppDimensions.radiusFull),
-                  ),
-                  child: Text(
-                    isPending ? 'PENDIENTE' : 'LEGALIZADA',
-                    style:
-                        AppTextStyles.statusBadge.copyWith(color: accentColor),
-                  ),
-                ),
+                const SizedBox(width: 8),
               ],
-            ),
+              Expanded(
+                child: Text(
+                  'Mesa ${receipt.tableSessionId}',
+                  style: AppTextStyles.receiptSmall
+                      .copyWith(color: AppColors.paperInkSoft),
+                ),
+              ),
+              Text(
+                isPending ? 'PENDIENTE' : 'LEGALIZADA',
+                style: AppTextStyles.receiptSmall.copyWith(
+                  color: accentColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
+          const DashedDivider(padding: EdgeInsets.symmetric(vertical: 8)),
 
-          // ── Photo thumbnail + amounts ─────────────────────────────
-          Padding(
-            padding: const EdgeInsets.all(AppDimensions.space16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Photo preview
-                if (receipt.photoPath != null)
-                  _PhotoThumbnail(path: receipt.photoPath!),
-
-                if (receipt.photoPath != null)
-                  const SizedBox(width: AppDimensions.space16),
-
-                // Amount + tip + timestamp
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+          // ── Foto + monto ────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (receipt.photoPath != null) ...[
+                _PhotoThumbnail(path: receipt.photoPath!),
+                const SizedBox(width: 14),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'MONTO TRANSFERIDO',
+                      style: AppTextStyles.receiptSmall
+                          .copyWith(color: AppColors.paperInkSoft),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      receipt.amountPaid.toCop,
+                      style: AppTextStyles.receiptTotal
+                          .copyWith(fontSize: 20, color: AppColors.paperInk),
+                    ),
+                    if (receipt.tipAmount > 0) ...[
+                      const SizedBox(height: 4),
                       Text(
-                        'MONTO TRANSFERIDO',
-                        style: AppTextStyles.statusBadge.copyWith(
-                          color: isDark
-                              ? AppColors.darkOnSurfaceVariant
-                              : AppColors.lightOnSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: AppDimensions.space4),
-                      Text(
-                        receipt.amountPaid.toCop,
-                        style: AppTextStyles.displaySmall.copyWith(
-                          color: isDark
-                              ? AppColors.darkOnSurface
-                              : AppColors.lightOnSurface,
-                        ),
-                      ),
-
-                      if (receipt.tipAmount > 0) ...[
-                        const SizedBox(height: AppDimensions.space4),
-                        Text(
-                          'Propina: ${receipt.tipAmount.toCop}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.brand,
-                          ),
-                        ),
-                      ],
-
-                      const SizedBox(height: AppDimensions.space8),
-                      Text(
-                        DateFormat('d MMM yyyy • HH:mm', 'es_CO')
-                            .format(receipt.paidAt),
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: isDark
-                              ? AppColors.darkOnSurfaceVariant
-                              : AppColors.lightOnSurfaceVariant,
-                        ),
+                        'Propina: ${receipt.tipAmount.toCop}',
+                        style: AppTextStyles.receiptSmall
+                            .copyWith(color: AppColors.primaryDark),
                       ),
                     ],
-                  ),
+                    const SizedBox(height: 6),
+                    Text(
+                      DateFormat('d MMM yyyy • HH:mm', 'es_CO')
+                          .format(receipt.paidAt),
+                      style: AppTextStyles.receiptSmall
+                          .copyWith(color: AppColors.paperInkSoft),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
 
-          // ── Verification code ─────────────────────────────────────
-          if (receipt.verificationCode != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppDimensions.space16,
-                0,
-                AppDimensions.space16,
-                AppDimensions.space12,
-              ),
-              child: _VerificationCodeRow(code: receipt.verificationCode!),
-            ),
+          // ── Código de verificación ───────────────────────────────
+          if (receipt.verificationCode != null) ...[
+            const DashedDivider(padding: EdgeInsets.symmetric(vertical: 8)),
+            _VerificationCodeRow(code: receipt.verificationCode!),
+          ],
 
-          // ── COBRADO EN CAJA button (pending only) ─────────────────
-          if (isPending)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppDimensions.space16,
-                0,
-                AppDimensions.space16,
-                AppDimensions.space16,
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                height: AppDimensions.buttonHeightMd,
-                child: FilledButton.icon(
-                  onPressed: onLegalizar,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.statusGreen,
-                    foregroundColor: AppColors.onStatusGreen,
-                    // Override global theme minimumSize (Size.fromHeight → ∞)
-                    minimumSize: Size(
-                      double.infinity,
-                      AppDimensions.buttonHeightMd,
-                    ),
-                  ),
-                  icon: const Icon(Icons.verified_rounded),
-                  label: Text(
-                    'COBRADO EN CAJA',
-                    style: AppTextStyles.labelLarge
-                        .copyWith(color: AppColors.onStatusGreen),
-                  ),
+          // ── COBRADO EN CAJA (solo pendientes) ────────────────────
+          if (isPending) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: AppDimensions.buttonHeightMd,
+              child: FilledButton.icon(
+                onPressed: onLegalizar,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.statusGreen,
+                  foregroundColor: AppColors.onStatusGreen,
+                  minimumSize:
+                      Size(double.infinity, AppDimensions.buttonHeightMd),
+                ),
+                icon: const Icon(Icons.verified_rounded),
+                label: Text(
+                  'COBRADO EN CAJA',
+                  style: AppTextStyles.labelLarge
+                      .copyWith(color: AppColors.onStatusGreen),
                 ),
               ),
             ),
+          ] else
+            const SizedBox(height: 4),
         ],
       ),
     );
@@ -511,52 +425,27 @@ class _VerificationCodeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.space12,
-        vertical: AppDimensions.space8,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.brand.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        border: Border.all(color: AppColors.brand.withOpacity(0.25)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.key_rounded,
-              color: AppColors.brand, size: AppDimensions.iconSm),
-          const SizedBox(width: AppDimensions.space8),
-          Text(
-            'Código: ',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: isDark
-                  ? AppColors.darkOnSurfaceVariant
-                  : AppColors.lightOnSurfaceVariant,
-            ),
-          ),
-          Text(
-            code,
-            style: AppTextStyles.mono.copyWith(
-              color: AppColors.brand,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () {
-              Clipboard.setData(ClipboardData(text: code));
-              AppToast.info(context, 'Código $code copiado');
-            },
-            child: Icon(Icons.copy_rounded,
-                size: AppDimensions.iconSm,
-                color: isDark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant),
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        Icon(Icons.key_rounded, color: AppColors.primaryDark, size: 15),
+        const SizedBox(width: 6),
+        Text('Código:',
+            style: AppTextStyles.receiptSmall.copyWith(color: AppColors.paperInkSoft)),
+        const SizedBox(width: 6),
+        Text(
+          code,
+          style: AppTextStyles.receiptBodyBold.copyWith(color: AppColors.paperInk),
+        ),
+        const Spacer(),
+        GestureDetector(
+          onTap: () {
+            Clipboard.setData(ClipboardData(text: code));
+            AppToast.info(context, 'Código $code copiado');
+          },
+          child: const Icon(Icons.copy_rounded,
+              size: 16, color: AppColors.paperInkSoft),
+        ),
+      ],
     );
   }
 }

@@ -69,6 +69,11 @@ abstract interface class IOrderRepository {
   /// Liquor adjustments already written are NOT reversed.
   Future<Result<OrderItemEntity>> cancelItem(int itemId);
 
+  /// Reverses [cancelItem]: sets the item back to [OrderItemStatus.pending].
+  /// Used for the "Deshacer" action right after cancelling. No-op (Ok) if the
+  /// item is not currently cancelled.
+  Future<Result<OrderItemEntity>> uncancelItem(int itemId);
+
   /// Permanently removes a single cancelled item from the database.
   /// Fails with [BusinessRuleFailure] if the item is not cancelled.
   Future<Result<void>> deleteItem(int itemId);

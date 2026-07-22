@@ -31,23 +31,26 @@ abstract interface class IBaseRepository {
 
   // ── Writes ─────────────────────────────────────────────────────────────────
 
-  /// Creates the one-time $300,000 COP initial base for the shift.
+  /// Creates the one-time initial base for the shift (default $300,000,
+  /// configurable from Ajustes — see `financialSettingsProvider`).
   ///
   /// Precondition enforced in [InitializeShiftUseCase]: must not be called
   /// if [hasInitialBase()] is already true.
-  Future<Result<BaseTransactionEntity>> initializeShift();
+  Future<Result<BaseTransactionEntity>> initializeShift({required int amount});
 
-  /// Records a $100,000 COP increase with the exact current timestamp.
+  /// Records a base increase with the exact current timestamp (default
+  /// $100,000, configurable from Ajustes).
   ///
   /// Precondition enforced in [RequestIncreaseUseCase]: shift must be
   /// initialized ([hasInitialBase()] == true).
-  Future<Result<BaseTransactionEntity>> requestIncrease();
+  Future<Result<BaseTransactionEntity>> requestIncrease({required int amount});
 
-  /// Records a $100,000 COP base reduction with the exact current timestamp.
+  /// Records a base reduction with the exact current timestamp (same
+  /// configurable step as increases).
   ///
   /// Precondition enforced in [RequestDecreaseUseCase]: shift must be
   /// initialized AND net increases must exceed net decreases.
-  Future<Result<BaseTransactionEntity>> requestDecrease();
+  Future<Result<BaseTransactionEntity>> requestDecrease({required int amount});
 
   /// Records a liquor bottle cost as a debt adjustment.
   ///

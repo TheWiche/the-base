@@ -20,7 +20,7 @@ final class RequestDecreaseUseCase {
 
   final IBaseRepository _repository;
 
-  Future<Result<BaseTransactionEntity>> call() async {
+  Future<Result<BaseTransactionEntity>> call({required int amount}) async {
     final isInitialized = await _repository.hasInitialBase();
     if (!isInitialized) {
       return const Err(
@@ -50,6 +50,6 @@ final class RequestDecreaseUseCase {
       );
     }
 
-    return _repository.requestDecrease();
+    return _repository.requestDecrease(amount: amount);
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/settings/financial_settings_provider.dart';
 import '../../data/repositories/base_repository_impl.dart';
 import '../../domain/entities/wallet_summary.dart';
 import '../../domain/repositories/i_base_repository.dart';
@@ -74,23 +75,30 @@ class BaseWalletNotifier extends AsyncNotifier<WalletSummary> {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  /// Creates the $300,000 COP initial base. Returns null on success.
+  /// Creates the initial base (monto configurable en Ajustes, default
+  /// $300.000). Returns null on success.
   Future<Failure?> initializeShift() async {
-    final result = await ref.read(initializeShiftUseCaseProvider).call();
+    final amount = ref.read(financialSettingsProvider).baseAmount;
+    final result =
+        await ref.read(initializeShiftUseCaseProvider).call(amount: amount);
     return _handleWriteResult(result);
   }
 
-  /// Records a $100,000 COP increase with the exact current timestamp.
-  /// Returns null on success.
+  /// Records a base increase (paso configurable en Ajustes, default
+  /// $100.000) with the exact current timestamp. Returns null on success.
   Future<Failure?> requestIncrease() async {
-    final result = await ref.read(requestIncreaseUseCaseProvider).call();
+    final amount = ref.read(financialSettingsProvider).incrementStep;
+    final result =
+        await ref.read(requestIncreaseUseCaseProvider).call(amount: amount);
     return _handleWriteResult(result);
   }
 
-  /// Records a $100,000 COP base reduction with the exact current timestamp.
-  /// Returns null on success.
+  /// Records a base reduction (mismo paso configurable) with the exact
+  /// current timestamp. Returns null on success.
   Future<Failure?> requestDecrease() async {
-    final result = await ref.read(requestDecreaseUseCaseProvider).call();
+    final amount = ref.read(financialSettingsProvider).incrementStep;
+    final result =
+        await ref.read(requestDecreaseUseCaseProvider).call(amount: amount);
     return _handleWriteResult(result);
   }
 

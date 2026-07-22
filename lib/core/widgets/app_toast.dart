@@ -12,6 +12,8 @@ abstract final class AppToast {
     BuildContext context,
     String message, {
     AppToastType type = AppToastType.success,
+    String? actionLabel,
+    VoidCallback? onAction,
   }) {
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
     if (overlay == null) return;
@@ -20,6 +22,8 @@ abstract final class AppToast {
       builder: (_) => _ToastWidget(
         message: message,
         type: type,
+        actionLabel: actionLabel,
+        onAction: onAction,
         onDismiss: () {
           if (entry.mounted) entry.remove();
         },
@@ -28,8 +32,14 @@ abstract final class AppToast {
     overlay.insert(entry);
   }
 
-  static void success(BuildContext context, String m) =>
-      show(context, m, type: AppToastType.success);
+  static void success(
+    BuildContext context,
+    String m, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) =>
+      show(context, m,
+          type: AppToastType.success, actionLabel: actionLabel, onAction: onAction);
   static void error(BuildContext context, String m) =>
       show(context, m, type: AppToastType.error);
   static void info(BuildContext context, String m) =>
@@ -41,11 +51,15 @@ class _ToastWidget extends StatefulWidget {
     required this.message,
     required this.type,
     required this.onDismiss,
+    this.actionLabel,
+    this.onAction,
   });
 
   final String message;
   final AppToastType type;
   final VoidCallback onDismiss;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   State<_ToastWidget> createState() => _ToastWidgetState();
@@ -68,7 +82,22 @@ class _ToastWidgetState extends State<_ToastWidget>
 
   Future<void> _run() async {
     await _ctrl.forward();
-    await Future<void>.delayed(const Duration(milliseconds: 2400));
+    // Con acción "Deshacer" se deja más tiempo para que el usuario alcance a tocar.
+    final visible = widget.onAction != null
+        ? const Duration(milliseconds: 4000)
+        : const Duration(milliseconds: 2400);
+    await Future<void>.delayed(visible);
+    if (!mounted) return;
+    await _ctrl.reverse();
+    widget.onDismiss();
+  }
+
+  void _handleAction() {
+    widget.onAction?.call();
+    if (mounted) _dismissNow();
+  }
+
+  Future<void> _dismissNow() async {
     if (!mounted) return;
     await _ctrl.reverse();
     widget.onDismiss();
@@ -102,11 +131,14 @@ class _ToastWidgetState extends State<_ToastWidget>
   Widget build(BuildContext context) {
     final s = _style;
     final topInset = MediaQuery.of(context).padding.top;
+    final hasAction = widget.actionLabel != null && widget.onAction != null;
+
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
       child: IgnorePointer(
+        ignoring: !hasAction,
         child: SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(0, -1),
@@ -145,6 +177,24 @@ class _ToastWidgetState extends State<_ToastWidget>
                           ),
                         ),
                       ),
+                      if (hasAction)
+                        TextButton(
+                          onPressed: _handleAction,
+                          style: TextButton.styleFrom(
+                            foregroundColor: s.fg,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 32),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            widget.actionLabel!.toUpperCase(),
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: s.fg,
+                              fontWeight: FontWeight.w900,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),

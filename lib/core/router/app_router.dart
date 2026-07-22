@@ -21,6 +21,8 @@ import '../../features/payments/presentation/screens/transfer_capture_screen.dar
 import '../../features/products/presentation/screens/products_screen.dart';
 import '../../features/radar/presentation/screens/radar_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/shift_history/presentation/screens/reports_screen.dart';
+import '../../features/shift_history/presentation/screens/shift_history_detail_screen.dart';
 import '../../features/tables/presentation/screens/tables_screen.dart';
 import '../theme/app_colors.dart';
 import '../theme/theme_provider.dart';
@@ -230,6 +232,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/cierre/historial',
         pageBuilder: (context, state) =>
             _slidePage(state.pageKey, const ShiftHistoryScreen()),
+        routes: [
+          GoRoute(
+            path: ':id',
+            pageBuilder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+              return _slidePage(
+                  state.pageKey, ShiftHistoryDetailScreen(shiftId: id));
+            },
+          ),
+        ],
       ),
 
       GoRoute(
@@ -248,6 +260,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.settings,
         pageBuilder: (context, state) =>
             _slidePage(state.pageKey, const SettingsScreen()),
+      ),
+
+      GoRoute(
+        path: '/reportes',
+        pageBuilder: (context, state) =>
+            _slidePage(state.pageKey, const ReportsScreen()),
       ),
     ],
   );

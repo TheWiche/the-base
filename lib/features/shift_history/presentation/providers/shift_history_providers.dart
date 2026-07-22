@@ -11,3 +11,9 @@ final shiftHistoryProvider =
   snapshots.sort((a, b) => b.snapshotAt.compareTo(a.snapshotAt));
   return snapshots;
 });
+
+/// A single [ShiftSnapshot] by its Isar id — for the detail screen.
+final shiftSnapshotByIdProvider =
+    FutureProvider.autoDispose.family<ShiftSnapshot?, int>((ref, id) async {
+  return IsarService.db.shiftSnapshots.get(id);
+});

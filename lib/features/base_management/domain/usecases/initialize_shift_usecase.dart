@@ -19,7 +19,7 @@ final class InitializeShiftUseCase {
 
   final IBaseRepository _repository;
 
-  Future<Result<BaseTransactionEntity>> call() async {
+  Future<Result<BaseTransactionEntity>> call({required int amount}) async {
     // Guard: prevent double initialization.
     final alreadyInitialized = await _repository.hasInitialBase();
     if (alreadyInitialized) {
@@ -31,6 +31,6 @@ final class InitializeShiftUseCase {
       );
     }
 
-    return _repository.initializeShift();
+    return _repository.initializeShift(amount: amount);
   }
 }

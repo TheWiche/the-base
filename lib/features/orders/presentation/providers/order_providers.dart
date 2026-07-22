@@ -103,6 +103,12 @@ class TableOrderNotifier
     return _failure(result);
   }
 
+  /// Deshace un cancelItem reciente — vuelve el ítem a pendiente.
+  Future<Failure?> uncancelItem(int itemId) async {
+    final result = await ref.read(orderRepositoryProvider).uncancelItem(itemId);
+    return _failure(result);
+  }
+
   Future<Failure?> markDelivered(int itemId) async {
     final result =
         await ref.read(markItemDeliveredUseCaseProvider).call(itemId);

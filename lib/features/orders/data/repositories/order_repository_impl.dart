@@ -314,6 +314,34 @@ final class OrderRepositoryImpl implements IOrderRepository {
   }
 
   @override
+  Future<Result<OrderItemEntity>> uncancelItem(int itemId) async {
+    try {
+      final model = await _db.orderItems.get(itemId);
+      if (model == null) {
+        return Err(NotFoundFailure(message: 'Ítem #$itemId no encontrado.'));
+      }
+
+      // Idempotent: not cancelled → nothing to undo.
+      if (model.status != OrderItemStatus.cancelled) {
+        return Ok(model.toEntity());
+      }
+
+      model.status = OrderItemStatus.pending;
+
+      await IsarService.write((db) async {
+        await db.orderItems.put(model);
+      });
+
+      debugPrint('[OrderRepo] Item #$itemId un-cancelled (Deshacer).');
+      return Ok(model.toEntity());
+    } on IsarError catch (e, st) {
+      return Err(DatabaseFailure(message: e.message, stackTrace: st));
+    } catch (e, st) {
+      return Err(DatabaseFailure(message: e.toString(), stackTrace: st));
+    }
+  }
+
+  @override
   Future<Result<void>> settleLiquorItem(int itemId) async {
     try {
       final model = await _db.orderItems.get(itemId);

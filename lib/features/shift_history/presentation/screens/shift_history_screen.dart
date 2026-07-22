@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/receipt_widgets.dart';
 import '../../data/models/shift_snapshot.dart';
 import '../providers/shift_history_providers.dart';
 
-/// Read-only list of completed shifts, newest first.
+/// Read-only list of completed shifts, newest first. Tap → detalle completo.
 class ShiftHistoryScreen extends ConsumerWidget {
   const ShiftHistoryScreen({super.key});
 
-  static final _dateFormat = DateFormat('EEEE dd MMM yyyy · HH:mm', 'es_CO');
+  static final _dateFormat = DateFormat('dd MMM yyyy · HH:mm', 'es_CO');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,18 +37,18 @@ class ShiftHistoryScreen extends ConsumerWidget {
         ),
         data: (snapshots) {
           if (snapshots.isEmpty) return const _EmptyState();
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppDimensions.space12,
-              horizontal: AppDimensions.pagePaddingH,
-            ),
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             itemCount: snapshots.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(height: AppDimensions.space8),
-            itemBuilder: (_, i) => _ShiftCard(
-              snapshot: snapshots[i],
-              dateFormat: _dateFormat,
-              index: snapshots.length - i,
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: _ShiftStub(
+                snapshot: snapshots[i],
+                dateFormat: _dateFormat,
+                index: snapshots.length - i,
+                onTap: () =>
+                    context.push('/cierre/historial/${snapshots[i].id}'),
+              ),
             ),
           );
         },
@@ -54,140 +57,59 @@ class ShiftHistoryScreen extends ConsumerWidget {
   }
 }
 
-// ── Shift card ─────────────────────────────────────────────────────────────────
+// ── Shift stub (talón compacto) ────────────────────────────────────────────────
 
-class _ShiftCard extends StatelessWidget {
-  const _ShiftCard({
+class _ShiftStub extends StatelessWidget {
+  const _ShiftStub({
     required this.snapshot,
     required this.dateFormat,
     required this.index,
+    required this.onTap,
   });
 
   final ShiftSnapshot snapshot;
   final DateFormat dateFormat;
   final int index;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final profit = snapshot.netProfit;
     final profitColor =
-        profit >= 0 ? AppColors.statusGreen : AppColors.statusRed;
+        profit >= 0 ? AppColors.secondaryDark : AppColors.statusRed;
 
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.space16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        border: Border.all(
-          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-        ),
-      ),
+    return ReceiptStub(
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Header ───────────────────────────────────────────────────
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.space8,
-                  vertical: AppDimensions.space2,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.brand.withValues(alpha: 0.12),
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusFull),
-                ),
-                child: Text(
-                  'Turno #$index',
-                  style: AppTextStyles.statusBadge
-                      .copyWith(color: AppColors.brand),
-                ),
-              ),
+              Text('TURNO #$index',
+                  style: AppTextStyles.receiptBodyBold
+                      .copyWith(color: AppColors.paperInk)),
               const Spacer(),
-              Icon(
-                Icons.schedule_rounded,
-                size: 12,
-                color: isDark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                dateFormat.format(snapshot.snapshotAt),
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: isDark
-                      ? AppColors.darkOnSurfaceVariant
-                      : AppColors.lightOnSurfaceVariant,
-                ),
-              ),
+              Icon(Icons.chevron_right_rounded,
+                  size: 16, color: AppColors.paperInkSoft),
             ],
           ),
-
-          const SizedBox(height: AppDimensions.space16),
-
-          // ── Key metrics row ───────────────────────────────────────────
+          Text(
+            dateFormat.format(snapshot.snapshotAt),
+            style: AppTextStyles.receiptSmall.copyWith(color: AppColors.paperInkSoft),
+          ),
+          const DashedDivider(padding: EdgeInsets.symmetric(vertical: 6)),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _Metric(
-                label: 'DEUDA TOTAL',
-                value: snapshot.totalDebt.toCop,
-                color: isDark
-                    ? AppColors.darkOnSurface
-                    : AppColors.lightOnSurface,
-              ),
-              const SizedBox(width: AppDimensions.space16),
-              _Metric(
-                label: 'EFECTIVO',
-                value: snapshot.cashInHand.toCop,
-                color: AppColors.statusBlue,
-              ),
-              const SizedBox(width: AppDimensions.space16),
-              _Metric(
+              _MiniStat(label: 'DEUDA', value: snapshot.totalDebt.toCop),
+              _MiniStat(label: 'EFECTIVO', value: snapshot.cashInHand.toCop),
+              _MiniStat(
                 label: 'UTILIDAD',
                 value: profit.toSignedCop,
                 color: profitColor,
-                highlight: true,
               ),
-            ],
-          ),
-
-          const SizedBox(height: AppDimensions.space12),
-          Divider(
-            height: 1,
-            color: isDark
-                ? AppColors.darkOutlineVariant
-                : AppColors.lightOutlineVariant,
-          ),
-          const SizedBox(height: AppDimensions.space12),
-
-          // ── Secondary metrics ─────────────────────────────────────────
-          Wrap(
-            spacing: AppDimensions.space16,
-            runSpacing: AppDimensions.space6,
-            children: [
-              _SecondaryMetric(
-                label: 'Base capital',
-                value: (snapshot.initialBase +
-                        snapshot.totalIncreases -
-                        snapshot.totalDecreases)
-                    .toCop,
-              ),
-              _SecondaryMetric(
-                label: 'Licor',
-                value: snapshot.totalLiquorDebt.toCop,
-              ),
-              if (snapshot.verifiedTransfersTotal > 0)
-                _SecondaryMetric(
-                  label: 'Transferencias',
-                  value: snapshot.verifiedTransfersTotal.toCop,
-                ),
-              if (snapshot.transferTipsTotal > 0)
-                _SecondaryMetric(
-                  label: 'Propinas',
-                  value: snapshot.transferTipsTotal.toCop,
-                ),
             ],
           ),
         ],
@@ -196,76 +118,25 @@ class _ShiftCard extends StatelessWidget {
   }
 }
 
-// ── Metric widgets ─────────────────────────────────────────────────────────────
-
-class _Metric extends StatelessWidget {
-  const _Metric({
-    required this.label,
-    required this.value,
-    required this.color,
-    this.highlight = false,
-  });
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.label, required this.value, this.color});
 
   final String label;
   final String value;
-  final Color color;
-  final bool highlight;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: AppTextStyles.statusBadge.copyWith(
-              color: color.withValues(alpha: highlight ? 1.0 : 0.7),
-              fontSize: 9,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: AppTextStyles.titleMedium.copyWith(
-              color: color,
-              fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SecondaryMetric extends StatelessWidget {
-  const _SecondaryMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '$label: ',
-          style: AppTextStyles.labelSmall.copyWith(
-            color: isDark
-                ? AppColors.darkOnSurfaceVariant
-                : AppColors.lightOnSurfaceVariant,
-          ),
-        ),
+        Text(label,
+            style: AppTextStyles.receiptSmall
+                .copyWith(color: AppColors.paperInkSoft, fontSize: 9)),
         Text(
           value,
-          style: AppTextStyles.labelSmall.copyWith(
-            color: isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppTextStyles.receiptBodyBold
+              .copyWith(color: color ?? AppColors.paperInk, fontSize: 12.5),
         ),
       ],
     );

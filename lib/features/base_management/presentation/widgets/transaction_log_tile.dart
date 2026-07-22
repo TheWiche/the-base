@@ -132,8 +132,9 @@ class TransactionLogTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    '+${transaction.amount.toCop}',
-                    style: AppTextStyles.headlineSmall.copyWith(
+                    '${transaction.displayPrefix}${transaction.amount.toCop}',
+                    style: AppTextStyles.receiptTotal.copyWith(
+                      fontSize: 15,
                       color: accentColor,
                     ),
                   ),

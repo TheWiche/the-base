@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
-/// Giant primary CTA button for requesting a $100,000 base increase.
+/// Giant primary CTA button for requesting a base increase (monto
+/// configurable en Ajustes, default $100.000).
 ///
 /// Design requirements:
 ///   • 64dp minimum height — safe for wet / gloved hands.
@@ -17,11 +19,13 @@ class IncrementoButton extends StatelessWidget {
   const IncrementoButton({
     super.key,
     required this.onPressed,
+    required this.amount,
     this.isLoading = false,
     this.isEnabled = true,
   });
 
   final VoidCallback onPressed;
+  final int amount;
   final bool isLoading;
   final bool isEnabled;
 
@@ -85,7 +89,7 @@ class IncrementoButton extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '+\$100.000 al saldo base',
+                          '+${amount.toCop} al saldo base',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: const Color(0xFF3D2000),
                             fontWeight: FontWeight.w700,
@@ -109,10 +113,12 @@ class IniciarTurnoButton extends StatelessWidget {
   const IniciarTurnoButton({
     super.key,
     required this.onPressed,
+    required this.amount,
     this.isLoading = false,
   });
 
   final VoidCallback onPressed;
+  final int amount;
   final bool isLoading;
 
   @override
@@ -154,7 +160,7 @@ class IniciarTurnoButton extends StatelessWidget {
               ),
             ),
             Text(
-              'Base inicial: \$300.000',
+              'Base inicial: ${amount.toCop}',
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.onStatusGreen.withOpacity(0.8),
                 fontWeight: FontWeight.w700,

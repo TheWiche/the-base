@@ -79,11 +79,13 @@ class FinancialMetricCard extends StatelessWidget {
 
           SizedBox(height: isHero ? AppDimensions.space12 : AppDimensions.space8),
 
-          // ── Amount ──────────────────────────────────────────────────
+          // ── Amount (mono — voz de tiquete para cifras) ─────────────────
           Text(
             amount.toCop,
-            style: (isHero ? AppTextStyles.displayMedium : AppTextStyles.displaySmall)
-                .copyWith(color: accentColor),
+            style: AppTextStyles.receiptTotal.copyWith(
+              fontSize: isHero ? 30 : 20,
+              color: accentColor,
+            ),
           ),
 
           // ── Subtitle ────────────────────────────────────────────────

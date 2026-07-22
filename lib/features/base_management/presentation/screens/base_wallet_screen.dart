@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/extensions/int_extensions.dart';
+import '../../../../core/settings/financial_settings_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/animated_amount.dart';
 import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../orders/domain/entities/order_item_entity.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
@@ -41,6 +44,7 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
   // ── Actions ────────────────────────────────────────────────────────────────
 
   Future<void> _handleIniciarTurno() async {
+    final amount = ref.read(financialSettingsProvider).baseAmount;
     setState(() => _isActionLoading = true);
     final failure =
         await ref.read(baseWalletProvider.notifier).initializeShift();
@@ -50,12 +54,13 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
     if (failure != null) {
       _showError(failure.message);
     } else {
-      _showSuccess('Turno iniciado. Base: \$300.000');
+      _showSuccess('Turno iniciado. Base: ${amount.toCop}');
     }
   }
 
   Future<void> _handleRequestIncrease() async {
-    final confirmed = await _showIncreaseConfirmation();
+    final amount = ref.read(financialSettingsProvider).incrementStep;
+    final confirmed = await _showIncreaseConfirmation(amount);
     if (!confirmed || !mounted) return;
 
     setState(() => _isActionLoading = true);
@@ -67,12 +72,13 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
     if (failure != null) {
       _showError(failure.message);
     } else {
-      _showSuccess('Incremento registrado: +\$100.000');
+      _showSuccess('Incremento registrado: +${amount.toCop}');
     }
   }
 
   Future<void> _handleRequestDecrease() async {
-    final confirmed = await _showDecreaseConfirmation();
+    final amount = ref.read(financialSettingsProvider).incrementStep;
+    final confirmed = await _showDecreaseConfirmation(amount);
     if (!confirmed || !mounted) return;
 
     setState(() => _isActionLoading = true);
@@ -84,15 +90,16 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
     if (failure != null) {
       _showError(failure.message);
     } else {
-      _showSuccess('Reducción registrada: −\$100.000');
+      _showSuccess('Reducción registrada: −${amount.toCop}');
     }
   }
 
-  Future<bool> _showIncreaseConfirmation() async {
+  Future<bool> _showIncreaseConfirmation(int amount) async {
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (ctx) => _IncreaseConfirmationDialog(
+            amount: amount,
             onConfirm: () => Navigator.of(ctx).pop(true),
             onCancel: () => Navigator.of(ctx).pop(false),
           ),
@@ -100,11 +107,12 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
         false;
   }
 
-  Future<bool> _showDecreaseConfirmation() async {
+  Future<bool> _showDecreaseConfirmation(int amount) async {
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (ctx) => _DecreaseConfirmationDialog(
+            amount: amount,
             onConfirm: () => Navigator.of(ctx).pop(true),
             onCancel: () => Navigator.of(ctx).pop(false),
           ),
@@ -123,6 +131,7 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
     // Enriched summary includes verified transfers, tips, and served item totals
     // so Available Balance and Net Profit reflect real payment data.
     final walletAsync = ref.watch(enrichedWalletSummaryProvider);
+    final financial = ref.watch(financialSettingsProvider);
 
     return Scaffold(
       body: walletAsync.when(
@@ -135,11 +144,13 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
             ? _ActiveDashboard(
                 summary: summary,
                 isActionLoading: _isActionLoading,
+                incrementStep: financial.incrementStep,
                 onRequestIncrease: _handleRequestIncrease,
                 onRequestDecrease: _handleRequestDecrease,
               )
             : _NoShiftBody(
                 isLoading: _isActionLoading,
+                baseAmount: financial.baseAmount,
                 onIniciarTurno: _handleIniciarTurno,
               ),
       ),
@@ -204,10 +215,12 @@ class _ErrorBody extends StatelessWidget {
 class _NoShiftBody extends StatelessWidget {
   const _NoShiftBody({
     required this.isLoading,
+    required this.baseAmount,
     required this.onIniciarTurno,
   });
 
   final bool isLoading;
+  final int baseAmount;
   final VoidCallback onIniciarTurno;
 
   @override
@@ -256,6 +269,7 @@ class _NoShiftBody extends StatelessWidget {
             // ── Iniciar turno CTA ─────────────────────────────────────
             IniciarTurnoButton(
               isLoading: isLoading,
+              amount: baseAmount,
               onPressed: onIniciarTurno,
             ),
             const SizedBox(height: AppDimensions.space24),
@@ -272,12 +286,14 @@ class _ActiveDashboard extends StatefulWidget {
   const _ActiveDashboard({
     required this.summary,
     required this.isActionLoading,
+    required this.incrementStep,
     required this.onRequestIncrease,
     required this.onRequestDecrease,
   });
 
   final WalletSummary summary;
   final bool isActionLoading;
+  final int incrementStep;
   final VoidCallback onRequestIncrease;
   final VoidCallback onRequestDecrease;
 
@@ -287,25 +303,20 @@ class _ActiveDashboard extends StatefulWidget {
 
 class _ActiveDashboardState extends State<_ActiveDashboard>
     with TickerProviderStateMixin {
-  late final TabController _tabController;
+  int _tabIndex = 0; // 0 = Resumen, 1 = Movimientos
   late final AnimationController _entranceCtrl;
   late final Animation<double> _metricsAnim;
   late final Animation<double> _actionsAnim;
   final _scrollController = ScrollController();
 
+  void _setTab(int i) {
+    setState(() => _tabIndex = i);
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        setState(() {});
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(0);
-        }
-      }
-    });
-
     _entranceCtrl = AnimationController(
       duration: const Duration(milliseconds: 700),
       vsync: this,
@@ -322,7 +333,6 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
 
   @override
   void dispose() {
-    _tabController.dispose();
     _entranceCtrl.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -348,6 +358,14 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
               color: isDark ? AppColors.darkOnSurface : AppColors.darkOnBackground,
             ),
           ),
+          actions: [
+            IconButton(
+              tooltip: 'Reportes',
+              icon: Icon(Icons.bar_chart_rounded,
+                  color: isDark ? AppColors.darkOnSurface : AppColors.darkOnBackground),
+              onPressed: () => context.push('/reportes'),
+            ),
+          ],
           flexibleSpace: FlexibleSpaceBar(
             stretchModes: const [StretchMode.zoomBackground],
             background: _WalletHeader(
@@ -356,22 +374,25 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
               isDark: isDark,
             ),
           ),
-          bottom: TabBar(
-            controller: _tabController,
-            indicatorColor: AppColors.brand,
-            labelColor: AppColors.brand,
-            unselectedLabelColor: isDark
-                ? AppColors.darkOnSurfaceVariant
-                : AppColors.lightOnSurfaceVariant,
-            tabs: const [
-              Tab(text: 'Resumen'),
-              Tab(text: 'Movimientos'),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(62),
+            child: Container(
+              color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.pagePaddingH, 8, AppDimensions.pagePaddingH, 10,
+              ),
+              child: PillToggle(
+                options: const ['Resumen', 'Movimientos'],
+                selectedIndex: _tabIndex,
+                onChanged: _setTab,
+                isDark: isDark,
+              ),
+            ),
           ),
         ),
 
         // ── Tab content ────────────────────────────────────────────────
-        if (_tabController.index == 0) ...[
+        if (_tabIndex == 0) ...[
           // ── Resumen: metrics ─────────────────────────────────────────
           SliverToBoxAdapter(
             child: FadeTransition(
@@ -444,12 +465,14 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
                       IncrementoButton(
                         isLoading: widget.isActionLoading,
                         isEnabled: widget.summary.canRequestIncrease,
+                        amount: widget.incrementStep,
                         onPressed: widget.onRequestIncrease,
                       ),
                       const SizedBox(height: AppDimensions.space8),
                       _DecrementoButton(
                         isLoading: widget.isActionLoading,
                         isEnabled: widget.summary.canRequestDecrease,
+                        amount: widget.incrementStep,
                         onPressed: widget.onRequestDecrease,
                       ),
                       const SizedBox(height: AppDimensions.space12),
@@ -566,7 +589,8 @@ class _WalletHeader extends StatelessWidget {
               Expanded(
                 child: AnimatedAmount(
                   amount: summary.availableBalance,
-                  style: AppTextStyles.displayLarge.copyWith(
+                  style: AppTextStyles.receiptTotal.copyWith(
+                    fontSize: 36,
                     color: isDark ? balanceColor : Colors.white,
                   ),
                   duration: const Duration(milliseconds: 700),
@@ -775,11 +799,13 @@ class _PagarBotellaButton extends ConsumerWidget {
 class _DecrementoButton extends StatelessWidget {
   const _DecrementoButton({
     required this.onPressed,
+    required this.amount,
     this.isLoading = false,
     this.isEnabled = true,
   });
 
   final VoidCallback onPressed;
+  final int amount;
   final bool isLoading;
   final bool isEnabled;
 
@@ -822,7 +848,7 @@ class _DecrementoButton extends StatelessWidget {
                 )
               : const Icon(Icons.trending_down_rounded),
           label: Text(
-            'BAJAR BASE  −\$100.000',
+            'BAJAR BASE  −${amount.toCop}',
             style: AppTextStyles.labelLarge.copyWith(
               color: canTap
                   ? AppColors.statusOrange
@@ -840,10 +866,12 @@ class _DecrementoButton extends StatelessWidget {
 
 class _IncreaseConfirmationDialog extends StatelessWidget {
   const _IncreaseConfirmationDialog({
+    required this.amount,
     required this.onConfirm,
     required this.onCancel,
   });
 
+  final int amount;
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
 
@@ -869,7 +897,7 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Se agregarán \$100.000 a tu base.\nEsta acción quedará registrada con la hora exacta.',
+            'Se agregarán ${amount.toCop} a tu base.\nEsta acción quedará registrada con la hora exacta.',
             style: AppTextStyles.bodyMedium,
             textAlign: TextAlign.center,
           ),
@@ -922,10 +950,12 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
 
 class _DecreaseConfirmationDialog extends StatelessWidget {
   const _DecreaseConfirmationDialog({
+    required this.amount,
     required this.onConfirm,
     required this.onCancel,
   });
 
+  final int amount;
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
 
@@ -951,7 +981,7 @@ class _DecreaseConfirmationDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Se reducirán \$100.000 de tu base.\nEsta acción quedará registrada con la hora exacta.',
+            'Se reducirán ${amount.toCop} de tu base.\nEsta acción quedará registrada con la hora exacta.',
             style: AppTextStyles.bodyMedium,
             textAlign: TextAlign.center,
           ),

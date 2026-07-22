@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/receipt_paper.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../../domain/entities/table_session_entity.dart';
 
@@ -38,13 +39,12 @@ class TableHistoryScreen extends ConsumerWidget {
           if (sessions.isEmpty) return const _EmptyHistoryState();
           return ListView.separated(
             padding: const EdgeInsets.symmetric(
-              vertical: AppDimensions.space8,
+              vertical: AppDimensions.space12,
               horizontal: AppDimensions.pagePaddingH,
             ),
             itemCount: sessions.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(height: AppDimensions.space4),
-            itemBuilder: (_, i) => _HistoryTile(
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (_, i) => _HistoryStub(
               session: sessions[i],
               dateFormat: _dateFormat,
               onTap: () =>
@@ -57,10 +57,10 @@ class TableHistoryScreen extends ConsumerWidget {
   }
 }
 
-// ── History tile ───────────────────────────────────────────────────────────────
+// ── History stub ───────────────────────────────────────────────────────────────
 
-class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({
+class _HistoryStub extends StatelessWidget {
+  const _HistoryStub({
     required this.session,
     required this.dateFormat,
     required this.onTap,
@@ -72,77 +72,51 @@ class _HistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final closedLabel = session.closedAt != null
         ? dateFormat.format(session.closedAt!)
         : dateFormat.format(session.openedAt);
 
-    return ListTile(
+    return ReceiptStub(
       onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        side: BorderSide(
-          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-        ),
-      ),
-      tileColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.space16,
-        vertical: AppDimensions.space8,
-      ),
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: AppColors.darkDisabled.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: AppColors.darkDisabled.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            '${session.tableNumber}',
-            style: AppTextStyles.titleMedium.copyWith(
-              color: isDark
-                  ? AppColors.darkOnSurfaceVariant
-                  : AppColors.lightOnSurfaceVariant,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ),
-      title: Text(
-        session.apodo != null
-            ? 'Mesa ${session.tableNumber} — "${session.apodo}"'
-            : 'Mesa ${session.tableNumber}',
-        style: AppTextStyles.titleMedium.copyWith(
-          color: isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Row(
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 6),
+      child: Row(
         children: [
-          Icon(
-            Icons.lock_rounded,
-            size: 11,
-            color: isDark
-                ? AppColors.darkDisabled
-                : AppColors.lightDisabled,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            closedLabel,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: isDark
-                  ? AppColors.darkDisabled
-                  : AppColors.lightDisabled,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'MESA ${session.tableNumber}',
+                  style: AppTextStyles.receiptBodyBold
+                      .copyWith(color: AppColors.paperInk),
+                ),
+                if (session.apodo != null)
+                  Text(
+                    '"${session.apodo}"',
+                    style: AppTextStyles.receiptSmall.copyWith(
+                      color: AppColors.paperInkSoft,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.lock_rounded, size: 11, color: AppColors.paperInkSoft),
+                    const SizedBox(width: 4),
+                    Text(closedLabel,
+                        style: AppTextStyles.receiptSmall
+                            .copyWith(color: AppColors.paperInkSoft)),
+                  ],
+                ),
+              ],
             ),
           ),
+          Icon(Icons.chevron_right_rounded, color: AppColors.paperInkSoft),
         ],
       ),
-      trailing: const Icon(Icons.chevron_right_rounded),
     );
   }
 }

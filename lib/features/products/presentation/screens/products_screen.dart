@@ -230,9 +230,28 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   Future<void> _toggle(ProductEntity product) async {
     final result =
         await ref.read(toggleAvailabilityUseCaseProvider).call(product.id);
-    if (result.isErr && mounted) {
+    if (!mounted) return;
+    if (result.isErr) {
       AppToast.error(context, (result as Err).failure.message);
+      return;
     }
+    // Toggle es su propia inversa: "Deshacer" solo vuelve a llamar al mismo
+    // use case sobre el mismo id — invierte lo que quede en ese momento.
+    final nowAvailable = !product.isAvailable;
+    AppToast.success(
+      context,
+      nowAvailable
+          ? '${product.name}: disponible de nuevo'
+          : '${product.name}: marcado agotado',
+      actionLabel: 'Deshacer',
+      onAction: () async {
+        final undo =
+            await ref.read(toggleAvailabilityUseCaseProvider).call(product.id);
+        if (undo.isErr && mounted) {
+          AppToast.error(context, (undo as Err).failure.message);
+        }
+      },
+    );
   }
 
   void _openEditor(ProductEntity? existing) {

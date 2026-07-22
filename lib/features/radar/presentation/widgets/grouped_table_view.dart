@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -13,7 +14,12 @@ import '../providers/radar_providers.dart';
 /// El Radar "Por Mesa" — cada mesa es una COMANDA de papel (tiquete de cocina):
 /// encabezado con la mesa y el pedido más viejo, líneas de tiquete con su
 /// badge de minutos y nota, y un botón-sello "Entregar todo" al pie.
-class GroupedTableView extends ConsumerWidget {
+///
+/// También dispara una vibración fuerte, UNA sola vez por ítem, cuando este
+/// cruza a urgencia crítica (10+ min) — para que no se pase por alto en un
+/// ambiente ruidoso. Se trackean los ids ya alertados para no repetir en
+/// cada tick del reloj de 30s.
+class GroupedTableView extends ConsumerStatefulWidget {
   const GroupedTableView({
     super.key,
     required this.groups,
@@ -26,11 +32,41 @@ class GroupedTableView extends ConsumerWidget {
   final void Function(int sessionId) onDeliverAll;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GroupedTableView> createState() => _GroupedTableViewState();
+}
+
+class _GroupedTableViewState extends ConsumerState<GroupedTableView> {
+  final _alertedIds = <int>{};
+
+  void _checkCriticalAlerts() {
+    final presentIds = <int>{};
+    var hasNewCritical = false;
+    for (final group in widget.groups) {
+      for (final radarItem in group.items) {
+        final id = radarItem.item.id;
+        presentIds.add(id);
+        if (radarItem.item.urgency == RadarUrgency.critical &&
+            _alertedIds.add(id)) {
+          hasNewCritical = true;
+        }
+      }
+    }
+    // Olvida ids que ya no están pendientes (entregados/cancelados).
+    _alertedIds.retainWhere(presentIds.contains);
+    if (hasNewCritical) HapticFeedback.heavyImpact();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Tick de 30s para mantener frescos los minutos transcurridos.
     ref.watch(radarClockProvider);
 
-    if (groups.isEmpty) return const _EmptyRadar();
+    // Se evalúa después del frame — build() debe permanecer libre de efectos.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _checkCriticalAlerts();
+    });
+
+    if (widget.groups.isEmpty) return const _EmptyRadar();
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(
@@ -39,11 +75,11 @@ class GroupedTableView extends ConsumerWidget {
         AppDimensions.pagePaddingH,
         AppDimensions.space64,
       ),
-      itemCount: groups.length,
+      itemCount: widget.groups.length,
       itemBuilder: (context, index) => _ComandaCard(
-        group: groups[index],
-        onDelivered: onDelivered,
-        onDeliverAll: onDeliverAll,
+        group: widget.groups[index],
+        onDelivered: widget.onDelivered,
+        onDeliverAll: widget.onDeliverAll,
       ),
     );
   }

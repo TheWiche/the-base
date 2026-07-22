@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 
-import '../../../../core/constants/financial_constants.dart';
 import '../../../../core/database/isar_service.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/result.dart';
@@ -68,11 +67,13 @@ final class BaseRepositoryImpl implements IBaseRepository {
   // ── Writes ─────────────────────────────────────────────────────────────────
 
   @override
-  Future<Result<BaseTransactionEntity>> initializeShift() async {
+  Future<Result<BaseTransactionEntity>> initializeShift({
+    required int amount,
+  }) async {
     try {
       final model = WaiterBaseTransaction()
         ..type = TransactionType.initial
-        ..amount = FinancialConstants.initialBase
+        ..amount = amount
         ..timestamp = DateTime.now()
         ..note = 'Base inicial del turno';
 
@@ -80,9 +81,7 @@ final class BaseRepositoryImpl implements IBaseRepository {
         await db.waiterBaseTransactions.put(model);
       });
 
-      debugPrint(
-        '[BaseRepo] Shift initialized: \$${FinancialConstants.initialBase} at ${model.timestamp}',
-      );
+      debugPrint('[BaseRepo] Shift initialized: \$$amount at ${model.timestamp}');
       return Ok(model.toEntity());
     } on IsarError catch (e, st) {
       return Err(DatabaseFailure(message: e.message, stackTrace: st));
@@ -92,23 +91,23 @@ final class BaseRepositoryImpl implements IBaseRepository {
   }
 
   @override
-  Future<Result<BaseTransactionEntity>> requestIncrease() async {
+  Future<Result<BaseTransactionEntity>> requestIncrease({
+    required int amount,
+  }) async {
     try {
       // Capture timestamp immediately — this is the auditable moment.
       final now = DateTime.now();
 
       final model = WaiterBaseTransaction()
         ..type = TransactionType.increase
-        ..amount = FinancialConstants.baseIncrement
+        ..amount = amount
         ..timestamp = now;
 
       await IsarService.write((db) async {
         await db.waiterBaseTransactions.put(model);
       });
 
-      debugPrint(
-        '[BaseRepo] Increase recorded: +\$${FinancialConstants.baseIncrement} at $now',
-      );
+      debugPrint('[BaseRepo] Increase recorded: +\$$amount at $now');
       return Ok(model.toEntity());
     } on IsarError catch (e, st) {
       return Err(DatabaseFailure(message: e.message, stackTrace: st));
@@ -118,22 +117,22 @@ final class BaseRepositoryImpl implements IBaseRepository {
   }
 
   @override
-  Future<Result<BaseTransactionEntity>> requestDecrease() async {
+  Future<Result<BaseTransactionEntity>> requestDecrease({
+    required int amount,
+  }) async {
     try {
       final now = DateTime.now();
 
       final model = WaiterBaseTransaction()
         ..type = TransactionType.decrease
-        ..amount = FinancialConstants.baseIncrement
+        ..amount = amount
         ..timestamp = now;
 
       await IsarService.write((db) async {
         await db.waiterBaseTransactions.put(model);
       });
 
-      debugPrint(
-        '[BaseRepo] Decrease recorded: −\$${FinancialConstants.baseIncrement} at $now',
-      );
+      debugPrint('[BaseRepo] Decrease recorded: −\$$amount at $now');
       return Ok(model.toEntity());
     } on IsarError catch (e, st) {
       return Err(DatabaseFailure(message: e.message, stackTrace: st));
