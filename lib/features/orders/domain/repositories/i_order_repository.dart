@@ -50,6 +50,10 @@ abstract interface class IOrderRepository {
   /// Existing items and payments are preserved.
   Future<Result<TableSessionEntity>> reactivateSession(int sessionId);
 
+  /// Cierra formalmente una mesa activa o con saldo $0.
+  /// Sella su estado como [TableStatus.closed], estampa fecha de cierre y código de factura.
+  Future<Result<TableSessionEntity>> closeSession(int sessionId);
+
   // ── Order item operations ──────────────────────────────────────────────────
 
   /// Persists a new [OrderItem].
@@ -84,6 +88,9 @@ abstract interface class IOrderRepository {
 
   /// Sets [OrderItemStatus.delivered] and stamps [deliveredAt].
   Future<Result<OrderItemEntity>> markDelivered(int itemId);
+
+  /// Marca múltiples ítems como entregados en una sola transacción atómica.
+  Future<Result<void>> markItemsDelivered(List<int> itemIds);
 
   /// Marca TODOS los ítems pendientes de una mesa como entregados de una vez.
   Future<Result<void>> markTableDelivered(int sessionId);

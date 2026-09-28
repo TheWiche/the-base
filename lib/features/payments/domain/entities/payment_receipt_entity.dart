@@ -61,6 +61,9 @@ final class PaymentReceiptEntity {
     this.transferMethod,
     this.photoPath,
     this.verificationCode,
+    this.isGeneralAdvance = false,
+    this.transactionGroupId,
+    this.note,
   });
 
   final int id;
@@ -89,6 +92,10 @@ final class PaymentReceiptEntity {
   /// 8-digit SHA-256-derived numeric code for cashier verification (transfers only).
   final String? verificationCode;
 
+  final bool isGeneralAdvance;
+  final String? transactionGroupId;
+  final String? note;
+
   final DateTime paidAt;
 
   // ── Computed ───────────────────────────────────────────────────────────────
@@ -104,16 +111,12 @@ final class PaymentReceiptEntity {
 
 /// Parameters for [RecordPaymentUseCase].
 ///
-/// [billSubtotal] is pre-computed by the UI from the selected items to avoid
-/// an extra database read inside the use case. The repository trusts this value.
-///
-/// Invariants enforced by the [assert] block:
-///   • Transfer payments must supply [photoSourcePath].
-///   • Transfer payments must supply [transferMethod].
+/// Supports item-based payments, arbitrary general advances, and mixed
+/// simultaneous (Cash + Transfer) payments.
 final class RecordPaymentParams {
   const RecordPaymentParams({
     required this.tableSessionId,
-    required this.selectedItemIds,
+    this.selectedItemIds = const [],
     required this.amountPaid,
     required this.billSubtotal,
     required this.paymentMethod,
@@ -121,45 +124,71 @@ final class RecordPaymentParams {
     this.transferMethod,
     this.photoSourcePath,
     this.tipAmount = 0,
+    this.isGeneralAdvance = false,
+    this.isMixed = false,
+    this.cashAmount,
+    this.transferAmount,
+    this.mixedTransferMethod,
+    this.mixedPhotoSourcePath,
+    this.note,
   })  : assert(
-          paymentMethod != PaymentMethod.transfer || photoSourcePath != null,
+          isMixed || paymentMethod != PaymentMethod.transfer || photoSourcePath != null,
           'Transfer payments require a photoSourcePath.',
         ),
         assert(
-          paymentMethod != PaymentMethod.transfer || transferMethod != null,
+          isMixed || paymentMethod != PaymentMethod.transfer || transferMethod != null,
           'Transfer payments require a transferMethod.',
+        ),
+        assert(
+          !isMixed || (cashAmount != null && transferAmount != null && mixedPhotoSourcePath != null && mixedTransferMethod != null),
+          'Mixed payments require cashAmount, transferAmount, mixedTransferMethod, and mixedPhotoSourcePath.',
         );
 
   final int tableSessionId;
   final List<int> selectedItemIds;
 
-  /// itemId → units being paid now. When a line's selected units are fewer than
-  /// its total quantity, the repository splits the line: the paid units become a
-  /// new paid OrderItem and the original line keeps the remaining units unpaid.
-  /// Empty map → pay every selected line in full (legacy behavior).
+  /// itemId → units being paid now.
   final Map<int, int> selectedQuantities;
 
   /// What the customer actually handed over or transferred (COP).
   final int amountPaid;
 
-  /// Sum of selected item lineTotals, pre-calculated by the UI.
+  /// Sum of selected item lineTotals, or arbitrary advance target amount.
   final int billSubtotal;
 
   final PaymentMethod paymentMethod;
   final TransferMethod? transferMethod;
 
   /// Temp file path from ImagePicker (already JPEG-compressed).
-  /// The repository copies this to Bonanza_Transferencias and stores the
-  /// final path in [PaymentReceiptEntity.photoPath].
   final String? photoSourcePath;
 
   /// Explicit tip from the customer (transfers only). Default 0.
   final int tipAmount;
 
+  /// True when this payment is an arbitrary general advance to the table.
+  final bool isGeneralAdvance;
+
+  /// True when this transaction is a simultaneous mixed payment (Cash + Transfer).
+  final bool isMixed;
+
+  /// Cash portion in a mixed transaction.
+  final int? cashAmount;
+
+  /// Transfer portion in a mixed transaction.
+  final int? transferAmount;
+
+  /// Transfer method platform for the transfer portion of a mixed transaction.
+  final TransferMethod? mixedTransferMethod;
+
+  /// Image path for the transfer portion of a mixed transaction.
+  final String? mixedPhotoSourcePath;
+
+  final String? note;
+
   /// Cash change owed back to the customer.
-  /// Always 0 for transfer payments.
+  /// Always 0 for pure transfer payments.
   int get changeGiven =>
-      paymentMethod == PaymentMethod.cash && amountPaid > billSubtotal
+      (paymentMethod == PaymentMethod.cash || isMixed) && amountPaid > billSubtotal
           ? amountPaid - billSubtotal
           : 0;
 }

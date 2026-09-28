@@ -110,6 +110,9 @@ final class DashboardRepositoryImpl implements IDashboardRepository {
         photoPath: m.photoPath,
         isLegalizedInCaja: m.isLegalizedInCaja,
         verificationCode: m.verificationCode,
+        isGeneralAdvance: m.isGeneralAdvance,
+        transactionGroupId: m.transactionGroupId,
+        note: m.note,
         paidAt: m.paidAt,
       );
 }

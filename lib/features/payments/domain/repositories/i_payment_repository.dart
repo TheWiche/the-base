@@ -22,4 +22,14 @@ abstract interface class IPaymentRepository {
   ///
   /// Returns [Ok] with the created entity, or [Err] with a [Failure] subtype.
   Future<Result<PaymentReceiptEntity>> recordPayment(RecordPaymentParams params);
+
+  /// Records an orphan / standalone transfer receipt with no linked table session.
+  /// Used for direct counter payments, standalone tips, or general advances.
+  Future<Result<PaymentReceiptEntity>> recordStandaloneTransfer({
+    required int amount,
+    required String photoSourcePath,
+    required TransferMethod transferMethod,
+    int tipAmount,
+    String? note,
+  });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/failures.dart';
@@ -8,17 +9,17 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../providers/radar_providers.dart';
+import '../widgets/bar_mode_view.dart';
+import '../widgets/chronological_radar_view.dart';
 import '../widgets/grouped_table_view.dart';
 
-/// El Radar — the KDS (Kitchen Display System) screen.
+/// El Radar — KDS (Kitchen Display System) y Despacho de Pedidos.
 ///
-/// Displays all pending order items across every active table, with two
-/// switchable views:
-///   • Chronological — flat list ordered oldest-first (global urgency ranking).
-///   • Por Mesa       — items grouped by table, groups ordered by oldest item.
-///
-/// Each tile has a swipe-right gesture and a tap button to mark delivery.
-/// The live elapsed-time ticker is driven by [radarClockProvider].
+/// Dispone de 3 modos seleccionables:
+///   1. Cronológico: por orden de llegada con tiempo transcurrido individual.
+///   2. Por Mesas: agrupado por apodo/número de mesa (formato comanda de papel).
+///   3. Modo Barra: consolidado por productos idénticos para lectura a distancia
+///      y preparación en masa (bulk batching).
 class RadarScreen extends ConsumerStatefulWidget {
   const RadarScreen({super.key});
 
@@ -31,8 +32,11 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
   Widget build(BuildContext context) {
     final radarAsync = ref.watch(pendingRadarItemsProvider);
     final pendingCount = ref.watch(pendingRadarCountProvider);
+    final viewMode = ref.watch(radarViewModeProvider);
+
     final deliver = ref.read(deliverItemProvider);
     final deliverAll = ref.read(deliverTableProvider);
+    final deliverBatch = ref.read(deliverItemsBatchProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -45,7 +49,7 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
               size: 28,
             ),
             const SizedBox(width: AppDimensions.space8),
-            Text('Pedidos', style: AppTextStyles.headlineMedium),
+            Text('El Radar', style: AppTextStyles.headlineMedium),
             const Spacer(),
             if (pendingCount > 0) _PendingCountBadge(count: pendingCount),
           ],
@@ -55,11 +59,50 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _RadarErrorBody(error: error),
         data: (items) {
-          if (items.isEmpty) return const _EmptyRadarBody();
-          return GroupedTableView(
-            groups: ref.watch(radarGroupedProvider),
-            onDelivered: (id) => _onDeliver(id, deliver),
-            onDeliverAll: (sessionId) => _onDeliver(sessionId, deliverAll),
+          return Column(
+            children: [
+              // ── Selector tripartito superior ─────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimensions.pagePaddingH,
+                  AppDimensions.space8,
+                  AppDimensions.pagePaddingH,
+                  AppDimensions.space8,
+                ),
+                child: _RadarViewSelector(
+                  currentMode: viewMode,
+                  onModeChanged: (mode) {
+                    HapticFeedback.selectionClick();
+                    ref.read(radarViewModeProvider.notifier).state = mode;
+                  },
+                ),
+              ),
+
+              // ── Contenido según el modo activo ───────────────────────────
+              Expanded(
+                child: items.isEmpty
+                    ? const _EmptyRadarBody()
+                    : switch (viewMode) {
+                        RadarViewMode.barra => BarModeView(
+                            batches: ref.watch(radarBarBatchesProvider),
+                            onDeliverBatch: (ids) =>
+                                _onDeliverBatch(ids, deliverBatch),
+                            onDeliverSubBatch: (ids) =>
+                                _onDeliverBatch(ids, deliverBatch),
+                          ),
+                        RadarViewMode.mesas => GroupedTableView(
+                            groups: ref.watch(radarGroupedProvider),
+                            onDelivered: (id) => _onDeliver(id, deliver),
+                            onDeliverAll: (sessionId) =>
+                                _onDeliver(sessionId, deliverAll),
+                          ),
+                        RadarViewMode.cronologico => ChronologicalRadarView(
+                            items: items,
+                            onDelivered: (id) => _onDeliver(id, deliver),
+                          ),
+                      },
+              ),
+            ],
           );
         },
       ),
@@ -74,6 +117,131 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
     if (failure != null && mounted) {
       AppToast.error(context, failure.message);
     }
+  }
+
+  Future<void> _onDeliverBatch(
+    List<int> ids,
+    Future<Failure?> Function(List<int>) action,
+  ) async {
+    final failure = await action(ids);
+    if (failure != null && mounted) {
+      AppToast.error(context, failure.message);
+    }
+  }
+}
+
+// ── Selector de Modo de Radar ────────────────────────────────────────────────
+
+class _RadarViewSelector extends StatelessWidget {
+  const _RadarViewSelector({
+    required this.currentMode,
+    required this.onModeChanged,
+  });
+
+  final RadarViewMode currentMode;
+  final ValueChanged<RadarViewMode> onModeChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E28) : const Color(0xFFE8E8EE),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          _buildSegment(
+            context,
+            mode: RadarViewMode.cronologico,
+            title: 'Cronológico',
+            icon: Icons.schedule_rounded,
+          ),
+          const SizedBox(width: 4),
+          _buildSegment(
+            context,
+            mode: RadarViewMode.mesas,
+            title: 'Por Mesas',
+            icon: Icons.receipt_long_rounded,
+          ),
+          const SizedBox(width: 4),
+          _buildSegment(
+            context,
+            mode: RadarViewMode.barra,
+            title: 'Modo Barra',
+            icon: Icons.wine_bar_rounded,
+            highlight: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSegment(
+    BuildContext context, {
+    required RadarViewMode mode,
+    required String title,
+    required IconData icon,
+    bool highlight = false,
+  }) {
+    final isSelected = currentMode == mode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final selectedBg = highlight
+        ? AppColors.primary
+        : (isDark ? const Color(0xFF2E2E3E) : Colors.white);
+    final selectedFg = highlight
+        ? Colors.black
+        : (isDark ? Colors.white : Colors.black);
+    final unselectedFg = isDark ? Colors.white60 : Colors.black54;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onModeChanged(mode),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? selectedBg : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    )
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 15,
+                color: isSelected ? selectedFg : unselectedFg,
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected ? selectedFg : unselectedFg,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

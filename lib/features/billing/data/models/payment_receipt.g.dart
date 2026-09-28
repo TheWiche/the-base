@@ -27,49 +27,64 @@ const PaymentReceiptSchema = CollectionSchema(
       name: r'changeGiven',
       type: IsarType.long,
     ),
-    r'isLegalizedInCaja': PropertySchema(
+    r'isGeneralAdvance': PropertySchema(
       id: 2,
+      name: r'isGeneralAdvance',
+      type: IsarType.bool,
+    ),
+    r'isLegalizedInCaja': PropertySchema(
+      id: 3,
       name: r'isLegalizedInCaja',
       type: IsarType.bool,
     ),
+    r'note': PropertySchema(
+      id: 4,
+      name: r'note',
+      type: IsarType.string,
+    ),
     r'paidAt': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'paidAt',
       type: IsarType.dateTime,
     ),
     r'paymentMethod': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'paymentMethod',
       type: IsarType.byte,
       enumMap: _PaymentReceiptpaymentMethodEnumValueMap,
     ),
     r'photoPath': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'photoPath',
       type: IsarType.string,
     ),
     r'supabasePhotoUrl': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'supabasePhotoUrl',
       type: IsarType.string,
     ),
     r'tableSessionId': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'tableSessionId',
       type: IsarType.long,
     ),
     r'tipAmount': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'tipAmount',
       type: IsarType.long,
     ),
+    r'transactionGroupId': PropertySchema(
+      id: 11,
+      name: r'transactionGroupId',
+      type: IsarType.string,
+    ),
     r'transferMethodIndex': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'transferMethodIndex',
       type: IsarType.long,
     ),
     r'verificationCode': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'verificationCode',
       type: IsarType.string,
     )
@@ -143,6 +158,12 @@ int _paymentReceiptEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
+    final value = object.note;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.photoPath;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -150,6 +171,12 @@ int _paymentReceiptEstimateSize(
   }
   {
     final value = object.supabasePhotoUrl;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.transactionGroupId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -171,15 +198,18 @@ void _paymentReceiptSerialize(
 ) {
   writer.writeLong(offsets[0], object.amountPaid);
   writer.writeLong(offsets[1], object.changeGiven);
-  writer.writeBool(offsets[2], object.isLegalizedInCaja);
-  writer.writeDateTime(offsets[3], object.paidAt);
-  writer.writeByte(offsets[4], object.paymentMethod.index);
-  writer.writeString(offsets[5], object.photoPath);
-  writer.writeString(offsets[6], object.supabasePhotoUrl);
-  writer.writeLong(offsets[7], object.tableSessionId);
-  writer.writeLong(offsets[8], object.tipAmount);
-  writer.writeLong(offsets[9], object.transferMethodIndex);
-  writer.writeString(offsets[10], object.verificationCode);
+  writer.writeBool(offsets[2], object.isGeneralAdvance);
+  writer.writeBool(offsets[3], object.isLegalizedInCaja);
+  writer.writeString(offsets[4], object.note);
+  writer.writeDateTime(offsets[5], object.paidAt);
+  writer.writeByte(offsets[6], object.paymentMethod.index);
+  writer.writeString(offsets[7], object.photoPath);
+  writer.writeString(offsets[8], object.supabasePhotoUrl);
+  writer.writeLong(offsets[9], object.tableSessionId);
+  writer.writeLong(offsets[10], object.tipAmount);
+  writer.writeString(offsets[11], object.transactionGroupId);
+  writer.writeLong(offsets[12], object.transferMethodIndex);
+  writer.writeString(offsets[13], object.verificationCode);
 }
 
 PaymentReceipt _paymentReceiptDeserialize(
@@ -192,17 +222,20 @@ PaymentReceipt _paymentReceiptDeserialize(
   object.amountPaid = reader.readLong(offsets[0]);
   object.changeGiven = reader.readLong(offsets[1]);
   object.id = id;
-  object.isLegalizedInCaja = reader.readBool(offsets[2]);
-  object.paidAt = reader.readDateTime(offsets[3]);
+  object.isGeneralAdvance = reader.readBool(offsets[2]);
+  object.isLegalizedInCaja = reader.readBool(offsets[3]);
+  object.note = reader.readStringOrNull(offsets[4]);
+  object.paidAt = reader.readDateTime(offsets[5]);
   object.paymentMethod = _PaymentReceiptpaymentMethodValueEnumMap[
-          reader.readByteOrNull(offsets[4])] ??
+          reader.readByteOrNull(offsets[6])] ??
       PaymentMethod.cash;
-  object.photoPath = reader.readStringOrNull(offsets[5]);
-  object.supabasePhotoUrl = reader.readStringOrNull(offsets[6]);
-  object.tableSessionId = reader.readLong(offsets[7]);
-  object.tipAmount = reader.readLong(offsets[8]);
-  object.transferMethodIndex = reader.readLongOrNull(offsets[9]);
-  object.verificationCode = reader.readStringOrNull(offsets[10]);
+  object.photoPath = reader.readStringOrNull(offsets[7]);
+  object.supabasePhotoUrl = reader.readStringOrNull(offsets[8]);
+  object.tableSessionId = reader.readLong(offsets[9]);
+  object.tipAmount = reader.readLong(offsets[10]);
+  object.transactionGroupId = reader.readStringOrNull(offsets[11]);
+  object.transferMethodIndex = reader.readLongOrNull(offsets[12]);
+  object.verificationCode = reader.readStringOrNull(offsets[13]);
   return object;
 }
 
@@ -220,22 +253,28 @@ P _paymentReceiptDeserializeProp<P>(
     case 2:
       return (reader.readBool(offset)) as P;
     case 3:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readDateTime(offset)) as P;
+    case 6:
       return (_PaymentReceiptpaymentMethodValueEnumMap[
               reader.readByteOrNull(offset)] ??
           PaymentMethod.cash) as P;
-    case 5:
-      return (reader.readStringOrNull(offset)) as P;
-    case 6:
-      return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 10:
+      return (reader.readLong(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readLongOrNull(offset)) as P;
+    case 13:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -773,11 +812,175 @@ extension PaymentReceiptQueryFilter
   }
 
   QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      isGeneralAdvanceEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isGeneralAdvance',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
       isLegalizedInCajaEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isLegalizedInCaja',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'note',
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'note',
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'note',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'note',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'note',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      noteIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'note',
+        value: '',
       ));
     });
   }
@@ -1315,6 +1518,160 @@ extension PaymentReceiptQueryFilter
   }
 
   QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'transactionGroupId',
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'transactionGroupId',
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'transactionGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'transactionGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'transactionGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'transactionGroupId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'transactionGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'transactionGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'transactionGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'transactionGroupId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'transactionGroupId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
+      transactionGroupIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'transactionGroupId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterFilterCondition>
       transferMethodIndexIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1594,6 +1951,20 @@ extension PaymentReceiptQuerySortBy
   }
 
   QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
+      sortByIsGeneralAdvance() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGeneralAdvance', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
+      sortByIsGeneralAdvanceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGeneralAdvance', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
       sortByIsLegalizedInCaja() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isLegalizedInCaja', Sort.asc);
@@ -1604,6 +1975,18 @@ extension PaymentReceiptQuerySortBy
       sortByIsLegalizedInCajaDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isLegalizedInCaja', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy> sortByNote() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'note', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy> sortByNoteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'note', Sort.desc);
     });
   }
 
@@ -1689,6 +2072,20 @@ extension PaymentReceiptQuerySortBy
   }
 
   QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
+      sortByTransactionGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transactionGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
+      sortByTransactionGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transactionGroupId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
       sortByTransferMethodIndex() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'transferMethodIndex', Sort.asc);
@@ -1760,6 +2157,20 @@ extension PaymentReceiptQuerySortThenBy
   }
 
   QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
+      thenByIsGeneralAdvance() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGeneralAdvance', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
+      thenByIsGeneralAdvanceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGeneralAdvance', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
       thenByIsLegalizedInCaja() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isLegalizedInCaja', Sort.asc);
@@ -1770,6 +2181,18 @@ extension PaymentReceiptQuerySortThenBy
       thenByIsLegalizedInCajaDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isLegalizedInCaja', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy> thenByNote() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'note', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy> thenByNoteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'note', Sort.desc);
     });
   }
 
@@ -1855,6 +2278,20 @@ extension PaymentReceiptQuerySortThenBy
   }
 
   QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
+      thenByTransactionGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transactionGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
+      thenByTransactionGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transactionGroupId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QAfterSortBy>
       thenByTransferMethodIndex() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'transferMethodIndex', Sort.asc);
@@ -1900,9 +2337,23 @@ extension PaymentReceiptQueryWhereDistinct
   }
 
   QueryBuilder<PaymentReceipt, PaymentReceipt, QDistinct>
+      distinctByIsGeneralAdvance() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isGeneralAdvance');
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QDistinct>
       distinctByIsLegalizedInCaja() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isLegalizedInCaja');
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QDistinct> distinctByNote(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'note', caseSensitive: caseSensitive);
     });
   }
 
@@ -1949,6 +2400,14 @@ extension PaymentReceiptQueryWhereDistinct
   }
 
   QueryBuilder<PaymentReceipt, PaymentReceipt, QDistinct>
+      distinctByTransactionGroupId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'transactionGroupId',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, PaymentReceipt, QDistinct>
       distinctByTransferMethodIndex() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'transferMethodIndex');
@@ -1985,9 +2444,22 @@ extension PaymentReceiptQueryProperty
   }
 
   QueryBuilder<PaymentReceipt, bool, QQueryOperations>
+      isGeneralAdvanceProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isGeneralAdvance');
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, bool, QQueryOperations>
       isLegalizedInCajaProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isLegalizedInCaja');
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, String?, QQueryOperations> noteProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'note');
     });
   }
 
@@ -2026,6 +2498,13 @@ extension PaymentReceiptQueryProperty
   QueryBuilder<PaymentReceipt, int, QQueryOperations> tipAmountProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'tipAmount');
+    });
+  }
+
+  QueryBuilder<PaymentReceipt, String?, QQueryOperations>
+      transactionGroupIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'transactionGroupId');
     });
   }
 

@@ -1,35 +1,54 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/errors/result.dart';
+import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/gallery/gallery_saver.dart';
-import '../../../../core/gallery/transfer_photos.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
+import '../../domain/entities/payment_receipt_entity.dart';
+import '../providers/payment_providers.dart';
 import '../utils/photo_rotation.dart';
 
-/// Standalone transfer-photo capture — no linked payment or table session.
+/// Captura de transferencia independiente / huérfana (sin mesa asociada).
 ///
-/// Foto → guardar directo en Bonanza_Transferencias (sin hoja de detalles,
-/// sin registro Isar). Visible después desde "Comprobantes".
-class StandaloneTransferScreen extends StatefulWidget {
+/// Permite capturar pagos directos, propinas sueltas o anticipos.
+/// Se persiste como un [PaymentReceipt] con tableSessionId = 0 y
+/// isLegalizedInCaja = false, integrándose de inmediato en el Banner Global
+/// y en la lista de comprobantes pendientes de caja.
+class StandaloneTransferScreen extends ConsumerStatefulWidget {
   const StandaloneTransferScreen({super.key});
 
   @override
-  State<StandaloneTransferScreen> createState() =>
+  ConsumerState<StandaloneTransferScreen> createState() =>
       _StandaloneTransferScreenState();
 }
 
 enum _Phase { initial, preview, saving }
 
-class _StandaloneTransferScreenState extends State<StandaloneTransferScreen> {
+class _StandaloneTransferScreenState
+    extends ConsumerState<StandaloneTransferScreen> {
   _Phase _phase = _Phase.initial;
   XFile? _photo;
   int _rotationTurns = 0;
+
+  final _amountController = TextEditingController();
+  final _noteController = TextEditingController();
+  TransferMethod _transferMethod = TransferMethod.nequi;
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
 
   // ── Photo capture / pick ─────────────────────────────────────────────────────
 
@@ -76,35 +95,58 @@ class _StandaloneTransferScreenState extends State<StandaloneTransferScreen> {
     setState(() => _rotationTurns = (_rotationTurns + 1) % 4);
   }
 
-  // ── Save file (no Isar — file copy + gallery only) ───────────────────────────
-  // Sin hoja de detalles: foto → guardar directo → toast (menos clicks).
+  // ── Save standalone transfer ─────────────────────────────────────────────────
 
-  Future<void> _savePhoto() async {
+  Future<void> _saveTransfer() async {
     if (_photo == null) return;
+
+    final rawAmount =
+        int.tryParse(_amountController.text.replaceAll(RegExp(r'\D'), '')) ?? 0;
+    if (rawAmount <= 0) {
+      AppToast.error(context, 'Ingresa el monto de la transferencia.');
+      return;
+    }
+
     setState(() => _phase = _Phase.saving);
 
     try {
-      final now = DateTime.now();
       final effectivePath =
           await applyPhotoRotation(_photo!.path, _rotationTurns);
-      final dir = await transferPhotosDir();
-      final filename = 'suelta_${now.millisecondsSinceEpoch}.jpg';
-      final destPath = '${dir.path}/$filename';
-      await File(effectivePath).copy(destPath);
 
+      final note = _noteController.text.trim();
+      final result =
+          await ref.read(paymentRepositoryProvider).recordStandaloneTransfer(
+                amount: rawAmount,
+                photoSourcePath: effectivePath,
+                transferMethod: _transferMethod,
+                note: note.isNotEmpty ? note : 'Transferencia independiente',
+              );
+
+      if (!mounted) return;
+
+      if (result case Err(:final failure)) {
+        setState(() => _phase = _Phase.preview);
+        AppToast.error(context, 'Error al guardar: ${failure.message}');
+        return;
+      }
+
+      // Guardar también en la galería de fotos del teléfono
+      final now = DateTime.now();
       await GallerySaver.saveImage(
         sourcePath: effectivePath,
-        fileName: filename,
+        fileName: 'suelta_${now.millisecondsSinceEpoch}.jpg',
       );
 
       if (!mounted) return;
       AppToast.success(
-          context, 'Comprobante guardado. Míralo en "Comprobantes".');
+        context,
+        '⚡ Transferencia de ${rawAmount.toCop} registrada. ¡Pendiente por mostrar en caja!',
+      );
       context.pop();
     } catch (e) {
       if (!mounted) return;
       setState(() => _phase = _Phase.preview);
-      AppToast.error(context, 'No se pudo guardar la foto: $e');
+      AppToast.error(context, 'No se pudo guardar la transferencia: $e');
     }
   }
 
@@ -112,17 +154,11 @@ class _StandaloneTransferScreenState extends State<StandaloneTransferScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final onBlack = _phase == _Phase.preview;
     return Scaffold(
-      backgroundColor: onBlack ? Colors.black : null,
       appBar: AppBar(
-        backgroundColor: onBlack ? Colors.black : null,
-        foregroundColor: onBlack ? Colors.white : null,
         title: Text(
-          'Captura de Transferencia',
-          style: AppTextStyles.headlineSmall.copyWith(
-            color: onBlack ? Colors.white : null,
-          ),
+          'Transferencia Independiente',
+          style: AppTextStyles.headlineSmall,
         ),
       ),
       body: switch (_phase) {
@@ -130,12 +166,16 @@ class _StandaloneTransferScreenState extends State<StandaloneTransferScreen> {
             onTakePhoto: _openCamera,
             onPickFromGallery: _openGallery,
           ),
-        _Phase.preview => _PreviewBody(
+        _Phase.preview => _PreviewWithDetailsBody(
             photo: _photo!,
             rotationTurns: _rotationTurns,
+            amountController: _amountController,
+            noteController: _noteController,
+            transferMethod: _transferMethod,
+            onMethodChanged: (m) => setState(() => _transferMethod = m),
             onRotate: _rotatePhoto,
             onRetake: _retake,
-            onContinue: _savePhoto,
+            onSave: _saveTransfer,
           ),
         _Phase.saving => const _SavingOverlay(),
       },
@@ -157,74 +197,59 @@ class _InitialBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Instruction card ──────────────────────────────────────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(AppDimensions.space20),
             decoration: BoxDecoration(
-              color: AppColors.statusBlue.withValues(alpha: 0.08),
+              color: const Color(0xFFE65100).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
               border: Border.all(
-                color: AppColors.statusBlue.withValues(alpha: 0.4),
-                width: 2,
+                color: const Color(0xFFE65100).withValues(alpha: 0.4),
+                width: 1.5,
               ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'COMPROBANTE SUELTO',
-                  style: AppTextStyles.statusBadge.copyWith(
-                    color: AppColors.statusBlue,
-                  ),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.bolt_rounded,
+                      color: Color(0xFFE65100),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'PAGO SUELTO / ANTICIPO',
+                      style: AppTextStyles.statusBadge.copyWith(
+                        color: const Color(0xFFE65100),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppDimensions.space8),
                 Text(
-                  'Captura un comprobante de transferencia que no esté '
-                  'vinculado a una mesa.',
+                  'Captura un comprobante de transferencia que no pertenezca '
+                  'a ninguna mesa (pagos en barra, propinas sueltas o anticipos).\n\n'
+                  'Se sumará automáticamente a las transferencias por legalizar en caja.',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: isDark
                         ? AppColors.darkOnSurface
                         : AppColors.lightOnSurface,
+                    height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: AppDimensions.space24),
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.folder_rounded,
-                color: AppColors.brand,
-                size: AppDimensions.iconSm,
-              ),
-              const SizedBox(width: AppDimensions.space8),
-              Expanded(
-                child: Text(
-                  'La foto se guardará en la carpeta '
-                  '"Bonanza_Transferencias" de tu dispositivo.',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
           const Spacer(),
-
-          // ── Capture buttons ───────────────────────────────────────────
           Row(
             children: [
               Expanded(
@@ -234,7 +259,7 @@ class _InitialBody extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: onTakePhoto,
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.statusBlue,
+                      backgroundColor: const Color(0xFFE65100),
                       foregroundColor: Colors.white,
                     ),
                     icon: const Icon(Icons.camera_alt_rounded),
@@ -242,6 +267,7 @@ class _InitialBody extends StatelessWidget {
                       'TOMAR FOTO',
                       style: AppTextStyles.labelLarge.copyWith(
                         color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -278,115 +304,285 @@ class _InitialBody extends StatelessWidget {
   }
 }
 
-// ── Preview phase ─────────────────────────────────────────────────────────────
+// ── Preview + Details phase (Thumb Zone optimized) ────────────────────────────
 
-class _PreviewBody extends StatelessWidget {
-  const _PreviewBody({
+class _PreviewWithDetailsBody extends StatelessWidget {
+  const _PreviewWithDetailsBody({
     required this.photo,
     required this.rotationTurns,
+    required this.amountController,
+    required this.noteController,
+    required this.transferMethod,
+    required this.onMethodChanged,
     required this.onRotate,
     required this.onRetake,
-    required this.onContinue,
+    required this.onSave,
   });
 
   final XFile photo;
   final int rotationTurns;
+  final TextEditingController amountController;
+  final TextEditingController noteController;
+  final TransferMethod transferMethod;
+  final ValueChanged<TransferMethod> onMethodChanged;
   final VoidCallback onRotate;
   final VoidCallback onRetake;
-  final VoidCallback onContinue;
+  final VoidCallback onSave;
+
+  static const _quickAmounts = [10000, 20000, 50000, 100000];
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
       children: [
-        InteractiveViewer(
-          child: RotatedBox(
-            quarterTurns: rotationTurns,
-            child: Image.file(File(photo.path), fit: BoxFit.contain),
-          ),
-        ),
-
-        // ── Rotate button (top-right) ──────────────────────────────────
-        Positioned(
-          top: 12,
-          right: 12,
-          child: Material(
-            color: Colors.black54,
-            shape: const CircleBorder(),
-            child: IconButton(
-              icon: const Icon(Icons.rotate_right_rounded, color: Colors.white),
-              tooltip: 'Girar 90°',
-              onPressed: onRotate,
-            ),
-          ),
-        ),
-
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.85),
-                ],
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.pagePaddingH,
-              AppDimensions.space32,
-              AppDimensions.pagePaddingH,
-              AppDimensions.space32,
-            ),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: AppDimensions.buttonHeightMd,
-                      child: OutlinedButton.icon(
-                        onPressed: onRetake,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(
-                            color: Colors.white54,
-                            width: 2,
-                          ),
-                        ),
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        label: Text(
-                          'CAMBIAR',
-                          style: AppTextStyles.labelMedium.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
+        // ── Previsualización compacta de la foto con rotación ─────────────
+        Expanded(
+          flex: 2,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(
+                color: Colors.black,
+                child: InteractiveViewer(
+                  child: Center(
+                    child: RotatedBox(
+                      quarterTurns: rotationTurns,
+                      child: Image.file(
+                        File(photo.path),
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                  const SizedBox(width: AppDimensions.space12),
-                  Expanded(
-                    flex: 2,
-                    child: SizedBox(
-                      height: AppDimensions.buttonHeightMd,
-                      child: FilledButton.icon(
-                        onPressed: onContinue,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.statusGreen,
-                          foregroundColor: Colors.black,
-                        ),
-                        icon: const Icon(Icons.check_rounded),
-                        label: Text(
-                          'GUARDAR',
-                          style: AppTextStyles.labelMedium.copyWith(
-                            color: Colors.black,
+                ),
+              ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Material(
+                  color: Colors.black54,
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    icon: const Icon(Icons.rotate_right_rounded,
+                        color: Colors.white),
+                    tooltip: 'Girar 90°',
+                    onPressed: onRotate,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Material(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                  child: InkWell(
+                    onTap: onRetake,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.refresh_rounded,
+                              color: Colors.white, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Cambiar',
+                            style: AppTextStyles.labelSmall
+                                .copyWith(color: Colors.white),
                           ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Formulario de datos en la Thumb Zone ───────────────────────────
+        Expanded(
+          flex: 3,
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppDimensions.radiusLg),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, -3),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.pagePaddingH,
+                AppDimensions.space16,
+                AppDimensions.pagePaddingH,
+                AppDimensions.space16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Campo de Monto
+                  Text(
+                    'VALOR DE LA TRANSFERENCIA',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: isDark
+                          ? AppColors.darkOnSurfaceVariant
+                          : AppColors.lightOnSurfaceVariant,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      prefixText: '\$ ',
+                      prefixStyle: AppTextStyles.headlineMedium.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFFE65100),
+                      ),
+                      hintText: '0',
+                      hintStyle: AppTextStyles.headlineMedium.copyWith(
+                        color: isDark
+                            ? AppColors.darkDisabled
+                            : AppColors.lightDisabled,
+                      ),
+                      filled: true,
+                      fillColor: isDark
+                          ? AppColors.darkBackground
+                          : AppColors.lightBackground,
+                      border: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusMd),
+                        borderSide: BorderSide(
+                          color: const Color(0xFFE65100).withValues(alpha: 0.5),
                         ),
                       ),
+                    ),
+                    style: AppTextStyles.headlineMedium.copyWith(
+                      color: const Color(0xFFE65100),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Chips de montos rápidos
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final q in _quickAmounts)
+                        ActionChip(
+                          label: Text(q.toCop),
+                          onPressed: () {
+                            amountController.text = q.toString();
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppDimensions.space16),
+
+                  // Selector de Plataforma (Nequi / Daviplata / Otro)
+                  Text(
+                    'MÉTODO',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: isDark
+                          ? AppColors.darkOnSurfaceVariant
+                          : AppColors.lightOnSurfaceVariant,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      for (final m in TransferMethod.values) ...[
+                        Expanded(
+                          child: ChoiceChip(
+                            avatar: Icon(
+                              m.displayIcon,
+                              size: 16,
+                              color: transferMethod == m
+                                  ? Colors.white
+                                  : m.displayColor,
+                            ),
+                            label: Text(m.displayLabel),
+                            selected: transferMethod == m,
+                            selectedColor: m.displayColor,
+                            labelStyle: TextStyle(
+                              color: transferMethod == m
+                                  ? Colors.white
+                                  : (isDark
+                                      ? AppColors.darkOnSurface
+                                      : AppColors.lightOnSurface),
+                              fontWeight: transferMethod == m
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                            onSelected: (_) => onMethodChanged(m),
+                          ),
+                        ),
+                        if (m != TransferMethod.values.last)
+                          const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: AppDimensions.space16),
+
+                  // Concepto / Nota opcional
+                  Text(
+                    'CONCEPTO (OPCIONAL)',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: isDark
+                          ? AppColors.darkOnSurfaceVariant
+                          : AppColors.lightOnSurfaceVariant,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: noteController,
+                    decoration: InputDecoration(
+                      hintText: 'Ej. Pago barra, Propina suelta, Anticipo',
+                      filled: true,
+                      fillColor: isDark
+                          ? AppColors.darkBackground
+                          : AppColors.lightBackground,
+                      border: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusMd),
+                      ),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.space24),
+
+                  // Botón principal de guardado
+                  SizedBox(
+                    height: AppDimensions.buttonHeightLg,
+                    child: FilledButton.icon(
+                      onPressed: onSave,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFE65100),
+                        foregroundColor: Colors.white,
+                        textStyle: AppTextStyles.labelLarge.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded),
+                      label: const Text('GUARDAR TRANSFERENCIA'),
                     ),
                   ),
                 ],
@@ -410,12 +606,16 @@ class _SavingOverlay extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(),
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE65100)),
+          ),
           SizedBox(height: AppDimensions.space16),
-          Text('Guardando comprobante…'),
+          Text(
+            'Guardando y registrando transferencia…',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
   }
 }
-

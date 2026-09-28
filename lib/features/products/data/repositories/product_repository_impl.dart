@@ -10,7 +10,7 @@ import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/i_product_repository.dart';
 import '../models/product.dart';
 
-const _kSeedVersion = 3;
+const _kSeedVersion = 7;
 const _kSeedVersionKey = 'thebase_seed_v';
 
 final class ProductRepositoryImpl implements IProductRepository {
@@ -123,18 +123,26 @@ final class ProductRepositoryImpl implements IProductRepository {
 
     await IsarService.write((isar) async {
       final products = _kSeed.map((data) {
+        final cat = data['category'] as String;
+        final defaultNotes = cat == 'Mojitos'
+            ? ['Sin alcohol', 'Poco hielo', 'Hierbabuena extra', 'Doble shot']
+            : (cat == 'Micheladas'
+                ? ['Borde sal', 'Borde pimienta', 'Sin escarchado', 'Más limón', 'Hielo aparte']
+                : <String>[]);
+
         return Product()
           ..name = data['name'] as String
           ..price = data['price'] as int
-          ..category = data['category'] as String
+          ..category = cat
           ..isLiquor = data['isLiquor'] as bool
+          ..defaultNotes = defaultNotes
           ..isAvailable = true;
       }).toList();
 
       await isar.products.putAll(products);
     });
 
-    // Fresh installs skip the incremental migration — they already have V2 data.
+    // Fresh installs skip the incremental migration — they already have V7 data.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kSeedVersionKey, _kSeedVersion);
 
@@ -409,6 +417,45 @@ final class ProductRepositoryImpl implements IProductRepository {
     await prefs.setInt(_kSeedVersionKey, 6);
   }
 
+  /// V7 — notas predeterminadas para Mojitos y Micheladas.
+  Future<void> seedMigrateV7() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedVersion = prefs.getInt(_kSeedVersionKey) ?? 1;
+    if (storedVersion >= 7) return;
+
+    await IsarService.write((isar) async {
+      final all = await isar.products.where().anyId().findAll();
+      final toUpdate = <Product>[];
+
+      for (final p in all) {
+        var changed = false;
+        if (p.category == 'Mojitos' && p.defaultNotes.isEmpty) {
+          p.defaultNotes = [
+            'Sin alcohol',
+            'Poco hielo',
+            'Hierbabuena extra',
+            'Doble shot',
+          ];
+          changed = true;
+        } else if (p.category == 'Micheladas' && p.defaultNotes.isEmpty) {
+          p.defaultNotes = [
+            'Borde sal',
+            'Borde pimienta',
+            'Sin escarchado',
+            'Más limón',
+            'Hielo aparte',
+          ];
+          changed = true;
+        }
+        if (changed) toUpdate.add(p);
+      }
+      if (toUpdate.isNotEmpty) await isar.products.putAll(toUpdate);
+    });
+
+    debugPrint('[ProductRepository] Migration v7: default notes seeded.');
+    await prefs.setInt(_kSeedVersionKey, 7);
+  }
+
   @override
   Stream<List<ProductEntity>> watchAll() {
     return IsarService.db.products
@@ -456,6 +503,7 @@ final class ProductRepositoryImpl implements IProductRepository {
     required bool isLiquor,
     bool isComposable = false,
     List<String> baseCategories = const [],
+    List<String> defaultNotes = const [],
   }) async {
     try {
       late int newId;
@@ -468,6 +516,7 @@ final class ProductRepositoryImpl implements IProductRepository {
           ..isLiquor = isLiquor
           ..isComposable = isComposable
           ..baseCategories = baseCategories
+          ..defaultNotes = defaultNotes
           ..isAvailable = true;
         newId = await isar.products.put(product);
       });
@@ -490,6 +539,7 @@ final class ProductRepositoryImpl implements IProductRepository {
     required bool isLiquor,
     bool isComposable = false,
     List<String> baseCategories = const [],
+    List<String> defaultNotes = const [],
   }) async {
     try {
       await IsarService.write((isar) async {
@@ -502,7 +552,8 @@ final class ProductRepositoryImpl implements IProductRepository {
           ..subcategory = _clean(subcategory)
           ..isLiquor = isLiquor
           ..isComposable = isComposable
-          ..baseCategories = baseCategories;
+          ..baseCategories = baseCategories
+          ..defaultNotes = defaultNotes;
         await isar.products.put(product);
       });
       return const Ok(null);
@@ -568,5 +619,6 @@ final class ProductRepositoryImpl implements IProductRepository {
         isAvailable: p.isAvailable,
         isComposable: p.isComposable,
         baseCategories: p.baseCategories,
+        defaultNotes: p.defaultNotes,
       );
 }

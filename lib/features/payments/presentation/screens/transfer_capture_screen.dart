@@ -100,6 +100,7 @@ class _TransferCaptureScreenState extends ConsumerState<TransferCaptureScreen> {
       paymentMethod: PaymentMethod.transfer,
       transferMethod: _method,
       photoSourcePath: effectivePath,
+      isGeneralAdvance: widget.args.isGeneralAdvance,
     );
 
     final failure =

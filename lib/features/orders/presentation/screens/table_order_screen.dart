@@ -10,6 +10,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/receipt_paper.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
+import '../../../payments/presentation/providers/payment_providers.dart';
 import '../../../tables/domain/entities/table_session_entity.dart';
 import '../../domain/entities/order_item_entity.dart';
 import '../providers/order_providers.dart';
@@ -66,6 +67,7 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
               sessionId: widget.sessionId,
               items: items,
               onAgregar: _openAddItem,
+              onCerrarMesa: _closeTable,
             ),
             orElse: () => const SizedBox.shrink(),
           ),
@@ -174,20 +176,6 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
                 style: AppTextStyles.titleMedium,
               ),
             ),
-            if (item.isLiquor && !item.isPaid && !item.isCancelled)
-              ListTile(
-                leading:
-                    const Icon(Icons.check_circle_rounded, color: AppColors.statusGreen),
-                title: const Text('Completar botella'),
-                subtitle: Text(
-                  'Pagada en barra/caja — baja la deuda, no entra a tu saldo',
-                  style: AppTextStyles.bodySmall,
-                ),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _settleLiquor(item);
-                },
-              ),
             if (!item.isCancelled)
               ListTile(
                 leading: const Icon(Icons.replay_rounded, color: AppColors.primary),
@@ -243,18 +231,6 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
         if (undoFailure != null && mounted) _showError(undoFailure);
       },
     );
-  }
-
-  Future<void> _settleLiquor(OrderItemEntity item) async {
-    final failure = await ref
-        .read(tableOrderProvider(widget.sessionId).notifier)
-        .settleLiquor(item.id);
-    if (!mounted) return;
-    if (failure != null) {
-      _showError(failure);
-    } else {
-      _showInfo('Botella completada: ${item.productName}');
-    }
   }
 
   Future<void> _repeatItem(OrderItemEntity item) async {
@@ -395,6 +371,19 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
     if (failure != null && mounted) _showError(failure);
   }
 
+  Future<void> _closeTable() async {
+    final failure = await ref
+        .read(tableOrderProvider(widget.sessionId).notifier)
+        .closeSession();
+    if (!mounted) return;
+    if (failure != null) {
+      _showError(failure);
+    } else {
+      AppToast.success(context, 'Mesa cerrada correctamente');
+      context.go('/tables');
+    }
+  }
+
   void _showInfo(String message) => AppToast.success(context, message);
 
   void _showError(Failure failure) => AppToast.error(context, failure.message);
@@ -442,27 +431,32 @@ class _ReceiptBody extends StatelessWidget {
 
 // ── Botonera inferior ────────────────────────────────────────────────────────────
 
-class _ActionBar extends StatelessWidget {
+class _ActionBar extends ConsumerWidget {
   const _ActionBar({
     required this.sessionId,
     required this.items,
     required this.onAgregar,
+    required this.onCerrarMesa,
   });
 
   final int sessionId;
   final List<OrderItemEntity> items;
   final VoidCallback onAgregar;
+  final VoidCallback onCerrarMesa;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final finSummary = ref.watch(tableFinancialSummaryProvider(sessionId));
 
     final unpaidTotal = items
         .where((i) => !i.isCancelled && !i.isPaid)
         .fold(0, (s, i) => s + i.lineTotal);
-    final allPaid = items.isNotEmpty &&
-        items.where((i) => !i.isCancelled).every((i) => i.isPaid);
+    final allPaid = finSummary.isFullyPaid ||
+        (items.isNotEmpty &&
+            items.where((i) => !i.isCancelled).every((i) => i.isPaid));
+    final hasPending = finSummary.pendingBalance > 0 || unpaidTotal > 0;
 
     return Container(
       padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + bottomInset),
@@ -493,8 +487,8 @@ class _ActionBar extends StatelessWidget {
           Expanded(
             child: FilledButton.icon(
               onPressed: allPaid
-                  ? () => context.go('/tables')
-                  : (unpaidTotal > 0
+                  ? onCerrarMesa
+                  : (hasPending
                       ? () => context.push('/billing/$sessionId')
                       : null),
               style: FilledButton.styleFrom(

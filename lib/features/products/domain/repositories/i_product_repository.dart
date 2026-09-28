@@ -22,10 +22,11 @@ abstract interface class IProductRepository {
     required bool isLiquor,
     bool isComposable = false,
     List<String> baseCategories = const [],
+    List<String> defaultNotes = const [],
   });
 
   /// Updates an existing product's editable fields (name, price, category,
-  /// subcategory, isLiquor, composable). Availability is left untouched.
+  /// subcategory, isLiquor, composable, defaultNotes). Availability is left untouched.
   Future<Result<void>> updateProduct({
     required int id,
     required String name,
@@ -35,6 +36,7 @@ abstract interface class IProductRepository {
     required bool isLiquor,
     bool isComposable = false,
     List<String> baseCategories = const [],
+    List<String> defaultNotes = const [],
   });
 
   /// Permanently deletes a product from the menu.

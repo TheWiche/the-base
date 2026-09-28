@@ -3,20 +3,28 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/errors/result.dart';
 import '../../../../core/extensions/int_extensions.dart';
+import '../../../../core/services/table_counter_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/animated_amount.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../base_management/domain/entities/wallet_summary.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../../../tables/domain/entities/table_session_entity.dart';
+import '../../../tables/presentation/widgets/new_table_dialog.dart';
 
-/// Pantalla de inicio — primer tab que ve el mesero al abrir la app.
+/// Pantalla de inicio — optimizada para uso con una sola mano (Thumb Zone).
 ///
-/// Muestra el resumen del turno, stats rápidas, acciones principales,
-/// y un toggle animado para cambiar entre modo oscuro / claro.
+/// Prioriza accesos de gran tamaño para:
+///   • "Nueva Mesa" (abre diálogo y navega de inmediato a tomar pedido).
+///   • "El Radar" (pedidos en preparación con badge en tiempo real).
+///   • "Cámara Rápida" (captura de comprobantes de transferencia sueltos).
+///   • Estado de "Base vs. Deuda" (control financiero visible de un vistazo).
 class InicioScreen extends ConsumerStatefulWidget {
   const InicioScreen({super.key});
 
@@ -32,10 +40,9 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
   late AnimationController _ctrl;
 
   late Animation<double> _headerAnim;
-  late Animation<double> _shiftBannerAnim;
+  late Animation<double> _baseDeudaAnim;
   late Animation<double> _statsAnim;
   late Animation<double> _actionsAnim;
-  late Animation<double> _guideAnim;
 
   @override
   void initState() {
@@ -45,14 +52,12 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
       vsync: this,
     );
 
-    _headerAnim      = _interval(0.00, 0.40);
-    _shiftBannerAnim = _interval(0.12, 0.52);
-    _statsAnim       = _interval(0.25, 0.65);
-    _actionsAnim     = _interval(0.38, 0.78);
-    _guideAnim       = _interval(0.52, 1.00);
+    _headerAnim    = _interval(0.00, 0.40);
+    _baseDeudaAnim = _interval(0.12, 0.52);
+    _statsAnim     = _interval(0.25, 0.65);
+    _actionsAnim   = _interval(0.38, 0.78);
 
     if (_hasEntrancePlayed) {
-      // Skip straight to the fully-visible state on re-entry.
       _ctrl.value = 1.0;
     } else {
       _ctrl.forward();
@@ -85,6 +90,32 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
     );
   }
 
+  Future<void> _openNewTable() async {
+    final counter = TableCounterService();
+    final previewNumber = await counter.peekNextTableNumber();
+    if (!mounted) return;
+
+    showDialog<void>(
+      context: context,
+      builder: (_) => NewTableDialog(
+        tableNumber: previewNumber,
+        onOpen: (apodo) async {
+          final assignedNumber = await counter.nextTableNumber();
+          final result = await ref
+              .read(openTableUseCaseProvider)
+              .call(tableNumber: assignedNumber, apodo: apodo);
+          if (!mounted) return;
+          if (result case Ok(:final value)) {
+            // Navega de inmediato a la comanda de la mesa creada
+            context.push('/tables/${value.id}/orders');
+          } else if (result case Err(:final failure)) {
+            AppToast.error(context, failure.message);
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark        = Theme.of(context).brightness == Brightness.dark;
@@ -92,17 +123,18 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
     final sessionsAsync = ref.watch(activeSessionsProvider);
     final radarCount    = ref.watch(pendingRadarCountProvider);
 
-    final hasShift   = walletAsync.valueOrNull?.hasInitialBase ?? false;
+    final summary    = walletAsync.valueOrNull;
+    final hasShift   = summary?.hasInitialBase ?? false;
     final openTables = sessionsAsync.valueOrNull
             ?.where((s) => s.status == TableStatus.open)
             .length ??
         0;
-    final balance = walletAsync.valueOrNull?.availableBalance ?? 0;
 
     return Scaffold(
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
+          // ── Header con toggle día/noche ─────────────────────────────
           SliverToBoxAdapter(
             child: _fadeSlide(
               anim: _headerAnim,
@@ -111,9 +143,10 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
             ),
           ),
 
+          // ── Estado Financiero: Base vs. Deuda ────────────────────────
           SliverToBoxAdapter(
             child: _fadeSlide(
-              anim: _shiftBannerAnim,
+              anim: _baseDeudaAnim,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppDimensions.pagePaddingH,
@@ -121,15 +154,17 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
                   AppDimensions.pagePaddingH,
                   AppDimensions.space16,
                 ),
-                child: _ShiftBanner(
+                child: _BaseVsDeudaCard(
+                  summary: summary,
                   hasShift: hasShift,
-                  balance: balance,
                   isDark: isDark,
+                  onTap: () => context.go('/'),
                 ),
               ),
             ),
           ),
 
+          // ── Mini Stats Rápidas ──────────────────────────────────────
           SliverToBoxAdapter(
             child: _fadeSlide(
               anim: _statsAnim,
@@ -140,7 +175,7 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
                 child: _StatsRow(
                   openTables: openTables,
                   radarCount: radarCount,
-                  balance: balance,
+                  balance: summary?.availableBalance ?? 0,
                   isDark: isDark,
                 ),
               ),
@@ -151,6 +186,7 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
             child: SizedBox(height: AppDimensions.space20),
           ),
 
+          // ── Acciones Ergonómicas (Thumb Zone) ────────────────────────
           SliverToBoxAdapter(
             child: _fadeSlide(
               anim: _actionsAnim,
@@ -158,26 +194,15 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppDimensions.pagePaddingH,
                 ),
-                child: _QuickActions(isDark: isDark),
-              ),
-            ),
-          ),
-
-          if (!hasShift)
-            SliverToBoxAdapter(
-              child: _fadeSlide(
-                anim: _guideAnim,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimensions.pagePaddingH,
-                    AppDimensions.space24,
-                    AppDimensions.pagePaddingH,
-                    0,
-                  ),
-                  child: _NewUserGuide(isDark: isDark),
+                child: _ThumbZoneActions(
+                  isDark: isDark,
+                  openTables: openTables,
+                  radarCount: radarCount,
+                  onNewTable: _openNewTable,
                 ),
               ),
             ),
+          ),
 
           const SliverToBoxAdapter(
             child: SizedBox(height: AppDimensions.space64),
@@ -220,12 +245,11 @@ class _HeroHeader extends StatelessWidget {
         AppDimensions.pagePaddingH,
         MediaQuery.of(context).padding.top + AppDimensions.space16,
         AppDimensions.pagePaddingH,
-        AppDimensions.space24,
+        AppDimensions.space20,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Título + fecha
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,108 +265,42 @@ class _HeroHeader extends StatelessWidget {
                 Text(
                   dayLabel,
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: Colors.white.withOpacity(0.75),
+                    color: Colors.white.withValues(alpha: 0.75),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: AppDimensions.space12),
-          // Toggle tema + pill turno
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: 'Configuración',
-                    onPressed: () => context.push('/settings'),
-                    icon: Icon(Icons.settings_rounded,
-                        color: Colors.white.withOpacity(0.9)),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  const SizedBox(width: AppDimensions.space4),
-                  const _ThemeToggle(),
-                ],
-              ),
-              const SizedBox(height: AppDimensions.space8),
-              // Shift indicator pill
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeOutCubic,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: hasShift
-                      ? AppColors.statusGreen.withOpacity(0.18)
-                      : Colors.white.withOpacity(0.12),
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusFull),
-                  border: Border.all(
-                    color: hasShift
-                        ? AppColors.statusGreen.withOpacity(0.55)
-                        : Colors.white.withOpacity(0.35),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 400),
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: hasShift
-                            ? AppColors.statusGreen
-                            : Colors.white.withOpacity(0.6),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      hasShift ? 'Turno activo' : 'Sin turno',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: hasShift
-                            ? AppColors.statusGreen
-                            : Colors.white.withOpacity(0.8),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          const _ThemeModeToggle(),
         ],
       ),
     );
   }
 }
 
-// ── Theme Toggle animado ───────────────────────────────────────────────────────
+// ── Theme Mode Toggle ──────────────────────────────────────────────────────────
 
-class _ThemeToggle extends ConsumerStatefulWidget {
-  const _ThemeToggle();
+class _ThemeModeToggle extends ConsumerStatefulWidget {
+  const _ThemeModeToggle();
 
   @override
-  ConsumerState<_ThemeToggle> createState() => _ThemeToggleState();
+  ConsumerState<_ThemeModeToggle> createState() => _ThemeModeToggleState();
 }
 
-class _ThemeToggleState extends ConsumerState<_ThemeToggle>
+class _ThemeModeToggleState extends ConsumerState<_ThemeModeToggle>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 380),
-    );
-    // light mode → ctrl en 1.0; dark → 0.0
     final isDark = ref.read(themeModeProvider) != ThemeMode.light;
-    _ctrl.value = isDark ? 0.0 : 1.0;
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 250),
+      vsync: this,
+      value: isDark ? 0.0 : 1.0,
+    );
   }
 
   @override
@@ -365,7 +323,6 @@ class _ThemeToggleState extends ConsumerState<_ThemeToggle>
 
   @override
   Widget build(BuildContext context) {
-    // Sincronizar si el modo cambia desde afuera
     ref.listen(themeModeProvider, (_, next) {
       final goLight = next == ThemeMode.light;
       if (goLight && _ctrl.value < 1) _ctrl.forward();
@@ -378,7 +335,6 @@ class _ThemeToggleState extends ConsumerState<_ThemeToggle>
         animation: _ctrl,
         builder: (context, _) {
           final t = Curves.easeInOutCubic.transform(_ctrl.value);
-          // t=0 → oscuro, t=1 → claro
           final circleLeft = 3.0 + t * 27.0;
 
           return Container(
@@ -387,12 +343,12 @@ class _ThemeToggleState extends ConsumerState<_ThemeToggle>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
               color: Color.lerp(
-                const Color(0xFF3A2A0F), // oscuro: ámbar quemado
-                const Color(0xFFF7E9C9), // claro: crema ámbar
+                const Color(0xFF3A2A0F),
+                const Color(0xFFF7E9C9),
                 t,
               ),
               border: Border.all(
-                color: Colors.white.withOpacity(0.3 + t * 0.1),
+                color: Colors.white.withValues(alpha: 0.3 + t * 0.1),
                 width: 1.5,
               ),
             ),
@@ -407,8 +363,8 @@ class _ThemeToggleState extends ConsumerState<_ThemeToggle>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Color.lerp(
-                        AppColors.primaryLight,          // círculo oscuro: violeta claro
-                        const Color(0xFFF59E0B),         // círculo claro: ámbar
+                        AppColors.primaryLight,
+                        const Color(0xFFF59E0B),
                         t,
                       ),
                       boxShadow: [
@@ -418,7 +374,7 @@ class _ThemeToggleState extends ConsumerState<_ThemeToggle>
                             const Color(0xFFF59E0B),
                             t,
                           )!
-                              .withOpacity(0.5),
+                              .withValues(alpha: 0.5),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -442,22 +398,24 @@ class _ThemeToggleState extends ConsumerState<_ThemeToggle>
   }
 }
 
-// ── Shift Banner ───────────────────────────────────────────────────────────────
+// ── Estado Financiero: Base vs. Deuda ──────────────────────────────────────────
 
-class _ShiftBanner extends StatelessWidget {
-  const _ShiftBanner({
+class _BaseVsDeudaCard extends StatelessWidget {
+  const _BaseVsDeudaCard({
+    required this.summary,
     required this.hasShift,
-    required this.balance,
     required this.isDark,
+    required this.onTap,
   });
 
+  final WalletSummary? summary;
   final bool hasShift;
-  final int balance;
   final bool isDark;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    if (hasShift) {
+    if (!hasShift || summary == null) {
       return Container(
         margin: const EdgeInsets.only(top: AppDimensions.space16),
         padding: const EdgeInsets.all(AppDimensions.space16),
@@ -465,113 +423,260 @@ class _ShiftBanner extends StatelessWidget {
           color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
           border: Border.all(
-            color: isDark
-                ? AppColors.primary.withOpacity(0.3)
-                : AppColors.lightOutline,
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 1.5,
           ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppDimensions.space10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.savings_rounded,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
               ),
-              child: const Icon(
-                Icons.account_balance_wallet_rounded,
-                color: AppColors.primary,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: AppDimensions.space12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'SALDO DISPONIBLE',
-                    style: AppTextStyles.statusBadge.copyWith(
-                      color: isDark
-                          ? AppColors.darkOnSurfaceVariant
-                          : AppColors.lightOnSurfaceVariant,
+              const SizedBox(width: AppDimensions.space12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Turno no iniciado',
+                      style: AppTextStyles.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  AnimatedAmount(
-                    amount: balance,
-                    style: AppTextStyles.receiptTotal.copyWith(
-                      fontSize: 22,
-                      color: balance >= 0
-                          ? AppColors.statusGreen
-                          : AppColors.statusRed,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Toca para registrar tu base inicial (\$300.000).',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: isDark
+                            ? AppColors.darkOnSurfaceVariant
+                            : AppColors.lightOnSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+            ],
+          ),
         ),
       );
     }
 
-    // Sin turno — tarjeta de bienvenida
+    final balance = summary!.availableBalance;
+    final isNegative = balance < 0;
+
     return Container(
       margin: const EdgeInsets.only(top: AppDimensions.space16),
-      padding: const EdgeInsets.all(AppDimensions.space16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [AppColors.darkSurface, AppColors.darkSurfaceVariant]
-              : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.25),
+          color: isNegative
+              ? AppColors.statusRed.withValues(alpha: 0.5)
+              : (isDark
+                  ? AppColors.primary.withValues(alpha: 0.25)
+                  : AppColors.lightOutline),
+          width: isNegative ? 1.5 : 1.0,
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.wb_sunny_rounded,
-            color: AppColors.secondary,
-            size: 32,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(width: AppDimensions.space12),
-          Expanded(
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimensions.space16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '¡Bienvenido!',
-                  style: AppTextStyles.titleMedium.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnBackground
-                        : AppColors.lightOnSurface,
-                    fontWeight: FontWeight.w800,
-                  ),
+                // Fila superior: Título y Pill de Turno Activo
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 16,
+                          color: AppColors.brand,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'CONTROL DE BILLETERA',
+                          style: AppTextStyles.statusBadge.copyWith(
+                            color: isDark
+                                ? AppColors.darkOnSurfaceVariant
+                                : AppColors.lightOnSurfaceVariant,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusGreen.withValues(alpha: 0.12),
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusSm),
+                      ),
+                      child: Text(
+                        'TURNO ACTIVO',
+                        style: AppTextStyles.statusBadge.copyWith(
+                          color: AppColors.statusGreen,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'Ve a Billetera para iniciar tu turno.',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
-                  ),
+                const SizedBox(height: AppDimensions.space12),
+
+                // Dos columnas financieras: Base vs. Deuda
+                Row(
+                  children: [
+                    // Columna 1: Base Comprometida
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'BASE CAPITAL',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: isDark
+                                  ? AppColors.darkOnSurfaceVariant
+                                  : AppColors.lightOnSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          AnimatedAmount(
+                            amount: summary!.baseCapital,
+                            style: AppTextStyles.headlineSmall.copyWith(
+                              color: AppColors.brand,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Saldo: ${balance.toCop}',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: isNegative
+                                  ? AppColors.statusRed
+                                  : AppColors.statusGreen,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Container(
+                      height: 48,
+                      width: 1,
+                      color: isDark
+                          ? AppColors.darkOutline
+                          : AppColors.lightOutline,
+                    ),
+                    const SizedBox(width: AppDimensions.space12),
+
+                    // Columna 2: Deuda Total
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'DEUDA AL LOCAL',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: isDark
+                                  ? AppColors.darkOnSurfaceVariant
+                                  : AppColors.lightOnSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          AnimatedAmount(
+                            amount: summary!.totalDebt,
+                            style: AppTextStyles.headlineSmall.copyWith(
+                              color: AppColors.statusRed,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'A responder en cierre',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: isDark
+                                  ? AppColors.darkOnSurfaceVariant
+                                  : AppColors.lightOnSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
+
+                // Alerta dinámica si el saldo es negativo
+                if (isNegative) ...[
+                  const SizedBox(height: AppDimensions.space12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.statusRed.withValues(alpha: 0.1),
+                      borderRadius:
+                          BorderRadius.circular(AppDimensions.radiusSm),
+                      border: Border.all(
+                        color: AppColors.statusRed.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            color: AppColors.statusRed, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Saldo negativo. ¿Subiste base en caja? Toca para ver.',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.statusRed,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-// ── Stats Row ──────────────────────────────────────────────────────────────────
+// ── Mini Stats Row ─────────────────────────────────────────────────────────────
 
 class _StatsRow extends StatelessWidget {
   const _StatsRow({
@@ -615,11 +720,10 @@ class _StatsRow extends StatelessWidget {
         const SizedBox(width: AppDimensions.space10),
         Expanded(
           child: _StatCard(
-            icon: Icons.monetization_on_rounded,
+            icon: Icons.account_balance_wallet_rounded,
             label: 'Saldo',
             value: balance == 0 ? '--' : balance.toCop,
-            accent:
-                balance >= 0 ? AppColors.statusGreen : AppColors.statusRed,
+            accent: balance >= 0 ? AppColors.statusGreen : AppColors.statusRed,
             isDark: isDark,
             onTap: () => context.go('/'),
           ),
@@ -648,78 +752,90 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.space12,
-          vertical: AppDimensions.space12,
-        ),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          border: Border.all(
-            color: accent.withOpacity(0.35),
+    return Material(
+      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.space10,
+            vertical: AppDimensions.space12,
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: accent, size: 20),
-            const SizedBox(height: AppDimensions.space6),
-            Text(
-              value,
-              style: AppTextStyles.headlineSmall.copyWith(
-                color: accent,
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            border: Border.all(
+              color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: isDark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant,
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: accent, size: 20),
+              const SizedBox(height: AppDimensions.space6),
+              Text(
+                value,
+                style: AppTextStyles.labelMedium.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: isDark
+                      ? AppColors.darkOnBackground
+                      : AppColors.lightOnBackground,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: isDark
+                      ? AppColors.darkOnSurfaceVariant
+                      : AppColors.lightOnSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Quick Actions ──────────────────────────────────────────────────────────────
-//
-// 3 filas de uso diario siempre visibles + una sección "Más opciones" plegable
-// para lo ocasional (Captura suelta, Comprobantes, Ajustes) — reduce el scroll
-// por defecto sin esconder nada de forma permanente.
+// ── Acciones Ergonómicas (Thumb Zone) ──────────────────────────────────────────
 
-class _QuickActions extends ConsumerStatefulWidget {
-  const _QuickActions({required this.isDark});
+class _ThumbZoneActions extends ConsumerStatefulWidget {
+  const _ThumbZoneActions({
+    required this.isDark,
+    required this.openTables,
+    required this.radarCount,
+    required this.onNewTable,
+  });
 
   final bool isDark;
+  final int openTables;
+  final int radarCount;
+  final VoidCallback onNewTable;
 
   @override
-  ConsumerState<_QuickActions> createState() => _QuickActionsState();
+  ConsumerState<_ThumbZoneActions> createState() => _ThumbZoneActionsState();
 }
 
-class _QuickActionsState extends ConsumerState<_QuickActions> {
+class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
   bool _showMore = false;
 
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
     final pendingTransfers = ref.watch(pendingTransfersProvider).length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'ACCIONES RÁPIDAS',
+          'ACCIONES PRINCIPALES (PULGAR)',
           style: AppTextStyles.statusBadge.copyWith(
             color: isDark
                 ? AppColors.darkOnSurfaceVariant
@@ -728,73 +844,71 @@ class _QuickActionsState extends ConsumerState<_QuickActions> {
           ),
         ),
         const SizedBox(height: AppDimensions.space12),
+
+        // ── 1. BOTÓN AMPLIO: NUEVA MESA ───────────────────────────────
+        _ThumbZoneHeroButton(
+          title: 'NUEVA MESA',
+          subtitle: 'Asignar mesa y abrir comanda al instante',
+          icon: Icons.add_circle_rounded,
+          gradient: const [AppColors.primary, AppColors.primaryDark],
+          onTap: widget.onNewTable,
+        ),
+        const SizedBox(height: AppDimensions.space12),
+
+        // ── 2. FILA DE BOTONES: EL RADAR + CÁMARA RÁPIDA ──────────────
+        Row(
+          children: [
+            // EL RADAR
+            Expanded(
+              child: _ThumbZoneTile(
+                title: 'EL RADAR',
+                subtitle: 'Pedidos en cocina',
+                icon: Icons.pending_actions_rounded,
+                badgeText: widget.radarCount > 0 ? '${widget.radarCount}' : null,
+                badgeColor: AppColors.statusOrange,
+                gradient: const [
+                  Color(0xFFE89020),
+                  Color(0xFFBA6910),
+                ],
+                onTap: () => context.go('/radar'),
+              ),
+            ),
+            const SizedBox(width: AppDimensions.space12),
+
+            // CÁMARA RÁPIDA
+            Expanded(
+              child: _ThumbZoneTile(
+                title: 'CÁMARA',
+                subtitle: 'Comprobante suelto',
+                icon: Icons.camera_alt_rounded,
+                badgeText: '⚡ Suelta',
+                badgeColor: Colors.black26,
+                gradient: const [
+                  Color(0xFF0288D1),
+                  Color(0xFF01579B),
+                ],
+                onTap: () => context.push('/transferencias/captura-suelta'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppDimensions.space16),
+
+        // ── 3. GRID SECUNDARIO ────────────────────────────────────────
         Row(
           children: [
             Expanded(
               child: _ActionCard(
                 icon: Icons.table_restaurant_rounded,
                 title: 'Mesas',
-                subtitle: 'Abrir y gestionar',
-                gradient: [AppColors.primary, AppColors.primaryDark],
+                subtitle: '${widget.openTables} abiertas',
+                gradient: isDark
+                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
+                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
+                textColor: isDark
+                    ? AppColors.darkOnBackground
+                    : AppColors.lightOnSurface,
                 onTap: () => context.go('/tables'),
-              ),
-            ),
-            const SizedBox(width: AppDimensions.space12),
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.receipt_long_rounded,
-                title: 'Pedidos',
-                subtitle: 'Ver en cocina',
-                gradient: [AppColors.secondary, AppColors.secondaryDark],
-                onTap: () => context.go('/radar'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppDimensions.space12),
-        Row(
-          children: [
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.account_balance_wallet_rounded,
-                title: 'Billetera',
-                subtitle: 'Saldo y turno',
-                gradient: isDark
-                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
-                textColor: isDark
-                    ? AppColors.darkOnBackground
-                    : AppColors.lightOnSurface,
-                onTap: () => context.go('/'),
-              ),
-            ),
-            const SizedBox(width: AppDimensions.space12),
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.lock_clock_rounded,
-                title: 'Cierre',
-                subtitle: 'Finalizar turno',
-                gradient: isDark
-                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
-                textColor: isDark
-                    ? AppColors.darkOnBackground
-                    : AppColors.lightOnSurface,
-                onTap: () => context.go('/cierre'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppDimensions.space12),
-        Row(
-          children: [
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.restaurant_menu_rounded,
-                title: 'Menú',
-                subtitle: 'Productos y categorías',
-                gradient: const [AppColors.primary, AppColors.primaryDark],
-                onTap: () => context.push('/products'),
               ),
             ),
             const SizedBox(width: AppDimensions.space12),
@@ -806,10 +920,13 @@ class _QuickActionsState extends ConsumerState<_QuickActions> {
                     : 'Legalizar',
                 subtitle: 'Transferencias en caja',
                 gradient: pendingTransfers > 0
-                    ? const [Color(0xFFE0872C), Color(0xFFB0651A)]
+                    ? const [Color(0xFFE65100), Color(0xFFBF360C)]
                     : (isDark
                         ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                        : [AppColors.lightSurfaceVariant, AppColors.lightSurface]),
+                        : [
+                            AppColors.lightSurfaceVariant,
+                            AppColors.lightSurface
+                          ]),
                 textColor: pendingTransfers > 0
                     ? Colors.white
                     : (isDark
@@ -820,8 +937,43 @@ class _QuickActionsState extends ConsumerState<_QuickActions> {
             ),
           ],
         ),
+        const SizedBox(height: AppDimensions.space12),
 
-        // ── Más opciones (plegable) ──────────────────────────────────
+        Row(
+          children: [
+            Expanded(
+              child: _ActionCard(
+                icon: Icons.restaurant_menu_rounded,
+                title: 'Menú',
+                subtitle: 'Productos y precios',
+                gradient: isDark
+                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
+                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
+                textColor: isDark
+                    ? AppColors.darkOnBackground
+                    : AppColors.lightOnSurface,
+                onTap: () => context.push('/products'),
+              ),
+            ),
+            const SizedBox(width: AppDimensions.space12),
+            Expanded(
+              child: _ActionCard(
+                icon: Icons.lock_clock_rounded,
+                title: 'Cierre',
+                subtitle: 'Arqueo de turno',
+                gradient: isDark
+                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
+                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
+                textColor: isDark
+                    ? AppColors.darkOnBackground
+                    : AppColors.lightOnSurface,
+                onTap: () => context.go('/cierre'),
+              ),
+            ),
+          ],
+        ),
+
+        // ── 4. MÁS OPCIONES (PLEGABLE) ────────────────────────────────
         const SizedBox(height: AppDimensions.space12),
         InkWell(
           onTap: () => setState(() => _showMore = !_showMore),
@@ -860,83 +1012,287 @@ class _QuickActionsState extends ConsumerState<_QuickActions> {
                   children: [
                     Expanded(
                       child: _ActionCard(
-                        icon: Icons.add_a_photo_rounded,
-                        title: 'Captura suelta',
-                        subtitle: 'Comprobante sin mesa',
-                        gradient: const [Color(0xFF1976D2), Color(0xFF0D47A1)],
-                        onTap: () =>
-                            context.push('/transferencias/captura-suelta'),
-                      ),
-                    ),
-                    const SizedBox(width: AppDimensions.space12),
-                    Expanded(
-                      child: _ActionCard(
                         icon: Icons.photo_library_rounded,
                         title: 'Comprobantes',
-                        subtitle: 'Ver fotos guardadas',
+                        subtitle: 'Fotos guardadas',
                         gradient: isDark
-                            ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                            : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
+                            ? [
+                                AppColors.darkSurfaceVariant,
+                                AppColors.darkOutline
+                              ]
+                            : [
+                                AppColors.lightSurfaceVariant,
+                                AppColors.lightSurface
+                              ],
                         textColor: isDark
                             ? AppColors.darkOnBackground
                             : AppColors.lightOnSurface,
                         onTap: () => context.push('/comprobantes'),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: AppDimensions.space12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionCard(
-                        icon: Icons.bar_chart_rounded,
-                        title: 'Reportes',
-                        subtitle: 'Turnos y ganancia',
-                        gradient: isDark
-                            ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                            : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
-                        textColor: isDark
-                            ? AppColors.darkOnBackground
-                            : AppColors.lightOnSurface,
-                        onTap: () => context.push('/reportes'),
-                      ),
-                    ),
                     const SizedBox(width: AppDimensions.space12),
                     Expanded(
                       child: _ActionCard(
-                        icon: Icons.settings_rounded,
-                        title: 'Ajustes',
-                        subtitle: 'Bar, base y tema',
+                        icon: Icons.history_rounded,
+                        title: 'Historial',
+                        subtitle: 'Turnos anteriores',
                         gradient: isDark
-                            ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                            : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
+                            ? [
+                                AppColors.darkSurfaceVariant,
+                                AppColors.darkOutline
+                              ]
+                            : [
+                                AppColors.lightSurfaceVariant,
+                                AppColors.lightSurface
+                              ],
                         textColor: isDark
                             ? AppColors.darkOnBackground
                             : AppColors.lightOnSurface,
-                        onTap: () => context.push('/settings'),
+                        onTap: () => context.push('/cierre/historial'),
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: AppDimensions.space12),
+                _ActionCard(
+                  icon: Icons.settings_rounded,
+                  title: 'Configuración',
+                  subtitle: 'Ajustes de la app',
+                  gradient: isDark
+                      ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
+                      : [
+                          AppColors.lightSurfaceVariant,
+                          AppColors.lightSurface
+                        ],
+                  textColor: isDark
+                      ? AppColors.darkOnBackground
+                      : AppColors.lightOnSurface,
+                  onTap: () => context.push('/settings'),
                 ),
               ],
             ),
           ),
-          secondChild: const SizedBox(width: double.infinity),
+          secondChild: const SizedBox.shrink(),
         ),
       ],
     );
   }
 }
 
-class _ActionCard extends StatefulWidget {
+// ── Botón Héroe Amplio (Thumb Zone) ───────────────────────────────────────────
+
+class _ThumbZoneHeroButton extends StatelessWidget {
+  const _ThumbZoneHeroButton({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.gradient,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<Color> gradient;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 68,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        boxShadow: [
+          BoxShadow(
+            color: gradient.first.withValues(alpha: 0.35),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
+              children: [
+                Icon(icon, color: Colors.white, size: 30),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white70,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tile Mediano Amplio (Thumb Zone) ──────────────────────────────────────────
+
+class _ThumbZoneTile extends StatelessWidget {
+  const _ThumbZoneTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.gradient,
+    required this.onTap,
+    this.badgeText,
+    this.badgeColor,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<Color> gradient;
+  final VoidCallback onTap;
+  final String? badgeText;
+  final Color? badgeColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 68,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        boxShadow: [
+          BoxShadow(
+            color: gradient.first.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Icon(icon, color: Colors.white, size: 26),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              style: AppTextStyles.labelMedium.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (badgeText != null) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: badgeColor ?? Colors.white24,
+                                borderRadius: BorderRadius.circular(
+                                    AppDimensions.radiusFull),
+                              ),
+                              child: Text(
+                                badgeText!,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tarjeta de Acción Estándar ─────────────────────────────────────────────────
+
+class _ActionCard extends StatelessWidget {
   const _ActionCard({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.gradient,
     required this.onTap,
-    this.textColor = Colors.white,
+    this.textColor,
   });
 
   final IconData icon;
@@ -944,215 +1300,70 @@ class _ActionCard extends StatefulWidget {
   final String subtitle;
   final List<Color> gradient;
   final VoidCallback onTap;
-  final Color textColor;
-
-  @override
-  State<_ActionCard> createState() => _ActionCardState();
-}
-
-class _ActionCardState extends State<_ActionCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pressCtrl;
-  late Animation<double> _scaleAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _pressCtrl = AnimationController(
-      duration: const Duration(milliseconds: 120),
-      vsync: this,
-    );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _pressCtrl, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _pressCtrl.dispose();
-    super.dispose();
-  }
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _pressCtrl.forward(),
-      onTapUp: (_) {
-        _pressCtrl.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _pressCtrl.reverse(),
-      child: ScaleTransition(
-        scale: _scaleAnim,
-        child: Container(
-          padding: const EdgeInsets.all(AppDimensions.space16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: widget.gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(widget.icon, color: widget.textColor, size: 28),
-              const SizedBox(height: AppDimensions.space10),
-              Text(
-                widget.title,
-                style: AppTextStyles.titleMedium.copyWith(
-                  color: widget.textColor,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                widget.subtitle,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: widget.textColor.withOpacity(0.75),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+    final fg = textColor ?? Colors.white;
 
-// ── New-user guide ─────────────────────────────────────────────────────────────
-
-class _NewUserGuide extends StatelessWidget {
-  const _NewUserGuide({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'CÓMO EMPEZAR',
-          style: AppTextStyles.statusBadge.copyWith(
-            color: isDark
-                ? AppColors.darkOnSurfaceVariant
-                : AppColors.lightOnSurfaceVariant,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: AppDimensions.space12),
-        _GuideStep(
-          step: '1',
-          icon: Icons.account_balance_wallet_rounded,
-          title: 'Inicia tu turno',
-          desc: 'Ve a Billetera y pulsa "Iniciar Turno" para activar tu base.',
-          isDark: isDark,
-        ),
-        const SizedBox(height: AppDimensions.space8),
-        _GuideStep(
-          step: '2',
-          icon: Icons.table_restaurant_rounded,
-          title: 'Abre una mesa',
-          desc: 'En Mesas, pulsa + para abrir una mesa y asígnale un apodo.',
-          isDark: isDark,
-        ),
-        const SizedBox(height: AppDimensions.space8),
-        _GuideStep(
-          step: '3',
-          icon: Icons.add_shopping_cart_rounded,
-          title: 'Agrega pedidos',
-          desc: 'Desde la mesa, añade productos. Aparecerán en Pedidos (cocina).',
-          isDark: isDark,
-        ),
-        const SizedBox(height: AppDimensions.space8),
-        _GuideStep(
-          step: '4',
-          icon: Icons.payments_rounded,
-          title: 'Cobra y cierra',
-          desc: 'Cuando el cliente pague, ve a Cobrar y registra el pago.',
-          isDark: isDark,
-        ),
-      ],
-    );
-  }
-}
-
-class _GuideStep extends StatelessWidget {
-  const _GuideStep({
-    required this.step,
-    required this.icon,
-    required this.title,
-    required this.desc,
-    required this.isDark,
-  });
-
-  final String step;
-  final IconData icon;
-  final String title;
-  final String desc;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppDimensions.space12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        border: Border.all(
-          color: isDark
-              ? AppColors.darkOutlineVariant
-              : AppColors.lightOutlineVariant,
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-            ),
-            child: Center(
-              child: Text(
-                step,
-                style: AppTextStyles.headlineSmall.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
-              ),
-            ),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(width: AppDimensions.space12),
-          Icon(icon, color: AppColors.primary, size: 20),
-          const SizedBox(width: AppDimensions.space10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimensions.space12),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: AppTextStyles.labelLarge.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurface
-                        : AppColors.lightOnSurface,
-                  ),
-                ),
-                Text(
-                  desc,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
+                Icon(icon, color: fg, size: 24),
+                const SizedBox(width: AppDimensions.space10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: fg,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: fg.withValues(alpha: 0.75),
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

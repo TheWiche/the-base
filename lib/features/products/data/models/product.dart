@@ -28,6 +28,9 @@ class Product {
   /// Solo aplica cuando [isComposable] es true.
   List<String> baseCategories = [];
 
+  /// Modificadores o notas predeterminadas (ej. ["Sin alcohol", "Poco hielo", "Hierbabuena extra"]).
+  List<String> defaultNotes = [];
+
   /// True for Licores / Vinos / Descorche — triggers the special debt rule.
   /// Standard cocktails and beers are false.
   late bool isLiquor;

@@ -11,6 +11,7 @@ final class ProductEntity {
     this.subcategory,
     this.isComposable = false,
     this.baseCategories = const [],
+    this.defaultNotes = const [],
   });
 
   final int id;
@@ -30,6 +31,9 @@ final class ProductEntity {
 
   /// Categorías cuyos productos sirven de base.
   final List<String> baseCategories;
+
+  /// Modificadores o notas predeterminadas (ej. ["Sin alcohol", "Poco hielo", "Hierbabuena extra"]).
+  final List<String> defaultNotes;
 
   /// Whether the product follows the liquor debt rule instead of reducing
   /// the waiter's active balance.

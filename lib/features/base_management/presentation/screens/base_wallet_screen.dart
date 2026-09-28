@@ -13,8 +13,6 @@ import '../../../../core/widgets/animated_amount.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
-import '../../../orders/domain/entities/order_item_entity.dart';
-import '../../../orders/presentation/providers/order_providers.dart';
 import '../../domain/entities/wallet_summary.dart';
 import '../providers/base_wallet_providers.dart';
 import '../widgets/financial_metric_card.dart';
@@ -77,13 +75,26 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
   }
 
   Future<void> _handleRequestDecrease() async {
-    final amount = ref.read(financialSettingsProvider).incrementStep;
-    final confirmed = await _showDecreaseConfirmation(amount);
-    if (!confirmed || !mounted) return;
+    final summary = ref.read(baseWalletProvider).valueOrNull;
+    final maxAllowed = summary?.netIncreases ?? 0;
+    if (maxAllowed <= 0) {
+      _showError('No tienes incrementos registrados para descargar.');
+      return;
+    }
+
+    final amount = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _DecreaseBaseSheet(maxAllowed: maxAllowed),
+    );
+
+    if (amount == null || amount <= 0 || !mounted) return;
 
     setState(() => _isActionLoading = true);
-    final failure =
-        await ref.read(baseWalletProvider.notifier).requestDecrease();
+    final failure = await ref
+        .read(baseWalletProvider.notifier)
+        .requestDecrease(amount: amount);
     if (!mounted) return;
     setState(() => _isActionLoading = false);
 
@@ -99,19 +110,6 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
           context: context,
           barrierDismissible: false,
           builder: (ctx) => _IncreaseConfirmationDialog(
-            amount: amount,
-            onConfirm: () => Navigator.of(ctx).pop(true),
-            onCancel: () => Navigator.of(ctx).pop(false),
-          ),
-        ) ??
-        false;
-  }
-
-  Future<bool> _showDecreaseConfirmation(int amount) async {
-    return await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => _DecreaseConfirmationDialog(
             amount: amount,
             onConfirm: () => Navigator.of(ctx).pop(true),
             onCancel: () => Navigator.of(ctx).pop(false),
@@ -412,6 +410,12 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (widget.summary.availableBalance < 0) ...[
+                        _NegativeBalanceAlert(
+                          onTap: widget.onRequestIncrease,
+                        ),
+                        const SizedBox(height: AppDimensions.space16),
+                      ],
                       MetricCardRow(
                         left: FinancialMetricCard(
                           label: AppStrings.baseLabel,
@@ -472,11 +476,8 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
                       _DecrementoButton(
                         isLoading: widget.isActionLoading,
                         isEnabled: widget.summary.canRequestDecrease,
-                        amount: widget.incrementStep,
                         onPressed: widget.onRequestDecrease,
                       ),
-                      const SizedBox(height: AppDimensions.space12),
-                      const _PagarBotellaButton(),
                       const SizedBox(height: AppDimensions.space64),
                     ],
                   ),
@@ -682,112 +683,75 @@ class _EmptyTransactions extends StatelessWidget {
   }
 }
 
-// ── Pagar Botella button (#7) ──────────────────────────────────────────────────
+// ── Negative Balance Alert ───────────────────────────────────────────────────
 
-class _PagarBotellaButton extends ConsumerWidget {
-  const _PagarBotellaButton();
+class _NegativeBalanceAlert extends StatelessWidget {
+  const _NegativeBalanceAlert({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bottles = ref.watch(unpaidLiquorItemsProvider).valueOrNull ?? [];
-    final count = bottles.length;
-    final has = count > 0;
-
-    return SizedBox(
-      width: double.infinity,
-      height: AppDimensions.buttonHeightMd,
-      child: OutlinedButton.icon(
-        onPressed: has ? () => _showPicker(context, ref, bottles) : null,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: has
-                ? AppColors.statusPurple
-                : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
-            width: has ? 2.0 : 1.5,
-          ),
-          backgroundColor:
-              has ? AppColors.statusPurple.withOpacity(0.06) : Colors.transparent,
-        ),
-        icon: Badge(
-          isLabelVisible: has,
-          label: Text('$count'),
-          backgroundColor: AppColors.statusPurple,
-          child: Icon(Icons.wine_bar_rounded,
-              color: has
-                  ? AppColors.statusPurple
-                  : (isDark
-                      ? AppColors.darkOnSurfaceVariant
-                      : AppColors.lightOnSurfaceVariant)),
-        ),
-        label: Text(
-          has ? 'Pagar Botella ($count)' : 'Sin botellas por pagar',
-          style: AppTextStyles.labelLarge.copyWith(
-            color: has
-                ? AppColors.statusPurple
-                : (isDark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showPicker(
-    BuildContext context,
-    WidgetRef ref,
-    List<OrderItemEntity> bottles,
-  ) {
-    showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('Completar botella',
-                  style: AppTextStyles.headlineSmall),
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppDimensions.space12),
+          decoration: BoxDecoration(
+            color: AppColors.statusRed.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            border: Border.all(
+              color: AppColors.statusRed.withOpacity(0.4),
+              width: 1.5,
             ),
-            Text(
-              'Baja la deuda de licor. No entra a tu saldo/efectivo.',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.lightOnSurfaceVariant,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppDimensions.space8),
+                decoration: BoxDecoration(
+                  color: AppColors.statusRed.withOpacity(0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.statusRed,
+                  size: 24,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  for (final b in bottles)
-                    ListTile(
-                      leading: const Icon(Icons.wine_bar_rounded,
-                          color: AppColors.statusPurple),
-                      title: Text(b.productName, style: AppTextStyles.bodyMedium),
-                      subtitle: Text('Mesa ${b.tableSessionId} · ${b.lineTotal.toCop}',
-                          style: AppTextStyles.bodySmall),
-                      trailing: const Icon(Icons.check_circle_outline_rounded),
-                      onTap: () async {
-                        Navigator.of(ctx).pop();
-                        final failure =
-                            await ref.read(settleLiquorActionProvider)(b.id);
-                        if (!context.mounted) return;
-                        if (failure != null) {
-                          AppToast.error(context, failure.message);
-                        } else {
-                          AppToast.success(
-                              context, 'Botella completada: ${b.productName}');
-                        }
-                      },
+              const SizedBox(width: AppDimensions.space12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Saldo Negativo',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: AppColors.statusRed,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      '¿Subiste de base en caja y olvidaste anotarla? Toca aquí para registrar aumento',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.statusRed,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-          ],
+              const SizedBox(width: AppDimensions.space8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.statusRed,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -799,13 +763,11 @@ class _PagarBotellaButton extends ConsumerWidget {
 class _DecrementoButton extends StatelessWidget {
   const _DecrementoButton({
     required this.onPressed,
-    required this.amount,
     this.isLoading = false,
     this.isEnabled = true,
   });
 
   final VoidCallback onPressed;
-  final int amount;
   final bool isLoading;
   final bool isEnabled;
 
@@ -848,7 +810,7 @@ class _DecrementoButton extends StatelessWidget {
                 )
               : const Icon(Icons.trending_down_rounded),
           label: Text(
-            'BAJAR BASE  −${amount.toCop}',
+            'BAJAR BASE A CAJA',
             style: AppTextStyles.labelLarge.copyWith(
               color: canTap
                   ? AppColors.statusOrange
@@ -946,87 +908,268 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
   }
 }
 
-// ── Decrease confirmation dialog ───────────────────────────────────────────────
+// ── Decrease Base Bottom Sheet ─────────────────────────────────────────────────
 
-class _DecreaseConfirmationDialog extends StatelessWidget {
-  const _DecreaseConfirmationDialog({
-    required this.amount,
-    required this.onConfirm,
-    required this.onCancel,
-  });
+class _DecreaseBaseSheet extends StatefulWidget {
+  const _DecreaseBaseSheet({required this.maxAllowed});
 
-  final int amount;
-  final VoidCallback onConfirm;
-  final VoidCallback onCancel;
+  final int maxAllowed;
+
+  @override
+  State<_DecreaseBaseSheet> createState() => _DecreaseBaseSheetState();
+}
+
+class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
+  late final TextEditingController _controller;
+  int _amount = 0;
+
+  static const List<int> _quickAmounts = [
+    100000,
+    200000,
+    300000,
+    400000,
+    500000,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.maxAllowed >= 100000 ? 100000 : widget.maxAllowed;
+    _amount = initial;
+    _controller = TextEditingController(text: initial > 0 ? '$initial' : '');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _selectAmount(int val) {
+    setState(() {
+      _amount = val;
+      _controller.text = val.toString();
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final time =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isValid = _amount > 0 && _amount <= widget.maxAllowed;
+    final isExceeded = _amount > widget.maxAllowed;
 
-    return AlertDialog(
-      icon: const Icon(
-        Icons.trending_down_rounded,
-        color: AppColors.statusOrange,
-        size: AppDimensions.iconXl,
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppDimensions.radiusLg),
+        ),
       ),
-      title: Text(
-        '¿Bajar Base?',
-        style: AppTextStyles.headlineSmall,
-        textAlign: TextAlign.center,
+      padding: EdgeInsets.fromLTRB(
+        AppDimensions.pagePaddingH,
+        AppDimensions.space16,
+        AppDimensions.pagePaddingH,
+        AppDimensions.pagePaddingH + MediaQuery.of(context).viewInsets.bottom,
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Se reducirán ${amount.toCop} de tu base.\nEsta acción quedará registrada con la hora exacta.',
-            style: AppTextStyles.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppDimensions.space16),
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.space12, vertical: AppDimensions.space10),
-            decoration: BoxDecoration(
-              color: AppColors.statusOrange.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              border: Border.all(color: AppColors.statusOrange.withOpacity(0.35)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.schedule_rounded,
-                    color: AppColors.statusOrange, size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  time,
-                  style: AppTextStyles.mono.copyWith(color: AppColors.statusOrange),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: (isDark
+                            ? AppColors.darkOutline
+                            : AppColors.lightOutline)
+                        .withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppDimensions.space20),
-          SizedBox(
-            height: AppDimensions.buttonHeightLg,
-            child: FilledButton(
-              onPressed: onConfirm,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.statusOrange,
-                foregroundColor: Colors.white,
               ),
-              child: const Text(AppStrings.actionConfirm),
-            ),
+              const SizedBox(height: AppDimensions.space16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppDimensions.space8),
+                    decoration: BoxDecoration(
+                      color: AppColors.statusOrange.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.trending_down_rounded,
+                      color: AppColors.statusOrange,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: AppDimensions.space12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Bajar Base a Caja',
+                            style: AppTextStyles.titleLarge),
+                        Text(
+                          'Disponible para bajar: ${widget.maxAllowed.toCop}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: isDark
+                                ? AppColors.darkOnSurfaceVariant
+                                : AppColors.lightOnSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDimensions.space16),
+
+              // Chips rápidos ($100k, $200k, $300k, $400k, $500k)
+              Text(
+                'Montos rápidos',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: isDark
+                      ? AppColors.darkOnSurfaceVariant
+                      : AppColors.lightOnSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final q in _quickAmounts)
+                    ActionChip(
+                      label: Text('\$${q ~/ 1000}k'),
+                      avatar: q == _amount
+                          ? const Icon(Icons.check_rounded, size: 16)
+                          : null,
+                      backgroundColor: q == _amount
+                          ? AppColors.statusOrange.withOpacity(0.2)
+                          : null,
+                      side: BorderSide(
+                        color: q == _amount
+                            ? AppColors.statusOrange
+                            : (isDark
+                                ? AppColors.darkOutline
+                                : AppColors.lightOutline),
+                        width: q == _amount ? 1.5 : 1,
+                      ),
+                      labelStyle: TextStyle(
+                        fontWeight: q == _amount
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: q == _amount ? AppColors.statusOrange : null,
+                      ),
+                      onPressed: () => _selectAmount(q),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppDimensions.space16),
+
+              // Campo numérico directo
+              Text(
+                'O escribe el valor exacto:',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: isDark
+                      ? AppColors.darkOnSurfaceVariant
+                      : AppColors.lightOnSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space8),
+              TextField(
+                controller: _controller,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  prefixText: '\$ ',
+                  prefixStyle: AppTextStyles.headlineSmall.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  hintText: '0',
+                  suffixIcon: _controller.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded),
+                          onPressed: () {
+                            _controller.clear();
+                            setState(() => _amount = 0);
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: isDark
+                      ? AppColors.darkBackground
+                      : AppColors.lightBackground,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  ),
+                  errorText: isExceeded
+                      ? 'No puedes descargar más de ${widget.maxAllowed.toCop}'
+                      : null,
+                ),
+                style: AppTextStyles.headlineSmall.copyWith(
+                  color: AppColors.statusOrange,
+                  fontWeight: FontWeight.bold,
+                ),
+                onChanged: (val) {
+                  setState(() {
+                    _amount = int.tryParse(val) ?? 0;
+                  });
+                },
+              ),
+              const SizedBox(height: AppDimensions.space8),
+              if (!isExceeded && isValid)
+                Text(
+                  'Quedarán en base por descargar: ${(widget.maxAllowed - _amount).toCop}',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: isDark
+                        ? AppColors.darkOnSurfaceVariant
+                        : AppColors.lightOnSurfaceVariant,
+                  ),
+                ),
+              const SizedBox(height: AppDimensions.space20),
+
+              // Botón de confirmación
+              SizedBox(
+                height: AppDimensions.buttonHeightLg,
+                child: FilledButton.icon(
+                  onPressed: isValid
+                      ? () {
+                          HapticFeedback.mediumImpact();
+                          Navigator.of(context).pop(_amount);
+                        }
+                      : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.statusOrange,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  label: Text(
+                    isValid
+                        ? 'Confirmar Descarga (${_amount.toCop})'
+                        : 'Ingresa un monto válido',
+                    style: AppTextStyles.labelLarge.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space8),
+            ],
           ),
-          const SizedBox(height: AppDimensions.space4),
-          TextButton(
-            onPressed: onCancel,
-            child: const Text(AppStrings.actionCancel),
-          ),
-        ],
+        ),
       ),
-      actions: const [],
     );
   }
 }

@@ -61,6 +61,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
   String _searchQuery = '';
   bool _isSubmitting = false;
   final _cart = <_CartEntry>[];
+  ProductEntity? _lastAddedProduct;
 
   @override
   void dispose() {
@@ -76,8 +77,9 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
   void _addToCart(String name, int price, ProductCategory category,
       {int qty = 1, String? note, String? menuCategory, String? subcategory}) {
     HapticFeedback.lightImpact();
+    final cleanNote = (note == null || note.trim().isEmpty) ? null : note.trim();
     setState(() {
-      final idx = _cart.indexWhere((e) => e.name == name);
+      final idx = _cart.indexWhere((e) => e.name == name && e.note == cleanNote);
       if (idx >= 0) {
         _cart[idx].quantity += qty;
       } else {
@@ -86,32 +88,30 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
             price: price,
             category: category,
             quantity: qty,
-            note: note,
+            note: cleanNote,
             menuCategory: menuCategory,
             subcategory: subcategory));
       }
     });
   }
 
-  void _changeCartQty(String name, int delta) {
+  void _changeCartQty(_CartEntry entry, int delta) {
     setState(() {
-      final idx = _cart.indexWhere((e) => e.name == name);
+      final idx = _cart.indexOf(entry);
       if (idx < 0) return;
-      final newQty = _cart[idx].quantity + delta;
+      final newQty = entry.quantity + delta;
       if (newQty <= 0) {
         _cart.removeAt(idx);
       } else {
-        _cart[idx].quantity = newQty;
+        entry.quantity = newQty;
       }
     });
   }
 
-  void _setCartNote(String name, String? note) {
+  void _setCartNote(_CartEntry entry, String? note) {
     setState(() {
-      final idx = _cart.indexWhere((e) => e.name == name);
-      if (idx >= 0) {
-        _cart[idx].note = (note == null || note.isEmpty) ? null : note;
-      }
+      final clean = (note == null || note.trim().isEmpty) ? null : note.trim();
+      entry.note = clean;
     });
   }
 
@@ -144,6 +144,78 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
     _addToCart(p.name, p.price,
         p.isLiquor ? ProductCategory.liquor : ProductCategory.standard,
         menuCategory: p.category);
+    if (p.defaultNotes.isNotEmpty) {
+      setState(() => _lastAddedProduct = p);
+    }
+  }
+
+  void _openQuickNoteSheet(ProductEntity p) {
+    if (!p.isAvailable) return;
+    if (p.isComposable && p.baseCategories.isNotEmpty) {
+      _pickComposableBase(p);
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _QuickNoteSheet(
+        product: p,
+        onAdd: (qty, note) {
+          _addToCart(
+            p.name,
+            p.price,
+            p.isLiquor ? ProductCategory.liquor : ProductCategory.standard,
+            qty: qty,
+            note: note,
+            menuCategory: p.category,
+          );
+        },
+      ),
+    );
+  }
+
+  void _applyNoteToLastAdded(String note) {
+    if (_lastAddedProduct == null) return;
+    final name = _lastAddedProduct!.name;
+    HapticFeedback.selectionClick();
+    setState(() {
+      final idx = _cart.lastIndexWhere((e) => e.name == name);
+      if (idx >= 0) {
+        final item = _cart[idx];
+        if (item.quantity > 1) {
+          item.quantity -= 1;
+          _addToCart(
+            item.name,
+            item.price,
+            item.category,
+            qty: 1,
+            note: note,
+            menuCategory: item.menuCategory,
+            subcategory: item.subcategory,
+          );
+        } else {
+          item.note = (item.note == null || item.note!.isEmpty)
+              ? note
+              : '${item.note}, $note';
+        }
+      }
+      _lastAddedProduct = null;
+    });
+    AppToast.success(context, 'Nota aplicada: "$note"');
+  }
+
+  Future<void> _openCustomNoteForLastAdded() async {
+    if (_lastAddedProduct == null) return;
+    final name = _lastAddedProduct!.name;
+    final idx = _cart.lastIndexWhere((e) => e.name == name);
+    if (idx < 0) return;
+    final item = _cart[idx];
+    final note = await _promptNote(item);
+    if (note != null && note.isNotEmpty) {
+      _applyNoteToLastAdded(note);
+    }
   }
 
   /// Selector de base para un producto combinable (ej. Michelada → cerveza/soda).
@@ -158,106 +230,142 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
       return Icons.local_bar_rounded;
     }
 
+    String? selectedNote;
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (ctx) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 5,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color:
-                        isDark ? AppColors.darkOutline : AppColors.lightOutline,
-                    borderRadius: BorderRadius.circular(3),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setBaseState) => SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color:
+                          isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
-              ),
-              // ── Encabezado ─────────────────────────────────────────
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.14),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.local_bar_rounded,
-                        color: AppColors.primary, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(p.name, style: AppTextStyles.headlineSmall),
-                        Text(
-                          'Elige la base  ·  ${p.price.toCop}',
-                          style: AppTextStyles.labelMedium
-                              .copyWith(color: AppColors.primary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              // ── Grupos de base ─────────────────────────────────────
-              for (final baseCat in p.baseCategories) ...[
+                // ── Encabezado ─────────────────────────────────────────
                 Row(
                   children: [
-                    Icon(groupIcon(baseCat),
-                        size: 16, color: AppColors.primary),
-                    const SizedBox(width: 6),
-                    Text(_baseGroupTitle(baseCat),
-                        style: AppTextStyles.statusBadge
-                            .copyWith(color: AppColors.primary)),
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.local_bar_rounded,
+                          color: AppColors.primary, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(p.name, style: AppTextStyles.headlineSmall),
+                          Text(
+                            'Elige la base  ·  ${p.price.toCop}',
+                            style: AppTextStyles.labelMedium
+                                .copyWith(color: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    mainAxisExtent: 50,
+                const SizedBox(height: 14),
+
+                // ── Modificadores / Escarchado (opcional) ───────────────
+                if (p.defaultNotes.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      const Icon(Icons.tune_rounded,
+                          size: 15, color: AppColors.primary),
+                      const SizedBox(width: 6),
+                      Text('MODIFICADOR / ESCARCHADO (OPCIONAL)',
+                          style: AppTextStyles.statusBadge
+                              .copyWith(color: AppColors.primary)),
+                    ],
                   ),
-                  itemCount: all
-                      .where((x) => x.category == baseCat && x.isAvailable)
-                      .length,
-                  itemBuilder: (_, i) {
-                    final opt = all
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      for (final note in p.defaultNotes)
+                        FilterChip(
+                          label: Text(note, style: AppTextStyles.labelSmall),
+                          selected: selectedNote == note,
+                          onSelected: (sel) {
+                            setBaseState(() {
+                              selectedNote = sel ? note : null;
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                // ── Grupos de base ─────────────────────────────────────
+                for (final baseCat in p.baseCategories) ...[
+                  Row(
+                    children: [
+                      Icon(groupIcon(baseCat),
+                          size: 16, color: AppColors.primary),
+                      const SizedBox(width: 6),
+                      Text(_baseGroupTitle(baseCat),
+                          style: AppTextStyles.statusBadge
+                              .copyWith(color: AppColors.primary)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      mainAxisExtent: 50,
+                    ),
+                    itemCount: all
                         .where((x) => x.category == baseCat && x.isAvailable)
-                        .elementAt(i);
-                    return InkWell(
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusLg),
-                      onTap: () {
-                        Navigator.of(ctx).pop();
-                        _addToCart(
-                          '${_composedPrefix(p.name)} · ${_baseLabel(opt.name)}',
-                          p.price,
-                          ProductCategory.standard,
-                          menuCategory: p.category,
-                          subcategory: baseCat,
-                        );
-                      },
+                        .length,
+                    itemBuilder: (_, i) {
+                      final opt = all
+                          .where((x) => x.category == baseCat && x.isAvailable)
+                          .elementAt(i);
+                      return InkWell(
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusLg),
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          _addToCart(
+                            '${_composedPrefix(p.name)} · ${_baseLabel(opt.name)}',
+                            p.price,
+                            ProductCategory.standard,
+                            note: selectedNote,
+                            menuCategory: p.category,
+                            subcategory: baseCat,
+                          );
+                        },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
@@ -300,8 +408,9 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   String _baseLabel(String name) => name
       .replaceFirst(RegExp(r'^(Cerveza|Soda|Gaseosa)\s+'), '')
@@ -375,17 +484,17 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                           _CartLine(
                             entry: e,
                             onMinus: () {
-                              _changeCartQty(e.name, -1);
+                              _changeCartQty(e, -1);
                               refresh();
                             },
                             onPlus: () {
-                              _changeCartQty(e.name, 1);
+                              _changeCartQty(e, 1);
                               refresh();
                             },
                             onNote: () async {
                               final note = await _promptNote(e);
                               if (note != null) {
-                                _setCartNote(e.name, note.isEmpty ? null : note);
+                                _setCartNote(e, note.isEmpty ? null : note);
                                 refresh();
                               }
                             },
@@ -428,34 +537,80 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
 
   Future<String?> _promptNote(_CartEntry entry) {
     final ctrl = TextEditingController(text: entry.note ?? '');
+    final allProducts = ref.read(productsProvider).valueOrNull ?? [];
+    final baseName = entry.name.split(' · ').first;
+    final product = allProducts
+        .where((p) => p.name == entry.name || p.name == baseName)
+        .firstOrNull;
+    final defaultNotes = product?.defaultNotes ?? const <String>[];
+
     return showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(entry.name,
-            style: AppTextStyles.labelMedium,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          maxLines: 2,
-          minLines: 1,
-          decoration: const InputDecoration(
-            hintText: 'Ej: sin hielo, con limón...',
-            prefixIcon: Icon(Icons.edit_note_rounded),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(entry.name,
+              style: AppTextStyles.labelMedium,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (defaultNotes.isNotEmpty) ...[
+                  Text(
+                    'OPCIONES RÁPIDAS',
+                    style: AppTextStyles.statusBadge
+                        .copyWith(color: AppColors.primary),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final n in defaultNotes)
+                        ActionChip(
+                          label: Text(n, style: AppTextStyles.labelSmall),
+                          onPressed: () {
+                            setDialogState(() {
+                              final current = ctrl.text.trim();
+                              if (current.isEmpty) {
+                                ctrl.text = n;
+                              } else if (!current.contains(n)) {
+                                ctrl.text = '$current, $n';
+                              }
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                TextField(
+                  controller: ctrl,
+                  autofocus: defaultNotes.isEmpty,
+                  textCapitalization: TextCapitalization.sentences,
+                  maxLines: 2,
+                  minLines: 1,
+                  decoration: const InputDecoration(
+                    hintText: 'Ej: sin hielo, con limón, término medio...',
+                    prefixIcon: Icon(Icons.edit_note_rounded),
+                  ),
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+              child: const Text('Guardar'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
-            child: const Text('Guardar'),
-          ),
-        ],
       ),
     );
   }
@@ -713,7 +868,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                           crossAxisCount: 2,
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
-                          mainAxisExtent: uniform ? 62 : 84,
+                          mainAxisExtent: uniform ? 68 : 90,
                         ),
                         itemCount: shown.length,
                         itemBuilder: (_, i) => _ProductCard(
@@ -726,6 +881,7 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                               .fold(0, (s, e) => s + e.quantity),
                           isDark: isDark,
                           onAdd: () => _pickProduct(shown[i]),
+                          onCustomize: () => _openQuickNoteSheet(shown[i]),
                         ),
                       );
                     }),
@@ -738,6 +894,16 @@ class _AddItemBottomSheetState extends ConsumerState<AddItemBottomSheet> {
                 ],
               ),
             ),
+
+            // ── Banner modificador rápido (si se añadió un ítem con notas predeterminadas) ──
+            if (_lastAddedProduct != null && _lastAddedProduct!.defaultNotes.isNotEmpty)
+              _QuickNotesBanner(
+                product: _lastAddedProduct!,
+                isDark: isDark,
+                onNoteTap: (note) => _applyNoteToLastAdded(note),
+                onCustomTap: () => _openCustomNoteForLastAdded(),
+                onClose: () => setState(() => _lastAddedProduct = null),
+              ),
 
             // ── Barra inferior: resumen + Ver pedido ────────────────
             Container(
@@ -940,6 +1106,7 @@ class _ProductCard extends StatelessWidget {
     required this.inCartQty,
     required this.isDark,
     required this.onAdd,
+    this.onCustomize,
     this.showPrice = false,
   });
 
@@ -947,6 +1114,7 @@ class _ProductCard extends StatelessWidget {
   final int inCartQty;
   final bool isDark;
   final VoidCallback onAdd;
+  final VoidCallback? onCustomize;
 
   /// Solo cuando la sección tiene precios mixtos — si el precio es uniforme,
   /// se muestra una vez en el encabezado y las tarjetas quedan limpias.
@@ -955,6 +1123,27 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = inCartQty > 0;
+
+    final noteButton = (product.defaultNotes.isNotEmpty && onCustomize != null)
+        ? GestureDetector(
+            onTap: onCustomize,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: 30,
+              height: 30,
+              margin: const EdgeInsets.only(right: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: AppColors.statusOrange.withOpacity(0.14),
+                border: Border.all(color: AppColors.statusOrange.withOpacity(0.5)),
+              ),
+              child: const Center(
+                child: Icon(Icons.tune_rounded,
+                    color: AppColors.statusOrange, size: 16),
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
 
     final plusButton = Container(
       width: 30,
@@ -989,6 +1178,7 @@ class _ProductCard extends StatelessWidget {
 
     return InkWell(
       onTap: onAdd,
+      onLongPress: onCustomize,
       borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 8, 10, 8),
@@ -1016,6 +1206,8 @@ class _ProductCard extends StatelessWidget {
                               .copyWith(color: AppColors.secondaryDark),
                         ),
                       ),
+                      if (product.defaultNotes.isNotEmpty && onCustomize != null)
+                        noteButton,
                       plusButton,
                     ],
                   ),
@@ -1024,7 +1216,9 @@ class _ProductCard extends StatelessWidget {
             : Row(
                 children: [
                   Expanded(child: name),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
+                  if (product.defaultNotes.isNotEmpty && onCustomize != null)
+                    noteButton,
                   plusButton,
                 ],
               ),
@@ -1343,6 +1537,296 @@ class _CustomItemSheetState extends ConsumerState<_CustomItemSheet> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Banner modificador rápido al pie ──────────────────────────────────────────
+
+class _QuickNotesBanner extends StatelessWidget {
+  const _QuickNotesBanner({
+    required this.product,
+    required this.isDark,
+    required this.onNoteTap,
+    required this.onCustomTap,
+    required this.onClose,
+  });
+
+  final ProductEntity product;
+  final bool isDark;
+  final void Function(String note) onNoteTap;
+  final VoidCallback onCustomTap;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF261D10) : const Color(0xFFFFF8E7),
+        border: Border(
+          top: BorderSide(
+            color: AppColors.statusOrange.withOpacity(0.4),
+          ),
+          bottom: BorderSide(
+            color: AppColors.statusOrange.withOpacity(0.4),
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.tune_rounded, size: 14, color: AppColors.statusOrange),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Modificar ${product.name}:',
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.statusOrange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              InkWell(
+                onTap: onClose,
+                borderRadius: BorderRadius.circular(12),
+                child: const Padding(
+                  padding: EdgeInsets.all(2),
+                  child: Icon(Icons.close_rounded,
+                      size: 18, color: AppColors.statusOrange),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final note in product.defaultNotes)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ActionChip(
+                      visualDensity: VisualDensity.compact,
+                      backgroundColor:
+                          isDark ? AppColors.darkSurface : Colors.white,
+                      side: BorderSide(
+                          color: AppColors.statusOrange.withOpacity(0.5)),
+                      label: Text(
+                        note,
+                        style: AppTextStyles.labelSmall
+                            .copyWith(color: AppColors.statusOrange),
+                      ),
+                      onPressed: () => onNoteTap(note),
+                    ),
+                  ),
+                ActionChip(
+                  visualDensity: VisualDensity.compact,
+                  avatar: const Icon(Icons.edit_note_rounded,
+                      size: 14, color: AppColors.statusOrange),
+                  backgroundColor:
+                      isDark ? AppColors.darkSurface : Colors.white,
+                  side: BorderSide(
+                      color: AppColors.statusOrange.withOpacity(0.5)),
+                  label: Text(
+                    'Libre...',
+                    style: AppTextStyles.labelSmall
+                        .copyWith(color: AppColors.statusOrange),
+                  ),
+                  onPressed: onCustomTap,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Hoja modal de notas rápidas y personalizadas ───────────────────────────────
+
+class _QuickNoteSheet extends StatefulWidget {
+  const _QuickNoteSheet({
+    required this.product,
+    required this.onAdd,
+  });
+
+  final ProductEntity product;
+  final void Function(int qty, String? note) onAdd;
+
+  @override
+  State<_QuickNoteSheet> createState() => _QuickNoteSheetState();
+}
+
+class _QuickNoteSheetState extends State<_QuickNoteSheet> {
+  final _noteCtrl = TextEditingController();
+  final _selectedNotes = <String>{};
+  int _qty = 1;
+
+  @override
+  void dispose() {
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final parts = <String>[..._selectedNotes];
+    final custom = _noteCtrl.text.trim();
+    if (custom.isNotEmpty && !parts.contains(custom)) {
+      parts.add(custom);
+    }
+    final combined = parts.isEmpty ? null : parts.join(', ');
+    widget.onAdd(_qty, combined);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppDimensions.radiusXl),
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        20 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.product.name,
+                          style: AppTextStyles.headlineSmall),
+                      Text(
+                        '${widget.product.price.toCop}  ·  Personalizar',
+                        style: AppTextStyles.labelMedium
+                            .copyWith(color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Selector de cantidad
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Cantidad', style: AppTextStyles.titleMedium),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _qty > 1 ? () => setState(() => _qty--) : null,
+                      icon: const Icon(Icons.remove_circle_outline_rounded),
+                    ),
+                    Text('$_qty', style: AppTextStyles.headlineSmall),
+                    IconButton(
+                      onPressed: () => setState(() => _qty++),
+                      icon: const Icon(Icons.add_circle_outline_rounded,
+                          color: AppColors.primary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Chips táctiles de selección rápida
+            if (widget.product.defaultNotes.isNotEmpty) ...[
+              Text(
+                'MODIFICADORES RÁPIDOS',
+                style: AppTextStyles.statusBadge.copyWith(color: AppColors.primary),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final note in widget.product.defaultNotes)
+                    FilterChip(
+                      label: Text(note, style: AppTextStyles.labelSmall),
+                      selected: _selectedNotes.contains(note),
+                      onSelected: (sel) {
+                        setState(() {
+                          if (sel) {
+                            _selectedNotes.add(note);
+                          } else {
+                            _selectedNotes.remove(note);
+                          }
+                        });
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
+
+            // Campo de nota libre personalizada
+            Text(
+              'NOTA PERSONALIZADA (OPCIONAL)',
+              style: AppTextStyles.statusBadge.copyWith(color: AppColors.primary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _noteCtrl,
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 2,
+              minLines: 1,
+              decoration: const InputDecoration(
+                hintText: 'Ej: sin cebolla, término medio, vaso con hielo...',
+                prefixIcon: Icon(Icons.edit_note_rounded),
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            FilledButton.icon(
+              onPressed: _submit,
+              icon: const Icon(Icons.check_rounded),
+              label: Text(
+                _selectedNotes.isEmpty && _noteCtrl.text.trim().isEmpty
+                    ? 'Agregar sin notas ($_qty)'
+                    : 'Agregar con nota ($_qty)',
+              ),
+            ),
+          ],
         ),
       ),
     );

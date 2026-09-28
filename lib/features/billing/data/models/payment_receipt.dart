@@ -105,6 +105,15 @@ class PaymentReceipt {
   /// The cashier enters this code when marking the transfer as legalized.
   String? verificationCode;
 
+  /// Whether this receipt represents a general arbitrary advance to the table.
+  bool isGeneralAdvance = false;
+
+  /// Optional transaction group ID linking receipts created in a mixed payment.
+  String? transactionGroupId;
+
+  /// Optional audit note or description.
+  String? note;
+
   // ── Audit timestamp ────────────────────────────────────────────────────────
 
   /// When the payment was recorded. Indexed for daily report date filtering.

@@ -93,12 +93,12 @@ class BaseWalletNotifier extends AsyncNotifier<WalletSummary> {
     return _handleWriteResult(result);
   }
 
-  /// Records a base reduction (mismo paso configurable) with the exact
-  /// current timestamp. Returns null on success.
-  Future<Failure?> requestDecrease() async {
-    final amount = ref.read(financialSettingsProvider).incrementStep;
+  /// Records a base reduction with the exact current timestamp.
+  /// Returns null on success.
+  Future<Failure?> requestDecrease({int? amount}) async {
+    final amt = amount ?? ref.read(financialSettingsProvider).incrementStep;
     final result =
-        await ref.read(requestDecreaseUseCaseProvider).call(amount: amount);
+        await ref.read(requestDecreaseUseCaseProvider).call(amount: amt);
     return _handleWriteResult(result);
   }
 

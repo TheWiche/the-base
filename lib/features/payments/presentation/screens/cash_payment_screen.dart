@@ -153,6 +153,7 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
       amountPaid: _receivedAmount,
       billSubtotal: widget.args.billSubtotal,
       paymentMethod: PaymentMethod.cash,
+      isGeneralAdvance: widget.args.isGeneralAdvance,
     );
 
     final failure =

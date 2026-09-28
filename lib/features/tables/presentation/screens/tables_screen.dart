@@ -16,7 +16,9 @@ import '../../../../core/widgets/receipt_paper.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../../core/widgets/stagger_entrance.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
+import '../../../payments/presentation/providers/payment_providers.dart';
 import '../../domain/entities/table_session_entity.dart';
+import '../widgets/new_table_dialog.dart';
 
 enum _TableFilter { all, open, partiallyPaid }
 
@@ -203,7 +205,7 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
 
     showDialog<void>(
       context: context,
-      builder: (_) => _NewTableDialog(
+      builder: (_) => NewTableDialog(
         tableNumber: previewNumber,
         onOpen: (apodo) async {
           // Commit the counter only when the user confirms.
@@ -430,13 +432,12 @@ class _TableCard extends ConsumerWidget {
     final statusColor = session.statusColor;
     final elapsed = _elapsedLabel(session.openedAt);
 
-    // Saldo pendiente de la cuenta (ítems no cancelados y AÚN NO pagados) —
-    // en vivo. Filtrar solo por !isCancelled hacía que una mesa reactivada
-    // (ya saldada, con una ronda nueva) mostrara el total histórico completo
-    // en vez del saldo real que se debe.
     final items = ref.watch(tableOrderProvider(session.id)).valueOrNull ?? [];
     final unpaid = items.where((i) => !i.isCancelled && !i.isPaid);
-    final total = unpaid.fold(0, (s, i) => s + i.lineTotal);
+    final finSummary = ref.watch(tableFinancialSummaryProvider(session.id));
+    final total = finSummary.pendingBalance > 0
+        ? finSummary.pendingBalance
+        : unpaid.fold(0, (s, i) => s + i.lineTotal);
     final itemCount = unpaid.fold(0, (s, i) => s + i.quantity);
 
     return ReceiptStub(
@@ -611,126 +612,3 @@ class _ErrorBody extends StatelessWidget {
   }
 }
 
-// ── New table dialog ──────────────────────────────────────────────────────────
-
-class _NewTableDialog extends StatefulWidget {
-  const _NewTableDialog({
-    required this.tableNumber,
-    required this.onOpen,
-  });
-
-  /// Auto-assigned number — read-only, passed by the parent.
-  final int tableNumber;
-
-  /// Called with the optional apodo; the table number is fixed.
-  final Future<void> Function(String? apodo) onOpen;
-
-  @override
-  State<_NewTableDialog> createState() => _NewTableDialogState();
-}
-
-class _NewTableDialogState extends State<_NewTableDialog> {
-  final _apodoController = TextEditingController();
-  bool _isSubmitting = false;
-
-  @override
-  void dispose() {
-    _apodoController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    setState(() => _isSubmitting = true);
-    final apodo = _apodoController.text.trim();
-    await widget.onOpen(apodo.isEmpty ? null : apodo);
-    if (mounted) Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Row(
-        children: [
-          const Icon(
-            Icons.table_restaurant_rounded,
-            color: AppColors.brand,
-            size: AppDimensions.iconLg,
-          ),
-          const SizedBox(width: AppDimensions.space12),
-          Text('Nueva Mesa', style: AppTextStyles.headlineSmall),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Auto-assigned table number (read-only) ───────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              vertical: AppDimensions.space16,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.brand.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              border: Border.all(color: AppColors.brand.withOpacity(0.35)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  '${widget.tableNumber}',
-                  style: AppTextStyles.headlineLarge.copyWith(
-                    color: AppColors.brand,
-                    fontSize: 48,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                Text(
-                  'Mesa asignada automáticamente',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.brand.withOpacity(0.7),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: AppDimensions.space16),
-
-          // ── Apodo (optional) ─────────────────────────────────────
-          TextField(
-            controller: _apodoController,
-            autofocus: true,
-            textCapitalization: TextCapitalization.sentences,
-            style: AppTextStyles.bodyLarge,
-            decoration: const InputDecoration(
-              labelText: 'Apodo (opcional)',
-              hintText: 'Ej: Los cumpleañeros',
-              prefixIcon: Icon(Icons.label_outline_rounded),
-            ),
-            onSubmitted: (_) => _submit(),
-          ),
-        ],
-      ),
-      actionsAlignment: MainAxisAlignment.spaceBetween,
-      actions: [
-        TextButton(
-          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton.icon(
-          onPressed: _isSubmitting ? null : _submit,
-          icon: _isSubmitting
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.check_rounded),
-          label: Text(_isSubmitting ? 'Abriendo...' : 'ABRIR MESA'),
-        ),
-      ],
-    );
-  }
-}

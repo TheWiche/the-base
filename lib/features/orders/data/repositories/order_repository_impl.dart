@@ -6,6 +6,7 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/result.dart';
 import '../../../base_management/data/models/waiter_base_transaction.dart';
 import '../../../base_management/domain/entities/base_transaction_entity.dart';
+import '../../../billing/data/models/payment_receipt.dart';
 import '../../../tables/data/models/table_session.dart';
 import '../../../tables/domain/entities/table_session_entity.dart';
 import '../../domain/entities/order_item_entity.dart';
@@ -441,6 +442,83 @@ final class OrderRepositoryImpl implements IOrderRepository {
   }
 
   @override
+  Future<Result<TableSessionEntity>> closeSession(int sessionId) async {
+    try {
+      final session = await _db.tableSessions.get(sessionId);
+      if (session == null) {
+        return Err(NotFoundFailure(message: 'Mesa #$sessionId no encontrada.'));
+      }
+      if (session.status == TableStatus.closed) {
+        return Ok(session.toEntity());
+      }
+
+      final items = await _db.orderItems
+          .filter()
+          .tableSessionIdEqualTo(sessionId)
+          .findAll();
+
+      final activeItems =
+          items.where((i) => i.status != OrderItemStatus.cancelled).toList();
+
+      final payments = await _db.paymentReceipts
+          .filter()
+          .tableSessionIdEqualTo(sessionId)
+          .findAll();
+
+      final totalBill = activeItems.fold<int>(0, (s, i) => s + (i.price * i.quantity));
+      final totalPaid =
+          payments.fold<int>(0, (s, p) => s + (p.amountPaid - p.changeGiven));
+
+      final isFullyCovered =
+          activeItems.isNotEmpty && totalPaid >= totalBill && totalBill > 0;
+      final allItemsPaid =
+          activeItems.isNotEmpty && activeItems.every((i) => i.isPaid);
+
+      if (activeItems.isEmpty ||
+          isFullyCovered ||
+          allItemsPaid ||
+          totalBill <= totalPaid) {
+        final now = DateTime.now();
+        for (final item in activeItems) {
+          item.isPaid = true;
+          if (item.status == OrderItemStatus.pending) {
+            item.status = OrderItemStatus.delivered;
+            item.deliveredAt = now;
+          }
+        }
+
+        session.status = TableStatus.closed;
+        session.closedAt = now;
+        session.verificationCode ??=
+            _generateVerificationCode('${session.id}:$totalBill:${now.millisecondsSinceEpoch}');
+
+        await IsarService.write((db) async {
+          if (activeItems.isNotEmpty) {
+            await db.orderItems.putAll(activeItems);
+          }
+          await db.tableSessions.put(session);
+        });
+
+        debugPrint('[OrderRepo] Session $sessionId closed.');
+        return Ok(session.toEntity());
+      } else {
+        final pending = totalBill - totalPaid;
+        return Err(BusinessRuleFailure(
+          message:
+              'La mesa tiene un saldo pendiente de \$${pending}. Debe liquidarse antes de cerrar.',
+        ));
+      }
+    } on IsarError catch (e, st) {
+      return Err(DatabaseFailure(message: e.message, stackTrace: st));
+    } catch (e, st) {
+      return Err(DatabaseFailure(message: e.toString(), stackTrace: st));
+    }
+  }
+
+  static String _generateVerificationCode(String input) =>
+      input.hashCode.toRadixString(36).toUpperCase().padLeft(6, '0').substring(0, 6);
+
+  @override
   Future<Result<void>> deleteSession(int sessionId) async {
     try {
       final session = await _db.tableSessions.get(sessionId);
@@ -572,6 +650,37 @@ final class OrderRepositoryImpl implements IOrderRepository {
 
       debugPrint('[OrderRepo] Item #$itemId marked delivered.');
       return Ok(model.toEntity());
+    } on IsarError catch (e, st) {
+      return Err(DatabaseFailure(message: e.message, stackTrace: st));
+    } catch (e, st) {
+      return Err(DatabaseFailure(message: e.toString(), stackTrace: st));
+    }
+  }
+
+  @override
+  Future<Result<void>> markItemsDelivered(List<int> itemIds) async {
+    try {
+      if (itemIds.isEmpty) return const Ok(null);
+      final models = await _db.orderItems.getAll(itemIds);
+      final now = DateTime.now();
+      final toUpdate = <OrderItem>[];
+      for (final m in models) {
+        if (m != null && m.status == OrderItemStatus.pending) {
+          m
+            ..status = OrderItemStatus.delivered
+            ..deliveredAt = now;
+          toUpdate.add(m);
+        }
+      }
+      if (toUpdate.isNotEmpty) {
+        await IsarService.write((db) async {
+          await db.orderItems.putAll(toUpdate);
+        });
+      }
+      debugPrint(
+        '[OrderRepo] ${toUpdate.length} item(s) marked delivered in batch.',
+      );
+      return const Ok(null);
     } on IsarError catch (e, st) {
       return Err(DatabaseFailure(message: e.message, stackTrace: st));
     } catch (e, st) {

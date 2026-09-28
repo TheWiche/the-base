@@ -407,6 +407,28 @@ class _ProductCard extends StatelessWidget {
                           color: AppColors.primary, fontSize: 8.5),
                     ),
                   ),
+                if (product.defaultNotes.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.statusOrange.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.tune_rounded, size: 9, color: AppColors.statusOrange),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${product.defaultNotes.length}',
+                          style: AppTextStyles.statusBadge.copyWith(
+                              color: AppColors.statusOrange, fontSize: 8.5),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
             Row(
@@ -464,6 +486,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   late bool _isLiquor;
   late bool _isComposable;
   late Set<String> _baseCategories;
+  late List<String> _defaultNotes;
   bool _saving = false;
 
   bool get _isEdit => widget.existing != null;
@@ -479,6 +502,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     _isLiquor = e?.isLiquor ?? false;
     _isComposable = e?.isComposable ?? false;
     _baseCategories = {...?e?.baseCategories};
+    _defaultNotes = [...?e?.defaultNotes];
   }
 
   @override
@@ -700,6 +724,43 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                       .toList(),
                 ),
               ],
+              const SizedBox(height: 12),
+              // ── Notas predeterminadas (modificadores rápidos) ────────
+              Text(
+                'Notas predeterminadas (modificadores rápidos)',
+                style: AppTextStyles.labelSmall.copyWith(color: AppColors.primary),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Opciones rápidas para la comanda (ej: Sin alcohol, Poco hielo, Borde sal)',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.lightOnSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (int i = 0; i < _defaultNotes.length; i++)
+                    InputChip(
+                      label: Text(_defaultNotes[i], style: AppTextStyles.labelSmall),
+                      onDeleted: () => setState(() => _defaultNotes.removeAt(i)),
+                      deleteIconColor: AppColors.statusRed,
+                    ),
+                  ActionChip(
+                    avatar: const Icon(Icons.add_rounded, size: 16),
+                    label: Text('Agregar nota', style: AppTextStyles.labelSmall),
+                    onPressed: () async {
+                      final note = await _promptNew('Nueva nota predeterminada');
+                      if (note == null || note.isEmpty) return;
+                      if (!_defaultNotes.contains(note)) {
+                        setState(() => _defaultNotes.add(note));
+                      }
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: _saving ? null : _save,
@@ -746,6 +807,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
             isLiquor: _isLiquor,
             isComposable: _isComposable,
             baseCategories: baseCats,
+            defaultNotes: _defaultNotes,
           )
         : await repo.addProduct(
             name: name,
@@ -755,6 +817,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
             isLiquor: _isLiquor,
             isComposable: _isComposable,
             baseCategories: baseCats,
+            defaultNotes: _defaultNotes,
           );
 
     if (!mounted) return;

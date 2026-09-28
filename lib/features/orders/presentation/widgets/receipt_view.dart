@@ -287,21 +287,49 @@ class ReceiptGrouped extends StatelessWidget {
   }
 
   List<Widget> _collapseByProduct(List<OrderItemEntity> catItems) {
-    final map = <String, List<int>>{}; // name → [qty, total, unitPrice]
+    final map = <String, _CollapsedItem>{};
     for (final it in catItems) {
-      final e = map.putIfAbsent(it.productName, () => [0, 0, it.price]);
-      e[0] += it.quantity;
-      e[1] += it.lineTotal;
+      final key = '${it.productName}|||${it.note ?? ''}';
+      final existing = map[key];
+      if (existing == null) {
+        map[key] = _CollapsedItem(
+          name: it.productName,
+          note: it.note,
+          quantity: it.quantity,
+          total: it.lineTotal,
+          unitPrice: it.price,
+        );
+      } else {
+        existing.quantity += it.quantity;
+        existing.total += it.lineTotal;
+      }
     }
-    return map.entries.map((e) {
+    return map.values.map((item) {
       return ReceiptItemLine(
-        quantity: e.value[0],
-        name: e.key,
-        total: e.value[1],
-        unitLabel: '${e.value[2].toCop} c/u',
+        quantity: item.quantity,
+        name: item.name,
+        note: item.note,
+        total: item.total,
+        unitLabel: '${item.unitPrice.toCop} c/u',
       );
     }).toList();
   }
+}
+
+class _CollapsedItem {
+  _CollapsedItem({
+    required this.name,
+    required this.note,
+    required this.quantity,
+    required this.total,
+    required this.unitPrice,
+  });
+
+  final String name;
+  final String? note;
+  int quantity;
+  int total;
+  final int unitPrice;
 }
 
 class ReceiptCategoryHeader extends StatelessWidget {
@@ -477,14 +505,28 @@ String buildReceiptText({
       final count = catItems.fold(0, (s, i) => s + i.quantity);
       final sub = catItems.fold(0, (s, i) => s + i.lineTotal);
       b.writeln('${cat.toUpperCase()} ($count)  ${sub.toCop}');
-      final map = <String, List<int>>{};
+      final map = <String, _CollapsedItem>{};
       for (final it in catItems) {
-        final e = map.putIfAbsent(it.productName, () => [0, 0]);
-        e[0] += it.quantity;
-        e[1] += it.lineTotal;
+        final key = '${it.productName}|||${it.note ?? ''}';
+        final existing = map[key];
+        if (existing == null) {
+          map[key] = _CollapsedItem(
+            name: it.productName,
+            note: it.note,
+            quantity: it.quantity,
+            total: it.lineTotal,
+            unitPrice: it.price,
+          );
+        } else {
+          existing.quantity += it.quantity;
+          existing.total += it.lineTotal;
+        }
       }
-      for (final e in map.entries) {
-        b.writeln('  ${e.value[0]}× ${e.key}  ${e.value[1].toCop}');
+      for (final e in map.values) {
+        b.writeln('  ${e.quantity}× ${e.name}  ${e.total.toCop}');
+        if (e.note != null && e.note!.trim().isNotEmpty) {
+          b.writeln('    ↳ ${e.note!.trim()}');
+        }
       }
     }
   } else {
@@ -497,6 +539,9 @@ String buildReceiptText({
       b.writeln(entry.key);
       for (final it in entry.value) {
         b.writeln('  ${it.quantity}× ${it.productName}  ${it.lineTotal.toCop}');
+        if (it.note != null && it.note!.trim().isNotEmpty) {
+          b.writeln('    ↳ ${it.note!.trim()}');
+        }
       }
     }
   }

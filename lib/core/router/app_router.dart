@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/base_management/presentation/screens/base_wallet_screen.dart';
 import '../../features/cierre/presentation/screens/cierre_screen.dart';
+import '../../features/dashboard/presentation/providers/dashboard_providers.dart';
 import '../../features/dashboard/presentation/screens/legalization_screen.dart';
 import '../../features/inicio/presentation/screens/inicio_screen.dart';
 import '../../features/orders/presentation/providers/order_providers.dart';
@@ -13,9 +14,11 @@ import '../../features/shift_history/presentation/screens/shift_history_screen.d
 import '../../features/tables/presentation/screens/table_history_detail_screen.dart';
 import '../../features/tables/presentation/screens/table_history_screen.dart';
 import '../../features/payments/presentation/providers/payment_providers.dart';
+import '../../features/payments/presentation/widgets/global_pending_transfers_banner.dart';
 import '../../features/payments/presentation/screens/billing_screen.dart';
 import '../../features/payments/presentation/screens/cash_payment_screen.dart';
 import '../../features/payments/presentation/screens/comprobantes_screen.dart';
+import '../../features/payments/presentation/screens/mixed_payment_screen.dart';
 import '../../features/payments/presentation/screens/standalone_transfer_screen.dart';
 import '../../features/payments/presentation/screens/transfer_capture_screen.dart';
 import '../../features/products/presentation/screens/products_screen.dart';
@@ -213,6 +216,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               TransferCaptureScreen(args: state.extra as PaymentNavigationArgs),
             ),
           ),
+          GoRoute(
+            path: 'mixed',
+            pageBuilder: (context, state) => _slidePage(
+              state.pageKey,
+              MixedPaymentScreen(args: state.extra as PaymentNavigationArgs),
+            ),
+          ),
         ],
       ),
 
@@ -290,6 +300,9 @@ class _AppShell extends ConsumerWidget {
     final isDark = themeMode == ThemeMode.dark ||
         (themeMode == ThemeMode.system &&
             MediaQuery.of(context).platformBrightness == Brightness.dark);
+    final pendingTransfers = ref.watch(pendingTransfersProvider);
+    final hasPending = pendingTransfers.isNotEmpty;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.transparent,
@@ -297,15 +310,24 @@ class _AppShell extends ConsumerWidget {
         systemNavigationBarContrastEnforced: false,
         systemNavigationBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarColor:
+            hasPending ? const Color(0xFFE65100) : Colors.transparent,
+        statusBarIconBrightness:
+            hasPending ? Brightness.light : (isDark ? Brightness.light : Brightness.dark),
       ),
       child: Scaffold(
         backgroundColor:
             isDark ? AppColors.darkBackground : AppColors.lightBackground,
         body: Column(
           children: [
-            Expanded(child: child),
+            const GlobalPendingTransfersBanner(),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: hasPending,
+                child: child,
+              ),
+            ),
             _NavBar(
               currentIndex: currentIdx,
               radarCount: radarCount,

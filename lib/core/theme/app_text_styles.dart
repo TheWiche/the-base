@@ -219,6 +219,14 @@ abstract final class AppTextStyles {
         height: 1.4,
       );
 
+  /// Texto pequeño del tiquete enfatizado. 11.5 sp, bold.
+  static TextStyle get receiptSmallBold => _mono(
+        size: 11.5,
+        weight: FontWeight.w700,
+        letterSpacing: 0.5,
+        height: 1.4,
+      );
+
   /// Totales del tiquete (TOTAL / SALDO). 16 sp, bold.
   static TextStyle get receiptTotal => _mono(
         size: 16,

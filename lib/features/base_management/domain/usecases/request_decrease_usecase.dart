@@ -50,6 +50,15 @@ final class RequestDecreaseUseCase {
       );
     }
 
+    if (amount > netIncreases) {
+      return Err(
+        BusinessRuleFailure(
+          message:
+              'El monto a bajar no puede superar los incrementos netos acumulados ($netIncreases).',
+        ),
+      );
+    }
+
     return _repository.requestDecrease(amount: amount);
   }
 }

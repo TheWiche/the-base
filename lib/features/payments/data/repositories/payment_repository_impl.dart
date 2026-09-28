@@ -25,10 +25,7 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
     try {
       final now = DateTime.now();
 
-      // ── Step 1: Copy photo to Bonanza_Transferencias (outside Isar txn) ──────
-      // Done first so a failed Isar write doesn't leave a phantom receipt
-      // referencing a non-existent file. On Isar failure the orphaned copy is
-      // cleaned up in the catch block.
+      // ── Step 1: Copy photo(s) to Bonanza_Transferencias (outside Isar txn) ─
       String? finalPhotoPath;
       if (params.photoSourcePath != null) {
         finalPhotoPath = await _copyToTransferDir(
@@ -36,13 +33,23 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
           sessionId: params.tableSessionId,
           paidAt: now,
         );
-
-        // Also copy into the public gallery (Pictures/Bonanza_Transferencias)
-        // so the receipt shows up in the phone's gallery app. Best-effort:
-        // never blocks the payment if it fails.
         await GallerySaver.saveImage(
           sourcePath: params.photoSourcePath!,
           fileName: 'transfer_${params.tableSessionId}_'
+              '${now.millisecondsSinceEpoch}.jpg',
+        );
+      }
+
+      String? finalMixedPhotoPath;
+      if (params.isMixed && params.mixedPhotoSourcePath != null) {
+        finalMixedPhotoPath = await _copyToTransferDir(
+          sourcePath: params.mixedPhotoSourcePath!,
+          sessionId: params.tableSessionId,
+          paidAt: now,
+        );
+        await GallerySaver.saveImage(
+          sourcePath: params.mixedPhotoSourcePath!,
+          fileName: 'transfer_mixed_${params.tableSessionId}_'
               '${now.millisecondsSinceEpoch}.jpg',
         );
       }
@@ -51,27 +58,6 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
       late PaymentReceiptEntity entity;
 
       await IsarService.write((db) async {
-        // 2a. Build and persist the receipt ──────────────────────────────────
-        final receiptModel = PaymentReceipt()
-          ..tableSessionId = params.tableSessionId
-          ..amountPaid = params.amountPaid
-          ..changeGiven = params.changeGiven
-          ..tipAmount = params.tipAmount
-          ..paymentMethod = params.paymentMethod
-          ..transferMethodIndex = params.transferMethod?.index
-          ..photoPath = finalPhotoPath
-          ..isLegalizedInCaja = params.paymentMethod == PaymentMethod.cash
-          ..verificationCode = params.isTransfer
-              ? _generateCode(
-                  '${params.tableSessionId}:${params.amountPaid}:${now.millisecondsSinceEpoch}',
-                )
-              : null
-          ..paidAt = now;
-
-        final receiptId = await db.paymentReceipts.put(receiptModel);
-        receiptModel.id = receiptId;
-
-        // 2b. Link receipt to parent session ─────────────────────────────────
         final session = await db.tableSessions.get(params.tableSessionId);
         if (session == null) {
           throw StateError(
@@ -79,69 +65,131 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
             'cannot attach PaymentReceipt.',
           );
         }
-        session.payments.add(receiptModel);
+
+        int primaryReceiptId = 0;
+
+        // 2a. Build and persist receipts (single or mixed) ───────────────────
+        if (params.isMixed) {
+          final groupId = 'mixed_${params.tableSessionId}_${now.millisecondsSinceEpoch}';
+
+          final cashReceipt = PaymentReceipt()
+            ..tableSessionId = params.tableSessionId
+            ..amountPaid = params.cashAmount ?? 0
+            ..changeGiven = params.changeGiven
+            ..tipAmount = 0
+            ..paymentMethod = PaymentMethod.cash
+            ..isLegalizedInCaja = true
+            ..isGeneralAdvance = params.isGeneralAdvance
+            ..transactionGroupId = groupId
+            ..note = 'Cobro mixto (Efectivo)'
+            ..paidAt = now;
+
+          final cashId = await db.paymentReceipts.put(cashReceipt);
+          cashReceipt.id = cashId;
+          session.payments.add(cashReceipt);
+
+          final transferReceipt = PaymentReceipt()
+            ..tableSessionId = params.tableSessionId
+            ..amountPaid = params.transferAmount ?? 0
+            ..changeGiven = 0
+            ..tipAmount = params.tipAmount
+            ..paymentMethod = PaymentMethod.transfer
+            ..transferMethodIndex = params.mixedTransferMethod?.index
+            ..photoPath = finalMixedPhotoPath
+            ..isLegalizedInCaja = false
+            ..verificationCode = _generateCode(
+                '${params.tableSessionId}:${params.transferAmount}:${now.millisecondsSinceEpoch}')
+            ..isGeneralAdvance = params.isGeneralAdvance
+            ..transactionGroupId = groupId
+            ..note = 'Cobro mixto (Transferencia)'
+            ..paidAt = now;
+
+          final transferId = await db.paymentReceipts.put(transferReceipt);
+          transferReceipt.id = transferId;
+          session.payments.add(transferReceipt);
+
+          primaryReceiptId = transferId;
+          entity = _mapToEntity(transferReceipt);
+        } else {
+          final receiptModel = PaymentReceipt()
+            ..tableSessionId = params.tableSessionId
+            ..amountPaid = params.amountPaid
+            ..changeGiven = params.changeGiven
+            ..tipAmount = params.tipAmount
+            ..paymentMethod = params.paymentMethod
+            ..transferMethodIndex = params.transferMethod?.index
+            ..photoPath = finalPhotoPath
+            ..isLegalizedInCaja = params.paymentMethod == PaymentMethod.cash
+            ..verificationCode = params.isTransfer
+                ? _generateCode(
+                    '${params.tableSessionId}:${params.amountPaid}:${now.millisecondsSinceEpoch}',
+                  )
+                : null
+            ..isGeneralAdvance = params.isGeneralAdvance
+            ..note = params.note
+            ..paidAt = now;
+
+          final receiptId = await db.paymentReceipts.put(receiptModel);
+          receiptModel.id = receiptId;
+          session.payments.add(receiptModel);
+          primaryReceiptId = receiptId;
+          entity = _mapToEntity(receiptModel);
+        }
+
         await session.payments.save();
 
-        // 2c. Mark selected items (or units) as paid ─────────────────────────
-        // Pending items are force-delivered on payment (collecting while handing
-        // over). When a line's selected units are fewer than its total quantity,
-        // the line is SPLIT: the paid units become a new paid OrderItem and the
-        // original keeps the remaining units unpaid — e.g. "Cerveza ×4" where the
-        // customer pays for 1 now becomes "Cerveza ×1" (paid) + "Cerveza ×3".
-        final selectedModels =
-            (await db.orderItems.getAll(params.selectedItemIds))
-                .whereType<OrderItem>()
-                .toList();
+        // 2b. If selective item billing, mark items (or units) as paid ───────
+        if (!params.isGeneralAdvance && params.selectedItemIds.isNotEmpty) {
+          final selectedModels =
+              (await db.orderItems.getAll(params.selectedItemIds))
+                  .whereType<OrderItem>()
+                  .toList();
 
-        final splitItems = <OrderItem>[];
-        for (final item in selectedModels) {
-          if (item.isPaid) continue; // idempotent guard
+          final splitItems = <OrderItem>[];
+          for (final item in selectedModels) {
+            if (item.isPaid) continue; // idempotent guard
 
-          final requested =
-              params.selectedQuantities[item.id] ?? item.quantity;
-          final payUnits = requested.clamp(1, item.quantity);
+            final requested =
+                params.selectedQuantities[item.id] ?? item.quantity;
+            final payUnits = requested.clamp(1, item.quantity);
 
-          if (payUnits >= item.quantity) {
-            // Whole line paid.
-            item.isPaid = true;
-            item.paymentReceiptId = receiptId;
-            if (item.status == OrderItemStatus.pending) {
-              item.status = OrderItemStatus.delivered;
-              item.deliveredAt = now;
+            if (payUnits >= item.quantity) {
+              item.isPaid = true;
+              item.paymentReceiptId = primaryReceiptId;
+              if (item.status == OrderItemStatus.pending) {
+                item.status = OrderItemStatus.delivered;
+                item.deliveredAt = now;
+              }
+            } else {
+              item.quantity -= payUnits;
+              splitItems.add(
+                OrderItem()
+                  ..tableSessionId = item.tableSessionId
+                  ..productName = item.productName
+                  ..productCatalogId = item.productCatalogId
+                  ..price = item.price
+                  ..quantity = payUnits
+                  ..category = item.category
+                  ..orderedAt = item.orderedAt
+                  ..deliveredAt = now
+                  ..status = OrderItemStatus.delivered
+                  ..isPaid = true
+                  ..paymentReceiptId = primaryReceiptId
+                  ..note = item.note,
+              );
             }
-          } else {
-            // Partial: shrink the original (stays unpaid) and spin off a paid
-            // copy holding only the paid units.
-            item.quantity -= payUnits;
-
-            splitItems.add(
-              OrderItem()
-                ..tableSessionId = item.tableSessionId
-                ..productName = item.productName
-                ..productCatalogId = item.productCatalogId
-                ..price = item.price
-                ..quantity = payUnits
-                ..category = item.category
-                ..orderedAt = item.orderedAt
-                ..deliveredAt = now
-                ..status = OrderItemStatus.delivered
-                ..isPaid = true
-                ..paymentReceiptId = receiptId
-                ..note = item.note,
-            );
+          }
+          if (selectedModels.isNotEmpty) {
+            await db.orderItems.putAll(selectedModels);
+          }
+          for (final part in splitItems) {
+            part.id = await db.orderItems.put(part);
+            part.tableSession.value = session;
+            await part.tableSession.save();
           }
         }
-        if (selectedModels.isNotEmpty) {
-          await db.orderItems.putAll(selectedModels);
-        }
-        // Persist split-off paid units and link them to the session.
-        for (final part in splitItems) {
-          part.id = await db.orderItems.put(part);
-          part.tableSession.value = session;
-          await part.tableSession.save();
-        }
 
-        // 2d. Recompute session status ────────────────────────────────────────
+        // 2c. Recompute session status and check full settlement ──────────────
         await session.orderItems.load();
         final allItemIds = session.orderItems.map((i) => i.id).toList();
         final allItems = (await db.orderItems.getAll(allItemIds))
@@ -149,12 +197,35 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
             .where((i) => i.status != OrderItemStatus.cancelled)
             .toList();
 
-        final allPaid = allItems.isNotEmpty && allItems.every((i) => i.isPaid);
-        if (allPaid) {
+        final totalBill =
+            allItems.fold<int>(0, (sum, i) => sum + i.price * i.quantity);
+
+        await session.payments.load();
+        final totalPaid = session.payments.fold<int>(
+          0,
+          (sum, p) => sum + (p.amountPaid - p.changeGiven),
+        );
+
+        final isFullyCovered =
+            allItems.isNotEmpty && totalPaid >= totalBill && totalBill > 0;
+        final allItemsPaid =
+            allItems.isNotEmpty && allItems.every((i) => i.isPaid);
+
+        if (isFullyCovered || allItemsPaid) {
+          // If covered by general advances, ensure all active lines are stamped paid.
+          for (final item in allItems) {
+            if (!item.isPaid) {
+              item.isPaid = true;
+              if (item.status == OrderItemStatus.pending) {
+                item.status = OrderItemStatus.delivered;
+                item.deliveredAt = now;
+              }
+            }
+          }
+          await db.orderItems.putAll(allItems);
+
           session.status = TableStatus.closed;
           session.closedAt = now;
-          // Session close code — different seed from the receipt code.
-          final totalBill = allItems.fold(0, (sum, i) => sum + i.price * i.quantity);
           session.verificationCode = _generateCode(
             '${params.tableSessionId}:$totalBill:${now.millisecondsSinceEpoch}',
           );
@@ -162,8 +233,6 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
           session.status = TableStatus.partiallyPaid;
         }
         await db.tableSessions.put(session);
-
-        entity = _mapToEntity(receiptModel);
       });
 
       return ok(entity);
@@ -214,6 +283,52 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
     return dir;
   }
 
+  @override
+  Future<Result<PaymentReceiptEntity>> recordStandaloneTransfer({
+    required int amount,
+    required String photoSourcePath,
+    required TransferMethod transferMethod,
+    int tipAmount = 0,
+    String? note,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final dir = await _getBonanzaTransferDir();
+      final filename = 'suelta_${now.millisecondsSinceEpoch}.jpg';
+      final destPath = '${dir.path}/$filename';
+      await File(photoSourcePath).copy(destPath);
+
+      final seed = 'standalone|0|$amount|${now.toIso8601String()}';
+      final verificationCode = _generateCode(seed);
+
+      final receipt = PaymentReceipt()
+        ..tableSessionId = 0
+        ..amountPaid = amount
+        ..changeGiven = 0
+        ..tipAmount = tipAmount
+        ..paymentMethod = PaymentMethod.transfer
+        ..transferMethodIndex = transferMethod.index
+        ..photoPath = destPath
+        ..isLegalizedInCaja = false
+        ..paidAt = now
+        ..verificationCode = verificationCode
+        ..isGeneralAdvance = true
+        ..note = note ?? 'Transferencia independiente / suelta';
+
+      final db = IsarService.db;
+      await db.writeTxn(() async {
+        await db.paymentReceipts.put(receipt);
+      });
+
+      return Ok(_mapToEntity(receipt));
+    } on Exception catch (e, st) {
+      return Err(DatabaseFailure(
+        message: 'Error registrando transferencia suelta: $e',
+        stackTrace: st,
+      ));
+    }
+  }
+
   /// Derives an 8-digit numeric verification code from a SHA-256 of [seed].
   ///
   /// Extracts the first [FinancialConstants.verificationCodeLength] decimal
@@ -243,6 +358,9 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
         photoPath: m.photoPath,
         isLegalizedInCaja: m.isLegalizedInCaja,
         verificationCode: m.verificationCode,
+        isGeneralAdvance: m.isGeneralAdvance,
+        transactionGroupId: m.transactionGroupId,
+        note: m.note,
         paidAt: m.paidAt,
       );
 }

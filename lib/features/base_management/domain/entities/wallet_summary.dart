@@ -83,6 +83,9 @@ final class WalletSummary {
   /// initialBase + totalIncreases − totalDecreases — the capital actually committed.
   int get baseCapital => initialBase + totalIncreases - totalDecreases;
 
+  /// Total net base increases available to be decreased
+  int get netIncreases => totalIncreases - totalDecreases;
+
   /// FORMULA: Total Debt = Initial Base + Σ(Increases) − Σ(Decreases) + Σ(Liquor Costs)
   int get totalDebt => initialBase + totalIncreases - totalDecreases + totalLiquorDebt;
 

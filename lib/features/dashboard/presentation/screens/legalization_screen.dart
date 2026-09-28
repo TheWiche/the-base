@@ -234,7 +234,9 @@ class _TransferReceiptCard extends StatelessWidget {
               ],
               Expanded(
                 child: Text(
-                  'Mesa ${receipt.tableSessionId}',
+                  receipt.tableSessionId == 0
+                      ? 'Cobro Suelto / Sin Mesa'
+                      : 'Mesa ${receipt.tableSessionId}',
                   style: AppTextStyles.receiptSmall
                       .copyWith(color: AppColors.paperInkSoft),
                 ),

@@ -143,6 +143,12 @@ class TableOrderNotifier
     return _failure(result);
   }
 
+  Future<Failure?> closeSession() async {
+    final result =
+        await ref.read(orderRepositoryProvider).closeSession(sessionId);
+    return _failure(result);
+  }
+
   Failure? _failure<T>(Result<T> result) => switch (result) {
         Ok() => null,
         Err(:final failure) => failure,

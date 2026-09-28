@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
@@ -112,34 +113,57 @@ class _ComandaCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Encabezado ─────────────────────────────────────────
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
+            // ── Encabezado (tocar para ir a la cuenta de la mesa) ────────
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  context.push('/tables/$sessionId/orders');
+                },
+                borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'MESA ${group.tableNumber}',
-                        style: AppTextStyles.receiptTitle.copyWith(
-                          fontSize: 16,
-                          color: AppColors.paperInk,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'MESA ${group.tableNumber}',
+                                  style: AppTextStyles.receiptTitle.copyWith(
+                                    fontSize: 16,
+                                    color: AppColors.paperInk,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Icon(
+                                  Icons.open_in_new_rounded,
+                                  size: 15,
+                                  color: AppColors.paperInkSoft,
+                                ),
+                              ],
+                            ),
+                            if (group.tableApodo != null)
+                              Text(
+                                '"${group.tableApodo}"',
+                                style: AppTextStyles.receiptSmall.copyWith(
+                                  color: AppColors.paperInkSoft,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      if (group.tableApodo != null)
-                        Text(
-                          '"${group.tableApodo}"',
-                          style: AppTextStyles.receiptSmall.copyWith(
-                            color: AppColors.paperInkSoft,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
+                      _ElapsedBadge(minutes: oldest),
                     ],
                   ),
                 ),
-                _ElapsedBadge(minutes: oldest),
-              ],
+              ),
             ),
             const DashedDivider(padding: EdgeInsets.symmetric(vertical: 8)),
 
