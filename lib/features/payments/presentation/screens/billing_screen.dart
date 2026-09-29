@@ -215,13 +215,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             isGeneralAdvance: isGeneralAdvance,
           );
         },
-        onMixed: () {
-          Navigator.of(context).pop();
-          _navigateToMixedPayment(
-            subtotal: subtotal,
-            isGeneralAdvance: isGeneralAdvance,
-          );
-        },
         onExact: () {
           Navigator.of(context).pop();
           _recordExactCash(
@@ -252,23 +245,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ? '/billing/$sessionId/cash'
         : '/billing/$sessionId/transfer';
     context.push(path, extra: args);
-  }
-
-  void _navigateToMixedPayment({
-    required int subtotal,
-    required bool isGeneralAdvance,
-  }) {
-    final selection = ref.read(billingSelectionProvider(sessionId));
-    final quantities =
-        isGeneralAdvance ? <int, int>{} : selection.selectedQuantities;
-    final args = PaymentNavigationArgs(
-      sessionId: sessionId,
-      selectedItemIds: isGeneralAdvance ? const [] : quantities.keys.toList(),
-      selectedQuantities: quantities,
-      billSubtotal: subtotal,
-      isGeneralAdvance: isGeneralAdvance,
-    );
-    context.push('/billing/$sessionId/mixed', extra: args);
   }
 
   /// Pago exacto: efectivo por el total sin escribir monto.
@@ -873,14 +849,12 @@ class _PaymentMethodSheet extends StatelessWidget {
     required this.subtotal,
     required this.isGeneralAdvance,
     required this.onSelected,
-    required this.onMixed,
     this.onExact,
   });
 
   final int subtotal;
   final bool isGeneralAdvance;
   final void Function(PaymentMethod) onSelected;
-  final VoidCallback onMixed;
   final VoidCallback? onExact;
 
   @override
@@ -935,14 +909,6 @@ class _PaymentMethodSheet extends StatelessWidget {
               description: 'Foto del comprobante y listo.',
               color: AppColors.statusBlue,
               onTap: () => onSelected(PaymentMethod.transfer),
-            ),
-            const SizedBox(height: AppDimensions.space12),
-            _MethodTile(
-              icon: Icons.pie_chart_rounded,
-              label: 'Mixto (Efectivo + Transferencia)',
-              description: 'Simultáneo: registra ambas partes en una transacción.',
-              color: AppColors.brand,
-              onTap: onMixed,
             ),
             if (onExact != null) ...[
               const SizedBox(height: AppDimensions.space12),

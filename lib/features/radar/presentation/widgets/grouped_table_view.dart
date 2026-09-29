@@ -6,8 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/receipt_paper.dart';
-import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../orders/domain/entities/order_item_entity.dart';
 import '../../../orders/domain/entities/pending_radar_item.dart';
 import '../providers/radar_providers.dart';
@@ -101,6 +99,7 @@ class _ComandaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final sessionId = group.items.first.item.tableSessionId;
     final oldest = group.items
         .map((i) => i.item.elapsedMinutes)
@@ -108,8 +107,22 @@ class _ComandaCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.space16),
-      child: ReceiptPaper(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceVariant : Colors.white,
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          border: Border.all(
+            color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(AppDimensions.space16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -125,47 +138,66 @@ class _ComandaCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  'MESA ${group.tableNumber}',
-                                  style: AppTextStyles.receiptTitle.copyWith(
-                                    fontSize: 16,
-                                    color: AppColors.paperInk,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                const Icon(
-                                  Icons.open_in_new_rounded,
-                                  size: 15,
-                                  color: AppColors.paperInkSoft,
-                                ),
-                              ],
-                            ),
-                            if (group.tableApodo != null)
-                              Text(
-                                '"${group.tableApodo}"',
-                                style: AppTextStyles.receiptSmall.copyWith(
-                                  color: AppColors.paperInkSoft,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                          ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.4),
+                          ),
+                        ),
+                        child: Text(
+                          'MESA ${group.tableNumber}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.primary,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      if (group.tableApodo != null)
+                        Expanded(
+                          child: Text(
+                            '"${group.tableApodo}"',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? AppColors.darkOnSurfaceVariant
+                                  : AppColors.lightOnSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )
+                      else
+                        const Spacer(),
                       _ElapsedBadge(minutes: oldest),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: isDark
+                            ? AppColors.darkOnSurfaceVariant
+                            : AppColors.lightOnSurfaceVariant,
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
-            const DashedDivider(padding: EdgeInsets.symmetric(vertical: 8)),
+            Divider(
+              color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+              height: 24,
+            ),
 
             // ── Líneas de la comanda ───────────────────────────────
             for (final radarItem in group.items)
@@ -175,18 +207,34 @@ class _ComandaCard extends StatelessWidget {
                 onDelivered: () => onDelivered(radarItem.item.id),
               ),
 
-            const DashedDivider(padding: EdgeInsets.symmetric(vertical: 8)),
+            Divider(
+              color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+              height: 24,
+            ),
 
-            // ── Entregar todo (sello) ──────────────────────────────
+            // ── Entregar todo (botón estándar) ─────────────────────
             FilledButton.icon(
-              onPressed: () => onDeliverAll(sessionId),
+              onPressed: () {
+                HapticFeedback.heavyImpact();
+                onDeliverAll(sessionId);
+              },
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.statusGreen,
-                foregroundColor: Colors.black,
-                minimumSize: const Size.fromHeight(42),
+                foregroundColor: const Color(0xFF121212),
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                ),
               ),
-              icon: const Icon(Icons.done_all_rounded, size: 18),
-              label: const Text('Entregar todo'),
+              icon: const Icon(Icons.done_all_rounded, size: 20),
+              label: const Text(
+                'Entregar todo',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                ),
+              ),
             ),
           ],
         ),
@@ -215,6 +263,8 @@ class _ComandaLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Dismissible(
       key: ValueKey('dismiss_${item.id}'),
       direction: DismissDirection.startToEnd,
@@ -229,7 +279,7 @@ class _ComandaLine extends StatelessWidget {
         child: const Icon(Icons.done_rounded, color: AppColors.statusGreen),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -238,8 +288,10 @@ class _ComandaLine extends StatelessWidget {
               width: 44,
               child: Text(
                 '${item.elapsedMinutes}m',
-                style: AppTextStyles.receiptBodyBold
-                    .copyWith(color: _urgencyColor),
+                style: AppTextStyles.receiptBodyBold.copyWith(
+                  color: _urgencyColor,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
             // Producto + nota
@@ -247,17 +299,39 @@ class _ComandaLine extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${item.quantity}× ${item.productName}',
-                    style: AppTextStyles.receiptBody
-                        .copyWith(color: AppColors.paperInk),
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: isDark
+                            ? AppColors.darkOnSurface
+                            : AppColors.lightOnSurface,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: '${item.quantity}× ',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        TextSpan(
+                          text: item.productName,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
                   ),
                   if (item.note != null && item.note!.isNotEmpty)
-                    Text(
-                      '↳ ${item.note}',
-                      style: AppTextStyles.receiptSmall.copyWith(
-                        color: AppColors.paperInkSoft,
-                        fontStyle: FontStyle.italic,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        '↳ ${item.note}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? AppColors.primaryLight
+                              : AppColors.primaryDark,
+                        ),
                       ),
                     ),
                 ],
@@ -270,7 +344,7 @@ class _ComandaLine extends StatelessWidget {
               tooltip: 'Entregado',
               icon: const Icon(
                 Icons.check_circle_outline_rounded,
-                color: AppColors.secondaryDark,
+                color: AppColors.statusGreen,
                 size: 22,
               ),
             ),

@@ -50,6 +50,7 @@ Future<void> main() async {
   await ProductRepositoryImpl().seedMigrateV5();
   await ProductRepositoryImpl().seedMigrateV6();
   await ProductRepositoryImpl().seedMigrateV7();
+  await _cleanupDummyTables();
   await _migrateTableCounter();
   await NotificationService.initialize();
   final prefs = await SharedPreferences.getInstance();
@@ -62,6 +63,31 @@ Future<void> main() async {
       child: const TheBaseApp(),
     ),
   );
+}
+
+/// Ensures no dummy or placeholder tables (such as residual "Barra" tables
+/// or sessions without orders) exist at app startup, providing a clean slate.
+Future<void> _cleanupDummyTables() async {
+  try {
+    await IsarService.write((db) async {
+      final dummySessions = await db.tableSessions
+          .filter()
+          .apodoEqualTo('Barra', caseSensitive: false)
+          .or()
+          .apodoEqualTo('Mesa Barra', caseSensitive: false)
+          .or()
+          .tableNumberLessThan(1)
+          .findAll();
+
+      for (final session in dummySessions) {
+        if (session.orderItems.isEmpty) {
+          await db.tableSessions.delete(session.id);
+        }
+      }
+    });
+  } catch (e) {
+    debugPrint('[Main] Cleanup dummy tables error: $e');
+  }
 }
 
 /// Sets the table counter to the highest existing table number so the first

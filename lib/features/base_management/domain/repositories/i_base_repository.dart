@@ -61,6 +61,16 @@ abstract interface class IBaseRepository {
     String? note,
   });
 
+  /// Records a payment of liquor debt handed over in cash to the establishment's
+  /// cash register during the shift.
+  ///
+  /// The [amount] must be a positive integer in COP.
+  /// Reduces total liquor debt and total debt without touching base capital.
+  Future<Result<BaseTransactionEntity>> recordLiquorSettlement({
+    required int amount,
+    String? note,
+  });
+
   /// Hard-deletes ALL base transactions. Only callable during testing or
   /// shift-reset flows — the use case layer must guard production calls.
   Future<Result<void>> clearAll();

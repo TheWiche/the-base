@@ -89,19 +89,19 @@ class _BarBatchCard extends StatelessWidget {
       RadarUrgency.normal => Colors.transparent,
     };
 
-    final cardBg = isDark ? const Color(0xFF1E1E28) : Colors.white;
+    final cardBg = isDark ? AppColors.darkSurfaceVariant : Colors.white;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.space16),
       child: Container(
         decoration: BoxDecoration(
           color: cardBg,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           border: Border.all(
             color: batch.urgency != RadarUrgency.normal
                 ? urgencyBorderColor
-                : (isDark ? const Color(0xFF2E2E3E) : const Color(0xFFE2E2EA)),
-            width: batch.urgency == RadarUrgency.critical ? 2.0 : 1.2,
+                : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
+            width: batch.urgency == RadarUrgency.critical ? 2.0 : 1.0,
           ),
           boxShadow: [
             BoxShadow(
@@ -112,7 +112,7 @@ class _BarBatchCard extends StatelessWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           child: Container(
             color: urgencyBgTint,
             padding: const EdgeInsets.all(AppDimensions.space16),
@@ -257,11 +257,11 @@ class _BarBatchCard extends StatelessWidget {
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.statusGreen,
-                    foregroundColor: Colors.black,
-                    minimumSize: const Size.fromHeight(44),
+                    foregroundColor: const Color(0xFF121212),
+                    minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
                       borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusSm),
+                          BorderRadius.circular(AppDimensions.buttonRadius),
                     ),
                   ),
                   icon: const Icon(Icons.done_all_rounded, size: 20),
@@ -312,12 +312,12 @@ class _TableDestinationChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: isDark
-                ? const Color(0xFF282838)
+                ? AppColors.darkSurface
                 : const Color(0xFFF1F1F6),
             borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
             border: Border.all(
               color: isDark
-                  ? const Color(0xFF3F3F56)
+                  ? AppColors.darkOutline
                   : const Color(0xFFD4D4E0),
               width: 1,
             ),

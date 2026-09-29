@@ -43,9 +43,12 @@ abstract final class AppDimensions {
 
   // ── Button sizes ───────────────────────────────────────────────────
   static const double buttonHeightSm = 44.0;
-  static const double buttonHeightMd = 56.0;
-  static const double buttonHeightLg = 64.0;
-  static const double buttonBorderWidth = 2.0;
+  static const double buttonHeightMd = 54.0; // Altura estándar primaria
+  static const double buttonHeightLg = 56.0; // Altura fija destacada
+  static const double buttonBorderWidth = 1.5;
+  static const double buttonRadius = 16.0;   // Bordes redondeados 16px estándar
+  static const double cardBorderRadius = 16.0; // Superficies y Cards 16px-20px
+  static const double modalRadius = 24.0;    // Modales y BottomSheets 24px superior
 
   // ── AppBar ─────────────────────────────────────────────────────────
   static const double appBarHeight = 64.0;

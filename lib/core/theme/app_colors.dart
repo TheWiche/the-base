@@ -1,101 +1,92 @@
 import 'package:flutter/material.dart';
 
-/// Paleta "Tiquete" — fuente única de color para toda la app.
+/// Paleta global unificada para "The Base" — Dark Premium & High-Contrast.
 ///
-/// Concepto: shell oscuro casi-negro + facturas de papel crema + acento ámbar
-/// (mostaza) + verde para dinero/confirmación. Tipografía monoespaciada.
-/// Reemplaza la antigua paleta violeta ("hecha por IA"). Los nombres de
-/// constantes se conservan para que el resto del código herede el nuevo look
-/// sin tocar cada archivo.
-///
-/// Primario : Ámbar   #E0A63C — CTAs, selección, indicadores activos.
-/// Dinero   : Verde   #46B67F — éxito, cobrar, confirmación.
-/// Papel    : Crema   #F2ECDC — facturas/tiquetes (igual en claro y oscuro).
+/// Concepto: Fondo carbón oscuro / negro mate (`#121212` / `#18191A`),
+/// tarjetas de gris grafito pulido (`#242526` / `#2D2F31`), acentos funcionales
+/// en ámbar cálido (`#FFB300`), verde esmeralda neón (`#00E676`) y coral (`#FF5252`).
 abstract final class AppColors {
-  // ── Brand / Primary — Ámbar tiquete ───────────────────────────────────────
-  static const Color primary      = Color(0xFFE0A63C); // amber/mostaza
-  static const Color primaryLight = Color(0xFFF0C674); // amber claro
-  static const Color primaryDark  = Color(0xFFB07E22); // amber quemado
+  // ── Brand / Primary — Ámbar Cálido / Dorado ───────────────────────────────
+  static const Color primary      = Color(0xFFFFB300); // Ámbar cálido / Dorado
+  static const Color primaryLight = Color(0xFFFFC107); // Ámbar claro
+  static const Color primaryDark  = Color(0xFFF5A623); // Dorado profundo
 
-  // ── Secondary / Success — Verde dinero ────────────────────────────────────
-  static const Color secondary      = Color(0xFF46B67F);
-  static const Color secondaryLight = Color(0xFF6ECB9C);
-  static const Color secondaryDark  = Color(0xFF2F8C5F);
+  // ── Secondary / Success — Verde Esmeralda / Neón ─────────────────────────
+  static const Color secondary      = Color(0xFF00E676); // Verde esmeralda neón
+  static const Color secondaryLight = Color(0xFF69F0AE); // Menta luminoso
+  static const Color secondaryDark  = Color(0xFF00C853); // Esmeralda sólido
 
   // ── Brand aliases (backwards compat) ─────────────────────────────────────
   static const Color brand      = primary;
   static const Color brandDark  = primaryDark;
   static const Color brandLight = primaryLight;
 
-  // ── Aliases heredados (apuntan a la paleta nueva) ─────────────────────────
-  // Todo el código que use estos nombres hereda la nueva paleta sin editar.
+  // ── Aliases heredados ────────────────────────────────────────────────────
   static const Color chevereTeal      = primary;
   static const Color chevereTealDark  = primaryDark;
   static const Color chevereTealLight = primaryLight;
   static const Color chevereOcre      = secondary;
-  static const Color chevereBeige     = lightSurfaceVariant;
-  static const Color cheverePizarra   = lightOnSurface;
-  static const Color chevereBlanco    = lightBackground;
+  static const Color chevereBeige     = darkSurfaceVariant;
+  static const Color cheverePizarra   = darkOnSurface;
+  static const Color chevereBlanco    = darkBackground;
 
-  // ── Papel de tiquete (crema, igual en ambos temas) ────────────────────────
-  static const Color paper        = Color(0xFFF2ECDC); // papel crema
-  static const Color paperDim     = Color(0xFFE7DFC9); // crema alterno (cebra)
-  static const Color paperInk     = Color(0xFF1A1A22); // tinta casi-negra
-  static const Color paperInkSoft = Color(0xFF6B6450); // tinta desvaída
-  static const Color paperLine    = Color(0xFFB9AE90); // líneas punteadas
+  // ── Papel de tiquete / Recibo (Moderno Oscuro Grafito) ───────────────────
+  static const Color paper        = Color(0xFF242526); // Gris grafito pulido
+  static const Color paperDim     = Color(0xFF1E1F21); // Grafito alterno
+  static const Color paperInk     = Color(0xFFF5F6F8); // Tipografía clara nítida
+  static const Color paperInkSoft = Color(0xFFA0A3A8); // Tinta desvaída / subtítulos
+  static const Color paperLine    = Color(0x26FFFFFF); // Líneas sutiles
 
-  // ── Status — Error / Pendiente (rojo sello) ───────────────────────────────
-  static const Color statusRed    = Color(0xFFD6483B); // rojo sello
-  static const Color statusRedDim = Color(0xFF7F241C);
+  // ── Status — Error / Alerta / Cancelación (Coral / Carmesí) ──────────────
+  static const Color statusRed    = Color(0xFFFF5252); // Coral / Carmesí vibrante
+  static const Color statusRedDim = Color(0xFFB71C1C);
   static const Color onStatusRed  = Color(0xFFFFFFFF);
 
-  // ── Status — Éxito / Cobrado (verde) ──────────────────────────────────────
-  static const Color statusGreen    = Color(0xFF46B67F);
-  static const Color statusGreenDim = Color(0xFF0F5537);
-  static const Color onStatusGreen  = Color(0xFF03251A);
+  // ── Status — Éxito / Cobrado (Verde Esmeralda Neón) ──────────────────────
+  static const Color statusGreen    = Color(0xFF00E676);
+  static const Color statusGreenDim = Color(0xFF004D25);
+  static const Color onStatusGreen  = Color(0xFF00240D);
 
-  // ── Status — Advertencia / En progreso (ámbar cálido) ─────────────────────
-  static const Color statusOrange   = Color(0xFFE0872C);
+  // ── Status — Advertencia / En progreso (Ámbar cálido) ────────────────────
+  static const Color statusOrange   = Color(0xFFFFA000);
   static const Color onStatusOrange = Color(0xFF2A1600);
 
-  // ── Status — Transferencia / Info ─────────────────────────────────────────
-  static const Color statusBlue   = Color(0xFF5B8DEF);
+  // ── Status — Transferencia / Info (Azul Eléctrico) ───────────────────────
+  static const Color statusBlue   = Color(0xFF448AFF);
   static const Color onStatusBlue = Color(0xFF06183A);
 
-  // ── Status — Licor / Especial (whisky ámbar-marrón) ───────────────────────
-  static const Color statusPurple   = Color(0xFFC0873E); // licor
-  static const Color onStatusPurple = Color(0xFF2A1A06);
+  // ── Status — Licor / Especial (Púrpura Neón / Borbón) ────────────────────
+  static const Color statusPurple   = Color(0xFFAB47BC); // Licor / Botellas
+  static const Color onStatusPurple = Color(0xFFFFFFFF);
 
-  // ── Dark Theme Surfaces (shell casi-negro cálido) ─────────────────────────
-  static const Color darkBackground       = Color(0xFF0B0B10);
-  static const Color darkSurface          = Color(0xFF14141C);
-  static const Color darkSurfaceVariant   = Color(0xFF1E1E28);
-  static const Color darkOutline          = Color(0xFF34343F);
-  static const Color darkOutlineVariant   = Color(0xFF26262F);
+  // ── Dark Theme Surfaces (Carbón oscuro / Negro mate + Grafito pulido) ─────
+  static const Color darkBackground       = Color(0xFF121212); // Negro mate carbón
+  static const Color darkSurface          = Color(0xFF18191A); // Superficie principal
+  static const Color darkSurfaceVariant   = Color(0xFF242526); // Tarjetas grafito pulido
+  static const Color darkCard             = Color(0xFF2D2F31); // Tarjetas elevadas
+  static const Color darkOutline          = Color(0x1FFFFFFF); // Borde sutil blanco (0.08)
+  static const Color darkOutlineVariant   = Color(0x14FFFFFF); // Borde ultra sutil (0.05)
 
-  // ── Dark Theme Text (blanco cálido) ───────────────────────────────────────
-  static const Color darkOnBackground     = Color(0xFFF5F1E6);
-  static const Color darkOnSurface        = Color(0xFFF5F1E6);
-  static const Color darkOnSurfaceVariant = Color(0xFFA7A296);
-  static const Color darkDisabled         = Color(0xFF55555F);
+  // ── Dark Theme Text ───────────────────────────────────────────────────────
+  static const Color darkOnBackground     = Color(0xFFF5F6F8); // Blanco nítido
+  static const Color darkOnSurface        = Color(0xFFF5F6F8);
+  static const Color darkOnSurfaceVariant = Color(0xFFA0A3A8); // Gris medio legible
+  static const Color darkDisabled         = Color(0xFF65676B);
 
-  // ── Light Theme Surfaces (cálido, no blanco frío) ─────────────────────────
-  static const Color lightBackground     = Color(0xFFFAF7EF);
+  // ── Light Theme Surfaces (Fallback cálido de alta fidelidad) ─────────────
+  static const Color lightBackground     = Color(0xFFF0F2F5);
   static const Color lightSurface        = Color(0xFFFFFFFF);
-  static const Color lightSurfaceVariant = Color(0xFFF1EBDD);
-  static const Color lightOutline        = Color(0xFFE2D9C6);
-  static const Color lightOutlineVariant = Color(0xFFEFE9DB);
+  static const Color lightSurfaceVariant = Color(0xFFE4E6EB);
+  static const Color lightOutline        = Color(0xFFCED0D4);
+  static const Color lightOutlineVariant = Color(0xFFE4E6EB);
 
   // ── Light Theme Text ──────────────────────────────────────────────────────
-  static const Color lightOnBackground     = Color(0xFF1F1B12);
-  static const Color lightOnSurface        = Color(0xFF1F1B12);
-  static const Color lightOnSurfaceVariant = Color(0xFF6B6552);
-  static const Color lightDisabled         = Color(0xFFC9C0AD);
+  static const Color lightOnBackground     = Color(0xFF1C1E21);
+  static const Color lightOnSurface        = Color(0xFF1C1E21);
+  static const Color lightOnSurfaceVariant = Color(0xFF65676B);
+  static const Color lightDisabled         = Color(0xFFB0B3B8);
 
   // ── Nav bar background (bottom navigation) ───────────────────────────────
-  // Se funden con el shell para camuflar el velo de gestos de MIUI: el nav bar
-  // custom en app_router usa darkBackground/lightBackground directamente; estos
-  // alias apuntan a lo mismo por si algún tema los referencia.
   static const Color navBarDark  = darkBackground;
   static const Color navBarLight = lightBackground;
 
@@ -110,9 +101,9 @@ abstract final class AppColors {
     end: Alignment.bottomRight,
   );
 
-  /// Header modo oscuro: ámbar quemado → shell casi-negro.
+  /// Header modo oscuro: carbón ámbar sutil → negro mate.
   static const LinearGradient darkHeaderGradient = LinearGradient(
-    colors: [Color(0xFF3A2A0F), Color(0xFF0B0B10)],
+    colors: [Color(0xFF261D0F), Color(0xFF121212)],
     begin: Alignment.topLeft,
     end: Alignment.bottomCenter,
   );

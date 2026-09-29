@@ -12,8 +12,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../../../core/widgets/receipt_paper.dart';
-import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../../core/widgets/stagger_entrance.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../../../payments/presentation/providers/payment_providers.dart';
@@ -391,8 +389,7 @@ class _SessionsGridState extends State<_SessionsGrid>
         crossAxisCount: 2,
         crossAxisSpacing: AppDimensions.space12,
         mainAxisSpacing: AppDimensions.space12,
-        // Altura exacta del contenido del talón — sin espacio muerto.
-        mainAxisExtent: 118,
+        mainAxisExtent: 124,
       ),
       itemCount: widget.sessions.length,
       itemBuilder: (_, i) {
@@ -413,7 +410,7 @@ class _SessionsGridState extends State<_SessionsGrid>
   }
 }
 
-// ── Table card — talón de tiquete ─────────────────────────────────────────────
+// ── Table card — Dark Graphite Card ──────────────────────────────────────────
 
 class _TableCard extends ConsumerWidget {
   const _TableCard({
@@ -429,6 +426,7 @@ class _TableCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final statusColor = session.statusColor;
     final elapsed = _elapsedLabel(session.openedAt);
 
@@ -440,84 +438,146 @@ class _TableCard extends ConsumerWidget {
         : unpaid.fold(0, (s, i) => s + i.lineTotal);
     final itemCount = unpaid.fold(0, (s, i) => s + i.quantity);
 
-    return ReceiptStub(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Encabezado: MESA N + tiempo ──────────────────────────
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  'MESA ${session.tableNumber}',
-                  style: AppTextStyles.receiptTitle.copyWith(
-                    fontSize: 15,
-                    color: AppColors.paperInk,
-                  ),
-                ),
-              ),
-              Text(
-                elapsed,
-                style: AppTextStyles.receiptSmall.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: _elapsedColor(session.openedAt),
-                ),
-              ),
-            ],
-          ),
-          Text(
-            session.apodo != null ? '"${session.apodo}"' : ' ',
-            style: AppTextStyles.receiptSmall.copyWith(
-              color: AppColors.paperInkSoft,
-              fontStyle: FontStyle.italic,
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-          const DashedDivider(padding: EdgeInsets.symmetric(vertical: 5)),
-
-          // ── Total + ítems ────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                itemCount == 0
-                    ? 'sin pedidos'
-                    : '$itemCount ítem${itemCount == 1 ? '' : 's'}',
-                style: AppTextStyles.receiptSmall
-                    .copyWith(color: AppColors.paperInkSoft),
-              ),
-              Text(
-                total.toCop,
-                style: AppTextStyles.receiptBodyBold
-                    .copyWith(color: AppColors.paperInk),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-
-          // ── Estado ───────────────────────────────────────────────
-          Row(
-            children: [
-              Icon(Icons.circle, size: 7, color: statusColor),
-              const SizedBox(width: 5),
-              Text(
-                session.statusLabel.toUpperCase(),
-                style: AppTextStyles.receiptSmall.copyWith(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                  color: statusColor,
-                ),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceVariant : Colors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+        border: Border.all(
+          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Encabezado: MESA N + tiempo ──────────────────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'MESA ${session.tableNumber}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: isDark
+                              ? AppColors.darkOnSurface
+                              : AppColors.lightOnSurface,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _elapsedColor(session.openedAt).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                      ),
+                      child: Text(
+                        elapsed,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _elapsedColor(session.openedAt),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  session.apodo != null ? '"${session.apodo}"' : ' ',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: isDark
+                        ? AppColors.darkOnSurfaceVariant
+                        : AppColors.lightOnSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                Divider(
+                  height: 12,
+                  thickness: 1,
+                  color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                ),
+
+                // ── Total + ítems ────────────────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      itemCount == 0
+                          ? 'sin pedidos'
+                          : '$itemCount ítem${itemCount == 1 ? '' : 's'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.darkOnSurfaceVariant
+                            : AppColors.lightOnSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      total.toCop,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: total > 0 ? AppColors.primary : AppColors.statusGreen,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+
+                // ── Estado ───────────────────────────────────────────────
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: statusColor.withOpacity(0.5),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      session.statusLabel.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.0,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

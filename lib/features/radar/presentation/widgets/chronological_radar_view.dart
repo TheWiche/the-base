@@ -71,7 +71,7 @@ class _ChronologicalItemCard extends StatelessWidget {
       RadarUrgency.critical => AppColors.statusRed,
     };
 
-    final cardBg = isDark ? const Color(0xFF1E1E28) : Colors.white;
+    final cardBg = isDark ? AppColors.darkSurfaceVariant : Colors.white;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.space10),
@@ -88,7 +88,7 @@ class _ChronologicalItemCard extends StatelessWidget {
           padding: const EdgeInsets.only(left: 20),
           decoration: BoxDecoration(
             color: AppColors.statusGreen.withOpacity(0.25),
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           ),
           child: const Row(
             children: [
@@ -108,15 +108,20 @@ class _ChronologicalItemCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: cardBg,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
             border: Border.all(
               color: item.urgency == RadarUrgency.critical
                   ? AppColors.statusRed
-                  : (isDark
-                      ? const Color(0xFF2E2E3E)
-                      : const Color(0xFFE2E2EA)),
+                  : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
               width: item.urgency == RadarUrgency.critical ? 1.8 : 1.0,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -199,10 +204,15 @@ class _ChronologicalItemCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: isDark
-                                ? const Color(0xFF282838)
+                                ? AppColors.darkSurface
                                 : const Color(0xFFF0F0F5),
                             borderRadius:
                                 BorderRadius.circular(AppDimensions.radiusSm),
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.darkOutline
+                                  : AppColors.lightOutline,
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,

@@ -18,7 +18,6 @@ import '../../features/payments/presentation/widgets/global_pending_transfers_ba
 import '../../features/payments/presentation/screens/billing_screen.dart';
 import '../../features/payments/presentation/screens/cash_payment_screen.dart';
 import '../../features/payments/presentation/screens/comprobantes_screen.dart';
-import '../../features/payments/presentation/screens/mixed_payment_screen.dart';
 import '../../features/payments/presentation/screens/standalone_transfer_screen.dart';
 import '../../features/payments/presentation/screens/transfer_capture_screen.dart';
 import '../../features/products/presentation/screens/products_screen.dart';
@@ -214,13 +213,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => _slidePage(
               state.pageKey,
               TransferCaptureScreen(args: state.extra as PaymentNavigationArgs),
-            ),
-          ),
-          GoRoute(
-            path: 'mixed',
-            pageBuilder: (context, state) => _slidePage(
-              state.pageKey,
-              MixedPaymentScreen(args: state.extra as PaymentNavigationArgs),
             ),
           ),
         ],

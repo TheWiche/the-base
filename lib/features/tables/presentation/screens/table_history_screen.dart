@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/receipt_paper.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../../domain/entities/table_session_entity.dart';
 
@@ -72,50 +71,108 @@ class _HistoryStub extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final closedLabel = session.closedAt != null
         ? dateFormat.format(session.closedAt!)
         : dateFormat.format(session.openedAt);
 
-    return ReceiptStub(
-      onTap: onTap,
-      padding: const EdgeInsets.fromLTRB(14, 10, 10, 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceVariant : Colors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+        border: Border.all(
+          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
               children: [
-                Text(
-                  'MESA ${session.tableNumber}',
-                  style: AppTextStyles.receiptBodyBold
-                      .copyWith(color: AppColors.paperInk),
-                ),
-                if (session.apodo != null)
-                  Text(
-                    '"${session.apodo}"',
-                    style: AppTextStyles.receiptSmall.copyWith(
-                      color: AppColors.paperInkSoft,
-                      fontStyle: FontStyle.italic,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'MESA ${session.tableNumber}',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: isDark
+                                  ? AppColors.darkOnSurface
+                                  : AppColors.lightOnSurface,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          if (session.apodo != null) ...[
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                '"${session.apodo}"',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                  color: isDark
+                                      ? AppColors.darkOnSurfaceVariant
+                                      : AppColors.lightOnSurfaceVariant,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.lock_outline_rounded,
+                            size: 13,
+                            color: isDark
+                                ? AppColors.darkOnSurfaceVariant
+                                : AppColors.lightOnSurfaceVariant,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            closedLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: isDark
+                                  ? AppColors.darkOnSurfaceVariant
+                                  : AppColors.lightOnSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Icon(Icons.lock_rounded, size: 11, color: AppColors.paperInkSoft),
-                    const SizedBox(width: 4),
-                    Text(closedLabel,
-                        style: AppTextStyles.receiptSmall
-                            .copyWith(color: AppColors.paperInkSoft)),
-                  ],
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isDark
+                      ? AppColors.darkOnSurfaceVariant
+                      : AppColors.lightOnSurfaceVariant,
                 ),
               ],
             ),
           ),
-          Icon(Icons.chevron_right_rounded, color: AppColors.paperInkSoft),
-        ],
+        ),
       ),
     );
   }

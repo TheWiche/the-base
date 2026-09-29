@@ -147,8 +147,11 @@ class _RadarViewSelector extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E28) : const Color(0xFFE8E8EE),
+        color: isDark ? AppColors.darkSurfaceVariant : const Color(0xFFE8E8EE),
         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        border: Border.all(
+          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+        ),
       ),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -172,7 +175,6 @@ class _RadarViewSelector extends StatelessWidget {
             mode: RadarViewMode.barra,
             title: 'Modo Barra',
             icon: Icons.wine_bar_rounded,
-            highlight: true,
           ),
         ],
       ),
@@ -184,34 +186,31 @@ class _RadarViewSelector extends StatelessWidget {
     required RadarViewMode mode,
     required String title,
     required IconData icon,
-    bool highlight = false,
   }) {
     final isSelected = currentMode == mode;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final selectedBg = highlight
-        ? AppColors.primary
-        : (isDark ? const Color(0xFF2E2E3E) : Colors.white);
-    final selectedFg = highlight
-        ? Colors.black
-        : (isDark ? Colors.white : Colors.black);
-    final unselectedFg = isDark ? Colors.white60 : Colors.black54;
+    final selectedBg = AppColors.primary;
+    final selectedFg = const Color(0xFF121212);
+    final unselectedFg = isDark
+        ? AppColors.darkOnSurfaceVariant
+        : AppColors.lightOnSurfaceVariant;
 
     return Expanded(
       child: GestureDetector(
         onTap: () => onModeChanged(mode),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected ? selectedBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.12),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
+                      color: AppColors.primary.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     )
                   ]
                 : null,
@@ -221,10 +220,10 @@ class _RadarViewSelector extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 15,
+                size: 16,
                 color: isSelected ? selectedFg : unselectedFg,
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   title,

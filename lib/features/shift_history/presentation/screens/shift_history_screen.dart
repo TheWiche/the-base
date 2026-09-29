@@ -7,8 +7,6 @@ import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/receipt_paper.dart';
-import '../../../../core/widgets/receipt_widgets.dart';
 import '../../data/models/shift_snapshot.dart';
 import '../providers/shift_history_providers.dart';
 
@@ -74,69 +72,150 @@ class _ShiftStub extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final profit = snapshot.netProfit;
     final profitColor =
-        profit >= 0 ? AppColors.secondaryDark : AppColors.statusRed;
+        profit >= 0 ? AppColors.statusGreen : AppColors.statusRed;
 
-    return ReceiptStub(
-      onTap: onTap,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Text('TURNO #$index',
-                  style: AppTextStyles.receiptBodyBold
-                      .copyWith(color: AppColors.paperInk)),
-              const Spacer(),
-              Icon(Icons.chevron_right_rounded,
-                  size: 16, color: AppColors.paperInkSoft),
-            ],
-          ),
-          Text(
-            dateFormat.format(snapshot.snapshotAt),
-            style: AppTextStyles.receiptSmall.copyWith(color: AppColors.paperInkSoft),
-          ),
-          const DashedDivider(padding: EdgeInsets.symmetric(vertical: 6)),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _MiniStat(label: 'DEUDA', value: snapshot.totalDebt.toCop),
-              _MiniStat(label: 'EFECTIVO', value: snapshot.cashInHand.toCop),
-              _MiniStat(
-                label: 'UTILIDAD',
-                value: profit.toSignedCop,
-                color: profitColor,
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceVariant : Colors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+        border: Border.all(
+          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimensions.space16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'TURNO #$index',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      dateFormat.format(snapshot.snapshotAt),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.darkOnSurfaceVariant
+                            : AppColors.lightOnSurfaceVariant,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: isDark
+                          ? AppColors.darkOnSurfaceVariant
+                          : AppColors.lightOnSurfaceVariant,
+                    ),
+                  ],
+                ),
+                Divider(
+                  height: 18,
+                  thickness: 1,
+                  color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _MiniStat(
+                      label: 'DEUDA',
+                      value: snapshot.totalDebt.toCop,
+                      isDark: isDark,
+                    ),
+                    _MiniStat(
+                      label: 'EFECTIVO',
+                      value: snapshot.cashInHand.toCop,
+                      isDark: isDark,
+                    ),
+                    _MiniStat(
+                      label: 'UTILIDAD',
+                      value: profit.toSignedCop,
+                      color: profitColor,
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
 class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.label, required this.value, this.color});
+  const _MiniStat({
+    required this.label,
+    required this.value,
+    this.color,
+    required this.isDark,
+  });
 
   final String label;
   final String value;
   final Color? color;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: AppTextStyles.receiptSmall
-                .copyWith(color: AppColors.paperInkSoft, fontSize: 9)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+            color: isDark
+                ? AppColors.darkOnSurfaceVariant
+                : AppColors.lightOnSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 2),
         Text(
           value,
-          style: AppTextStyles.receiptBodyBold
-              .copyWith(color: color ?? AppColors.paperInk, fontSize: 12.5),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: color ??
+                (isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface),
+          ),
         ),
       ],
     );

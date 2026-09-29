@@ -14,17 +14,17 @@ abstract final class AppTheme {
   static const ColorScheme _darkScheme = ColorScheme(
     brightness: Brightness.dark,
     primary: AppColors.primary,
-    onPrimary: Color(0xFF241A05),           // tinta oscura sobre ámbar
-    primaryContainer: Color(0xFF3A2A0F),    // ámbar quemado profundo
-    onPrimaryContainer: Color(0xFFF0DDB8), // ámbar claro
+    onPrimary: Color(0xFF121212),           // tinta oscura sobre ámbar
+    primaryContainer: Color(0xFF332408),    // ámbar quemado profundo
+    onPrimaryContainer: Color(0xFFFFE082), // ámbar claro
     secondary: AppColors.secondary,
-    onSecondary: Color(0xFF03251A),
-    secondaryContainer: Color(0xFF124A33),
-    onSecondaryContainer: Color(0xFFCBEFDD),
+    onSecondary: Color(0xFF00240D),
+    secondaryContainer: Color(0xFF004D25),
+    onSecondaryContainer: Color(0xFFB9F6CA),
     tertiary: AppColors.statusBlue,
-    onTertiary: Color(0xFF082F49),
-    tertiaryContainer: Color(0xFF0C4A6E),
-    onTertiaryContainer: Color(0xFFE0F2FE),
+    onTertiary: Color(0xFF06183A),
+    tertiaryContainer: Color(0xFF0D2556),
+    onTertiaryContainer: Color(0xFFD6E4FF),
     error: AppColors.statusRed,
     onError: AppColors.onStatusRed,
     errorContainer: Color(0xFF7F1D1D),
@@ -32,12 +32,12 @@ abstract final class AppTheme {
     surface: AppColors.darkSurface,
     onSurface: AppColors.darkOnSurface,
     surfaceDim: AppColors.darkBackground,
-    surfaceBright: AppColors.darkSurfaceVariant,
+    surfaceBright: AppColors.darkCard,
     surfaceContainerLowest: AppColors.darkBackground,
     surfaceContainerLow: AppColors.darkSurface,
-    surfaceContainer: AppColors.darkSurface,
-    surfaceContainerHigh: AppColors.darkSurfaceVariant,
-    surfaceContainerHighest: AppColors.darkSurfaceVariant,
+    surfaceContainer: AppColors.darkSurfaceVariant,
+    surfaceContainerHigh: AppColors.darkCard,
+    surfaceContainerHighest: Color(0xFF383A3C),
     onSurfaceVariant: AppColors.darkOnSurfaceVariant,
     surfaceTint: Colors.transparent,
     outline: AppColors.darkOutline,
@@ -135,9 +135,9 @@ abstract final class AppTheme {
           minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
           padding: const EdgeInsets.symmetric(horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           ),
-          textStyle: AppTextStyles.labelLarge,
+          textStyle: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
           elevation: 0,
         ),
       ),
@@ -150,9 +150,9 @@ abstract final class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           side: BorderSide(color: scheme.primary, width: AppDimensions.buttonBorderWidth),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           ),
-          textStyle: AppTextStyles.labelLarge,
+          textStyle: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
 
@@ -165,7 +165,7 @@ abstract final class AppTheme {
             AppDimensions.tapTargetMin,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          textStyle: AppTextStyles.labelMedium,
+          textStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
 
@@ -174,12 +174,12 @@ abstract final class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
-          minimumSize: const Size.fromHeight(AppDimensions.buttonHeightLg),
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           ),
-          textStyle: AppTextStyles.labelLarge,
+          textStyle: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
           elevation: 0,
         ),
       ),
@@ -212,14 +212,14 @@ abstract final class AppTheme {
 
       // ── BottomSheet ─────────────────────────────────────────────────────────
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: surface,
+        backgroundColor: isDark ? AppColors.darkSurfaceVariant : surface,
         surfaceTintColor: Colors.transparent,
-        modalBackgroundColor: surface,
+        modalBackgroundColor: isDark ? AppColors.darkSurfaceVariant : surface,
         elevation: 0,
         modalElevation: 0,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppDimensions.radiusLg),
+            top: Radius.circular(AppDimensions.modalRadius),
           ),
         ),
       ),
@@ -227,30 +227,30 @@ abstract final class AppTheme {
       // ── Menus ───────────────────────────────────────────────────────────────
       menuTheme: MenuThemeData(
         style: MenuStyle(
-          backgroundColor: WidgetStatePropertyAll(surface),
+          backgroundColor: WidgetStatePropertyAll(isDark ? AppColors.darkSurfaceVariant : surface),
           surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
           elevation: const WidgetStatePropertyAll(2),
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: surface,
+        color: isDark ? AppColors.darkSurfaceVariant : surface,
         surfaceTintColor: Colors.transparent,
         elevation: 2,
       ),
 
-      canvasColor: surface,
+      canvasColor: isDark ? AppColors.darkSurfaceVariant : surface,
 
       // ── Card ────────────────────────────────────────────────────────────────
       cardTheme: CardThemeData(
-        color: surface,
+        color: isDark ? AppColors.darkSurfaceVariant : surface,
         surfaceTintColor: Colors.transparent,
         elevation: AppDimensions.cardElevation,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           side: BorderSide(
             color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-            width: AppDimensions.cardBorderWidth,
+            width: 1.0,
           ),
         ),
       ),

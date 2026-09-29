@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+
+import '../../domain/entities/base_transaction_entity.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/extensions/int_extensions.dart';
@@ -105,6 +108,38 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
     }
   }
 
+  Future<void> _handleSettleLiquorDebt() async {
+    final summary = ref.read(baseWalletProvider).valueOrNull;
+    if (summary == null || summary.totalLiquorDebt <= 0) {
+      _showError('No tienes deuda de licor pendiente por liquidar.');
+      return;
+    }
+
+    final result = await showModalBottomSheet<_LiquorSettlementResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _SettleLiquorSheet(summary: summary),
+    );
+
+    if (result == null || result.amount <= 0 || !mounted) return;
+
+    setState(() => _isActionLoading = true);
+    final failure = await ref
+        .read(baseWalletProvider.notifier)
+        .recordLiquorSettlement(amount: result.amount, note: result.note);
+    if (!mounted) return;
+    setState(() => _isActionLoading = false);
+
+    if (failure != null) {
+      _showError(failure.message);
+    } else {
+      _showSuccess(
+        'Pago en caja registrado: −${result.amount.toCop}. Deuda de licor actualizada.',
+      );
+    }
+  }
+
   Future<bool> _showIncreaseConfirmation(int amount) async {
     return await showDialog<bool>(
           context: context,
@@ -145,6 +180,7 @@ class _BaseWalletScreenState extends ConsumerState<BaseWalletScreen> {
                 incrementStep: financial.incrementStep,
                 onRequestIncrease: _handleRequestIncrease,
                 onRequestDecrease: _handleRequestDecrease,
+                onSettleLiquorDebt: _handleSettleLiquorDebt,
               )
             : _NoShiftBody(
                 isLoading: _isActionLoading,
@@ -287,6 +323,7 @@ class _ActiveDashboard extends StatefulWidget {
     required this.incrementStep,
     required this.onRequestIncrease,
     required this.onRequestDecrease,
+    required this.onSettleLiquorDebt,
   });
 
   final WalletSummary summary;
@@ -294,6 +331,7 @@ class _ActiveDashboard extends StatefulWidget {
   final int incrementStep;
   final VoidCallback onRequestIncrease;
   final VoidCallback onRequestDecrease;
+  final VoidCallback onSettleLiquorDebt;
 
   @override
   State<_ActiveDashboard> createState() => _ActiveDashboardState();
@@ -440,6 +478,39 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
                           accentColor: AppColors.statusPurple,
                           icon: Icons.wine_bar_rounded,
                           subtitle: 'Agregado a deuda — no descuenta del saldo',
+                        ),
+                        const SizedBox(height: AppDimensions.space8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: widget.isActionLoading
+                                ? null
+                                : widget.onSettleLiquorDebt,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.statusPurple,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppDimensions.space12,
+                                horizontal: AppDimensions.space16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppDimensions.radiusMd,
+                                ),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.point_of_sale_rounded,
+                              size: 20,
+                            ),
+                            label: const Text(
+                              'Pagar / Liquidar Botella en Caja',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ],
@@ -1173,3 +1244,450 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
     );
   }
 }
+
+// ── Settle Liquor Debt Bottom Sheet ───────────────────────────────────────────
+
+class _LiquorSettlementResult {
+  const _LiquorSettlementResult({
+    required this.amount,
+    this.note,
+  });
+
+  final int amount;
+  final String? note;
+}
+
+class _SettleLiquorSheet extends StatefulWidget {
+  const _SettleLiquorSheet({required this.summary});
+
+  final WalletSummary summary;
+
+  @override
+  State<_SettleLiquorSheet> createState() => _SettleLiquorSheetState();
+}
+
+class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
+  late final TextEditingController _amountController;
+  late final TextEditingController _noteController;
+  int _amount = 0;
+  int? _selectedTxId;
+
+  static final _timeFormat = DateFormat('hh:mm a', 'es_CO');
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController();
+    _noteController = TextEditingController();
+
+    final liquorTxs = widget.summary.transactions
+        .where((t) => t.type == TransactionType.liquorAdjustment)
+        .toList();
+
+    if (liquorTxs.length == 1) {
+      final first = liquorTxs.first;
+      _selectedTxId = first.id;
+      final autoAmt = first.amount > widget.summary.totalLiquorDebt
+          ? widget.summary.totalLiquorDebt
+          : first.amount;
+      _amount = autoAmt;
+      _amountController.text = autoAmt.toString();
+      _noteController.text = 'Pago en caja: ${first.note ?? "Botella"}';
+    }
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _selectBottle(BaseTransactionEntity tx) {
+    setState(() {
+      _selectedTxId = tx.id;
+      final targetAmount = tx.amount > widget.summary.totalLiquorDebt
+          ? widget.summary.totalLiquorDebt
+          : tx.amount;
+      _amount = targetAmount;
+      _amountController.text = targetAmount.toString();
+      _noteController.text = 'Pago en caja: ${tx.note ?? "Botella"}';
+    });
+  }
+
+  void _setAmount(int val) {
+    setState(() {
+      _selectedTxId = null;
+      _amount = val;
+      _amountController.text = val > 0 ? val.toString() : '';
+      if (_noteController.text.isEmpty) {
+        _noteController.text = 'Abono licor en caja';
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final maxAllowed = widget.summary.totalLiquorDebt;
+    final isValid = _amount > 0 && _amount <= maxAllowed;
+    final isExceeded = _amount > maxAllowed;
+
+    final liquorTxs = widget.summary.transactions
+        .where((t) => t.type == TransactionType.liquorAdjustment)
+        .toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppDimensions.radiusLg),
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        AppDimensions.pagePaddingH,
+        AppDimensions.space16,
+        AppDimensions.pagePaddingH,
+        AppDimensions.pagePaddingH + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: (isDark
+                            ? AppColors.darkOutline
+                            : AppColors.lightOutline)
+                        .withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space16),
+
+              // Title Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppDimensions.space8),
+                    decoration: BoxDecoration(
+                      color: AppColors.statusPurple.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.wine_bar_rounded,
+                      color: AppColors.statusPurple,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: AppDimensions.space12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pagar Botella en Caja',
+                          style: AppTextStyles.titleLarge,
+                        ),
+                        Text(
+                          'Deuda de licor pendiente: ${maxAllowed.toCop}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: isDark
+                                ? AppColors.darkOnSurfaceVariant
+                                : AppColors.lightOnSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDimensions.space16),
+
+              // Quick pay-all button chip
+              Row(
+                children: [
+                  ActionChip(
+                    avatar: const Icon(
+                      Icons.flash_on_rounded,
+                      size: 16,
+                      color: AppColors.statusPurple,
+                    ),
+                    label: Text('Liquidar Todo (${maxAllowed.toCop})'),
+                    backgroundColor: AppColors.statusPurple.withOpacity(0.12),
+                    side: BorderSide(
+                      color: AppColors.statusPurple.withOpacity(0.4),
+                    ),
+                    labelStyle: AppTextStyles.labelMedium.copyWith(
+                      color: AppColors.statusPurple,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    onPressed: () => _setAmount(maxAllowed),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDimensions.space16),
+
+              // List of bottles charged (if any)
+              if (liquorTxs.isNotEmpty) ...[
+                Text(
+                  'Selecciona una botella de la lista:',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: isDark
+                        ? AppColors.darkOnSurfaceVariant
+                        : AppColors.lightOnSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.space8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 180),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: liquorTxs.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    itemBuilder: (context, index) {
+                      final tx = liquorTxs[index];
+                      final isSelected = _selectedTxId == tx.id;
+                      final timeStr = _timeFormat.format(tx.timestamp);
+
+                      return InkWell(
+                        onTap: () => _selectBottle(tx),
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusMd),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimensions.space12,
+                            vertical: AppDimensions.space10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.statusPurple.withOpacity(0.15)
+                                : (isDark
+                                    ? AppColors.darkSurfaceVariant
+                                    : AppColors.lightSurfaceVariant),
+                            borderRadius:
+                                BorderRadius.circular(AppDimensions.radiusMd),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.statusPurple
+                                  : (isDark
+                                      ? AppColors.darkOutline
+                                      : AppColors.lightOutline),
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isSelected
+                                    ? Icons.check_circle_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                                color: isSelected
+                                    ? AppColors.statusPurple
+                                    : (isDark
+                                        ? AppColors.darkOnSurfaceVariant
+                                        : AppColors.lightOnSurfaceVariant),
+                                size: 20,
+                              ),
+                              const SizedBox(width: AppDimensions.space10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tx.note ?? 'Botella de licor',
+                                      style: AppTextStyles.titleSmall.copyWith(
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                    Text(
+                                      timeStr,
+                                      style: AppTextStyles.labelSmall.copyWith(
+                                        color: isDark
+                                            ? AppColors.darkOnSurfaceVariant
+                                            : AppColors.lightOnSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                tx.amount.toCop,
+                                style: AppTextStyles.receiptTotal.copyWith(
+                                  fontSize: 16,
+                                  color: AppColors.statusPurple,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.space16),
+              ],
+
+              // Custom amount input
+              Text(
+                'Monto a pagar en caja (COP)',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: isDark
+                      ? AppColors.darkOnSurfaceVariant
+                      : AppColors.lightOnSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space8),
+              TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  prefixText: '\$ ',
+                  prefixStyle: AppTextStyles.headlineSmall.copyWith(
+                    color: AppColors.statusPurple,
+                  ),
+                  hintText: '0',
+                  suffixIcon: _amountController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded),
+                          onPressed: () {
+                            _amountController.clear();
+                            setState(() {
+                              _amount = 0;
+                              _selectedTxId = null;
+                            });
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: isDark
+                      ? AppColors.darkBackground
+                      : AppColors.lightBackground,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  ),
+                  errorText: isExceeded
+                      ? 'No puedes liquidar más de ${maxAllowed.toCop}'
+                      : null,
+                ),
+                style: AppTextStyles.headlineSmall.copyWith(
+                  color: AppColors.statusPurple,
+                  fontWeight: FontWeight.bold,
+                ),
+                onChanged: (val) {
+                  setState(() {
+                    _amount = int.tryParse(val) ?? 0;
+                    _selectedTxId = null;
+                  });
+                },
+              ),
+              const SizedBox(height: AppDimensions.space12),
+
+              // Note / concept
+              TextField(
+                controller: _noteController,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  labelText: 'Concepto / Detalle (opcional)',
+                  hintText: 'Ej. Pago Aguardiente en caja',
+                  filled: true,
+                  fillColor: isDark
+                      ? AppColors.darkBackground
+                      : AppColors.lightBackground,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  ),
+                  prefixIcon: const Icon(Icons.notes_rounded),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space12),
+
+              // Summary calculation
+              if (!isExceeded && isValid)
+                Container(
+                  padding: const EdgeInsets.all(AppDimensions.space12),
+                  decoration: BoxDecoration(
+                    color: AppColors.statusPurple.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    border: Border.all(
+                      color: AppColors.statusPurple.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Deuda restante:',
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                      Text(
+                        (maxAllowed - _amount).toCop,
+                        style: AppTextStyles.titleMedium.copyWith(
+                          color: AppColors.statusPurple,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: AppDimensions.space20),
+
+              // Confirmation button
+              SizedBox(
+                height: AppDimensions.buttonHeightLg,
+                child: FilledButton.icon(
+                  onPressed: isValid
+                      ? () {
+                          HapticFeedback.mediumImpact();
+                          final noteText = _noteController.text.trim();
+                          Navigator.of(context).pop(
+                            _LiquorSettlementResult(
+                              amount: _amount,
+                              note: noteText.isEmpty
+                                  ? 'Pago de licor en caja'
+                                  : noteText,
+                            ),
+                          );
+                        }
+                      : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.statusPurple,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.point_of_sale_rounded),
+                  label: Text(
+                    isValid
+                        ? 'Registrar Pago en Caja (${_amount.toCop})'
+                        : 'Ingresa un monto válido',
+                    style: AppTextStyles.labelLarge.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

@@ -8,6 +8,7 @@ import '../../domain/entities/wallet_summary.dart';
 import '../../domain/repositories/i_base_repository.dart';
 import '../../domain/usecases/get_wallet_summary_usecase.dart';
 import '../../domain/usecases/initialize_shift_usecase.dart';
+import '../../domain/usecases/record_liquor_settlement_usecase.dart';
 import '../../domain/usecases/request_decrease_usecase.dart';
 import '../../domain/usecases/request_increase_usecase.dart';
 
@@ -32,6 +33,11 @@ final requestIncreaseUseCaseProvider = Provider<RequestIncreaseUseCase>(
 
 final requestDecreaseUseCaseProvider = Provider<RequestDecreaseUseCase>(
   (ref) => RequestDecreaseUseCase(ref.read(baseRepositoryProvider)),
+);
+
+final recordLiquorSettlementUseCaseProvider =
+    Provider<RecordLiquorSettlementUseCase>(
+  (ref) => RecordLiquorSettlementUseCase(ref.read(baseRepositoryProvider)),
 );
 
 // ── Main Notifier ─────────────────────────────────────────────────────────────
@@ -111,6 +117,18 @@ class BaseWalletNotifier extends AsyncNotifier<WalletSummary> {
     final result = await ref
         .read(baseRepositoryProvider)
         .recordLiquorAdjustment(amount: amount, note: note);
+    return _handleWriteResult(result);
+  }
+
+  /// Records a liquor debt payment made directly to the cash register.
+  /// Returns null on success.
+  Future<Failure?> recordLiquorSettlement({
+    required int amount,
+    String? note,
+  }) async {
+    final result = await ref
+        .read(recordLiquorSettlementUseCaseProvider)
+        .call(amount: amount, note: note);
     return _handleWriteResult(result);
   }
 

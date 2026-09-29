@@ -136,6 +136,13 @@ class _StubPainter extends CustomPainter {
       Paint()..color = Colors.black.withOpacity(0.2),
     );
     canvas.drawPath(path, Paint()..color = color);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white.withOpacity(0.08)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
   }
 
   @override
@@ -168,6 +175,13 @@ class _ReceiptPainter extends CustomPainter {
     );
 
     canvas.drawPath(path, Paint()..color = color);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white.withOpacity(0.08)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
   }
 
   Path _buildPath(Size size) {

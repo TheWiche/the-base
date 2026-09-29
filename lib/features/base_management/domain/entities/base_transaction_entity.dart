@@ -34,7 +34,7 @@ final class BaseTransactionEntity {
         TransactionType.increase => 'Incremento de Base',
         TransactionType.decrease => 'Reducción de Base',
         TransactionType.liquorAdjustment => 'Deuda por Licor',
-        TransactionType.liquorSettlement => 'Botella Completada',
+        TransactionType.liquorSettlement => 'Pago Licor en Caja',
       };
 
   String get displayPrefix => switch (type) {

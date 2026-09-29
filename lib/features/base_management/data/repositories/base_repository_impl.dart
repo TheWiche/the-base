@@ -168,6 +168,32 @@ final class BaseRepositoryImpl implements IBaseRepository {
   }
 
   @override
+  Future<Result<BaseTransactionEntity>> recordLiquorSettlement({
+    required int amount,
+    String? note,
+  }) async {
+    assert(amount > 0, 'Liquor settlement amount must be positive.');
+    try {
+      final model = WaiterBaseTransaction()
+        ..type = TransactionType.liquorSettlement
+        ..amount = amount
+        ..timestamp = DateTime.now()
+        ..note = note;
+
+      await IsarService.write((db) async {
+        await db.waiterBaseTransactions.put(model);
+      });
+
+      debugPrint('[BaseRepo] Liquor settlement: -\$$amount debt ($note)');
+      return Ok(model.toEntity());
+    } on IsarError catch (e, st) {
+      return Err(DatabaseFailure(message: e.message, stackTrace: st));
+    } catch (e, st) {
+      return Err(DatabaseFailure(message: e.toString(), stackTrace: st));
+    }
+  }
+
+  @override
   Future<Result<void>> clearAll() async {
     assert(kDebugMode, 'clearAll() is forbidden in release builds.');
     try {
