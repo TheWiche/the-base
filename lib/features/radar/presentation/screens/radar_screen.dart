@@ -189,7 +189,7 @@ class _RadarViewSelector extends StatelessWidget {
     final isSelected = currentMode == mode;
     const selectedBg = AppColors.primary;
     const selectedFg = Colors.white;
-    const unselectedFg = Theme.of(context).colorScheme.onSurfaceVariant;
+    final unselectedFg = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Expanded(
       child: GestureDetector(

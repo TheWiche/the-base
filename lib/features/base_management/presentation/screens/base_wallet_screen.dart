@@ -398,7 +398,7 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
           actions: [
             IconButton(
               tooltip: 'Reportes',
-              icon: const Icon(Icons.bar_chart_rounded, color: Theme.of(context).colorScheme.onSurface),
+              icon: Icon(Icons.bar_chart_rounded, color: Theme.of(context).colorScheme.onSurface),
               onPressed: () => context.push('/reportes'),
             ),
           ],
@@ -1121,7 +1121,7 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
+                    icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -1433,7 +1433,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
+                    icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],

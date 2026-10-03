@@ -69,36 +69,6 @@ final class DashboardRepositoryImpl implements IDashboardRepository {
     });
   }
 
-  @override
-  Stream<int> watchVerifiedLiquorPaymentsTotal() {
-    // Both order items and payment receipts can affect this (e.g., legalizing a transfer).
-    // Using a composite stream or just relying on order items? 
-    // Since legalizing a receipt updates the receipt, we need to listen to payment receipts too.
-    // Wait, Isar watchLazy only watches one collection. 
-    // We can merge streams or just listen to paymentReceipts since liquor paid state rarely changes without a receipt change.
-    // Let's watch paymentReceipts because legalization happens there.
-    return _db.paymentReceipts
-        .watchLazy(fireImmediately: true)
-        .asyncMap((_) async {
-      final liquorItems = await _db.orderItems
-          .filter()
-          .categoryEqualTo(ProductCategory.liquor)
-          .isPaidEqualTo(true)
-          .findAll();
-      
-      int total = 0;
-      for (final item in liquorItems) {
-        if (item.paymentReceiptId != null) {
-          final receipt = await _db.paymentReceipts.get(item.paymentReceiptId!);
-          if (receipt != null && (receipt.paymentMethod == PaymentMethod.cash || receipt.isLegalizedInCaja)) {
-            total += item.price * item.quantity;
-          }
-        }
-      }
-      return total;
-    });
-  }
-
   // ── Write ──────────────────────────────────────────────────────────────────
 
   @override

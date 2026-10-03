@@ -188,7 +188,7 @@ class _InitialBody extends StatelessWidget {
               border: Border.all(color: AppColors.paperBorder),
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
+                  color: AppColors.ink.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -200,7 +200,7 @@ class _InitialBody extends StatelessWidget {
                 Text(
                   'MONTO A TRANSFERIR',
                   style: AppTextStyles.statusBadge.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: AppColors.inkSecondary,
                   ),
                 ),
                 const SizedBox(height: AppDimensions.space8),
@@ -230,7 +230,7 @@ class _InitialBody extends StatelessWidget {
                   'Toma una foto clara del comprobante. Se guarda en '
                   '"Bonanza_Transferencias" y podrás verla en Comprobantes.',
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: AppColors.inkSecondary,
                   ),
                 ),
               ),
@@ -273,7 +273,7 @@ class _InitialBody extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onPickFromGallery,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                      foregroundColor: AppColors.ink,
                       side: const BorderSide(
                         color: AppColors.paperBorder,
                         width: 1.5,

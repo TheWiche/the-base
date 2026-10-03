@@ -444,7 +444,7 @@ class _FooterRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.bold = false,
-    this.color = Theme.of(context).colorScheme.onSurface,
+    this.color,
   });
 
   final String label;

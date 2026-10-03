@@ -19,11 +19,6 @@ abstract interface class IDashboardRepository {
   /// Used to populate [WalletSummary.cashPaymentsTotal] for Available Balance.
   Stream<int> watchCashPaymentsTotal();
 
-  /// Reactive stream: sum of [OrderItem.price * quantity] where
-  /// category == liquor AND the item was paid via Cash or Legalized Transfer.
-  /// Used to prevent liquor payments from falsely inflating Available Balance.
-  Stream<int> watchVerifiedLiquorPaymentsTotal();
-
   /// Marks a transfer [PaymentReceipt] as legalized by the cashier.
   /// Triggers reactive re-emission of [watchTransferReceipts] → the enriched
   /// wallet summary updates automatically, injecting the legalized amount into

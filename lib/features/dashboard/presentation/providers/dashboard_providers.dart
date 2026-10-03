@@ -77,12 +77,6 @@ final cashPaymentsTotalProvider = StreamProvider<int>((ref) {
   return ref.read(dashboardRepositoryProvider).watchCashPaymentsTotal();
 });
 
-/// Running sum of paid liquor items that have been verified (cash or legalized transfer).
-/// Feeds [WalletSummary.verifiedLiquorPaymentsTotal] for Available Balance correction.
-final verifiedLiquorPaymentsTotalProvider = StreamProvider<int>((ref) {
-  return ref.read(dashboardRepositoryProvider).watchVerifiedLiquorPaymentsTotal();
-});
-
 // ── Enriched wallet summary ────────────────────────────────────────────────────
 
 /// The complete [WalletSummary] with all cross-feature integrations applied.
@@ -92,7 +86,6 @@ final verifiedLiquorPaymentsTotalProvider = StreamProvider<int>((ref) {
 ///   • [cashPaymentsTotal]       → fills [WalletSummary.cashPaymentsTotal]
 ///   • [transferTipsTotal]       → fills [WalletSummary.transferTipsTotal]
 ///   • [servedStandardItemsTotal]→ fills [WalletSummary.servedStandardItemsTotal]
-///   • [verifiedLiquorPaymentsTotal] → fills [WalletSummary.verifiedLiquorPaymentsTotal]
 ///
 /// [BaseWalletScreen] should watch this provider instead of [baseWalletProvider]
 /// so the Available Balance and Net Profit reflect real-time payment data.
@@ -114,8 +107,6 @@ final enrichedWalletSummaryProvider =
   final servedTotal = servedAsync.valueOrNull ?? 0;
   final cashAsync = ref.watch(cashPaymentsTotalProvider);
   final cashTotal = cashAsync.valueOrNull ?? 0;
-  final liquorAsync = ref.watch(verifiedLiquorPaymentsTotalProvider);
-  final liquorTotal = liquorAsync.valueOrNull ?? 0;
 
   return baseAsync.whenData(
     (base) => base.copyWith(
@@ -123,7 +114,6 @@ final enrichedWalletSummaryProvider =
       cashPaymentsTotal: cashTotal,
       transferTipsTotal: tipsTotal,
       servedStandardItemsTotal: servedTotal,
-      verifiedLiquorPaymentsTotal: liquorTotal,
     ),
   );
 });
