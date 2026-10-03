@@ -57,11 +57,11 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
       minChildSize: 0.5,
       builder: (context, scrollCtrl) => Container(
         decoration: BoxDecoration(
-          color: AppColors.paperSurface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(AppDimensions.modalRadius),
           ),
-          border: Border.all(color: AppColors.paperBorder),
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
         ),
         child: Column(
           children: [
@@ -71,7 +71,7 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.paperBorder,
+                  color: Theme.of(context).colorScheme.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -146,11 +146,11 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: AppColors.paperSurface,
+          color: Theme.of(ctx).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(AppDimensions.modalRadius),
           ),
-          border: Border.all(color: AppColors.paperBorder),
+          border: Border.all(color: Theme.of(ctx).colorScheme.outline),
         ),
         child: SafeArea(
           child: Column(
@@ -162,7 +162,7 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
                   height: 4,
                   margin: const EdgeInsets.only(top: 12, bottom: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.paperBorder,
+                    color: Theme.of(ctx).colorScheme.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

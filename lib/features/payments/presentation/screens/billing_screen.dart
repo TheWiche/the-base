@@ -631,13 +631,13 @@ class _UnitStepperSheetState extends State<_UnitStepperSheet> {
     final subtotalSelected = item.price * _qty;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.paperSurface,
-        borderRadius: BorderRadius.vertical(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppDimensions.modalRadius),
         ),
         border: Border(
-          top: BorderSide(color: AppColors.paperBorder, width: 1.0),
+          top: BorderSide(color: Theme.of(context).colorScheme.outline, width: 1.0),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -658,7 +658,7 @@ class _UnitStepperSheetState extends State<_UnitStepperSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: AppDimensions.space16),
                 decoration: BoxDecoration(
-                  color: AppColors.paperBorder,
+                  color: Theme.of(context).colorScheme.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -858,10 +858,10 @@ class _BottomBar extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
       decoration: BoxDecoration(
-        color: AppColors.paperSurface,
-        border: const Border(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
           top: BorderSide(
-            color: AppColors.paperBorder,
+            color: Theme.of(context).colorScheme.outline,
             width: 1,
           ),
         ),
@@ -969,11 +969,11 @@ class _PaymentMethodSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.paperSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppDimensions.modalRadius),
         ),
-        border: Border.all(color: AppColors.paperBorder),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       padding: const EdgeInsets.fromLTRB(
         AppDimensions.pagePaddingH,
@@ -992,7 +992,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: AppDimensions.space16),
                 decoration: BoxDecoration(
-                  color: AppColors.paperBorder,
+                  color: Theme.of(context).colorScheme.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

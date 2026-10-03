@@ -38,10 +38,10 @@ class FinancialMetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.paperSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
         border: Border.all(
-          color: AppColors.paperBorder,
+          color: Theme.of(context).colorScheme.outline,
           width: 1.2,
         ),
         boxShadow: const [

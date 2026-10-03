@@ -183,12 +183,12 @@ class _InitialBody extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(AppDimensions.space20),
             decoration: BoxDecoration(
-              color: AppColors.paperSurface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
-              border: Border.all(color: AppColors.paperBorder),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.ink.withValues(alpha: 0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -200,7 +200,7 @@ class _InitialBody extends StatelessWidget {
                 Text(
                   'MONTO A TRANSFERIR',
                   style: AppTextStyles.statusBadge.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: AppDimensions.space8),
@@ -230,7 +230,7 @@ class _InitialBody extends StatelessWidget {
                   'Toma una foto clara del comprobante. Se guarda en '
                   '"Bonanza_Transferencias" y podrás verla en Comprobantes.',
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -273,9 +273,9 @@ class _InitialBody extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onPickFromGallery,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
-                      side: const BorderSide(
-                        color: AppColors.paperBorder,
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
                         width: 1.5,
                       ),
                       shape: RoundedRectangleBorder(
@@ -388,57 +388,13 @@ class _PreviewBody extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'Comprobante por ${billSubtotal.toCop}',
+                        'Comprobante de Transferencia · ${billSubtotal.toCop}',
                         style: AppTextStyles.bodyLarge.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                    ),
-                    const SizedBox(height: AppDimensions.space16),
-
-                    // ── Plataforma (chips compactos, Nequi por defecto) ──
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: TransferMethod.values.map((m) {
-                        final selected = m == method;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: GestureDetector(
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              onMethodChanged(m);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? m.displayColor.withOpacity(0.3)
-                                    : Colors.white10,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color:
-                                      selected ? m.displayColor : Colors.white30,
-                                  width: selected ? 2 : 1,
-                                ),
-                              ),
-                              child: Text(
-                                m.displayLabel,
-                                style: AppTextStyles.labelMedium.copyWith(
-                                  color:
-                                      selected ? Colors.white : Colors.white70,
-                                  fontWeight: selected
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
                     ),
                     const SizedBox(height: AppDimensions.space24),
 

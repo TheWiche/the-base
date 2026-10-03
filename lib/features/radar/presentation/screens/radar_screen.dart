@@ -143,12 +143,20 @@ class _RadarViewSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final containerBg = isDark
+        ? AppColors.darkSurfaceVariant
+        : const Color(0xFFEFE9DC);
+    final borderColor = isDark
+        ? AppColors.darkOutline
+        : AppColors.paperBorder;
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFEFE9DC), // Papel crema cálido
+        color: containerBg,
         borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
         border: Border.all(
-          color: AppColors.paperBorder,
+          color: borderColor,
           width: 1.0,
         ),
       ),

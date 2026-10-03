@@ -386,7 +386,7 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
           expandedHeight: 266,
           pinned: true,
           stretch: true,
-          backgroundColor: AppColors.paperBackground,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
           elevation: 0,
           title: Text(
             AppStrings.appTagline,
@@ -412,7 +412,7 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(62),
             child: Container(
-              color: AppColors.paperBackground,
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
               padding: const EdgeInsets.fromLTRB(
                 AppDimensions.pagePaddingH, 8, AppDimensions.pagePaddingH, 10,
               ),
@@ -621,15 +621,16 @@ class _WalletHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.paperSurface, AppColors.paperBackground],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1F21) : null,
+        gradient: isDark ? null : AppColors.lightHeaderGradient,
         border: Border(
-          bottom: BorderSide(color: AppColors.paperBorder, width: 1.0),
+          bottom: BorderSide(
+            color: isDark ? AppColors.darkOutline : Theme.of(context).colorScheme.outline,
+            width: 1.0,
+          ),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -646,7 +647,7 @@ class _WalletHeader extends StatelessWidget {
           Text(
             'SALDO DISPONIBLE',
             style: AppTextStyles.statusBadge.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: isDark ? const Color(0xFFA0A0A5) : Theme.of(context).colorScheme.onSurfaceVariant,
               letterSpacing: 1.2,
             ),
           ),
@@ -659,7 +660,9 @@ class _WalletHeader extends StatelessWidget {
                   amount: summary.availableBalance,
                   style: AppTextStyles.receiptTotal.copyWith(
                     fontSize: 36,
-                    color: summary.isSolvent ? Theme.of(context).colorScheme.onSurface : AppColors.statusRed,
+                    color: summary.isSolvent
+                        ? (isDark ? const Color(0xFFFFFFFF) : Theme.of(context).colorScheme.onSurface)
+                        : AppColors.statusRed,
                   ),
                   duration: const Duration(milliseconds: 700),
                 ),
@@ -671,7 +674,7 @@ class _WalletHeader extends StatelessWidget {
           Text(
             'Turno activo • ${summary.transactions.length} movimientos',
             style: AppTextStyles.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: isDark ? const Color(0xFFA0A0A5) : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -914,10 +917,10 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
     return AlertDialog(
-      backgroundColor: AppColors.paperSurface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
-        side: const BorderSide(color: AppColors.paperBorder),
+        side: BorderSide(color: Theme.of(context).colorScheme.outline),
       ),
       icon: const Icon(
         Icons.trending_up_rounded,
@@ -1055,12 +1058,12 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.paperSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppDimensions.modalRadius),
         ),
-        border: const Border(
-          top: BorderSide(color: AppColors.paperBorder, width: 1.0),
+        border: Border(
+          top: BorderSide(color: Theme.of(context).colorScheme.outline, width: 1.0),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -1081,7 +1084,7 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.paperBorder,
+                    color: Theme.of(context).colorScheme.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1148,11 +1151,11 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                           : null,
                       backgroundColor: q == _amount
                           ? AppColors.statusOrange.withValues(alpha: 0.15)
-                          : AppColors.paperBackground,
+                          : Theme.of(context).colorScheme.surfaceContainerLowest,
                       side: BorderSide(
                         color: q == _amount
                             ? AppColors.statusOrange
-                            : AppColors.paperBorder,
+                            : Theme.of(context).colorScheme.outline,
                         width: q == _amount ? 1.5 : 1,
                       ),
                       labelStyle: TextStyle(
@@ -1196,14 +1199,14 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                         )
                       : null,
                   filled: true,
-                  fillColor: AppColors.paperBackground,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
@@ -1364,12 +1367,12 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.paperSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppDimensions.modalRadius),
         ),
-        border: const Border(
-          top: BorderSide(color: AppColors.paperBorder, width: 1.0),
+        border: Border(
+          top: BorderSide(color: Theme.of(context).colorScheme.outline, width: 1.0),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -1391,7 +1394,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.paperBorder,
+                    color: Theme.of(context).colorScheme.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1450,7 +1453,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                       color: AppColors.statusPurple,
                     ),
                     label: Text('Liquidar Todo (${maxAllowed.toCop})'),
-                    backgroundColor: AppColors.paperBackground,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                     side: BorderSide(
                       color: AppColors.statusPurple.withValues(alpha: 0.4),
                     ),
@@ -1496,13 +1499,13 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppColors.statusPurple.withValues(alpha: 0.12)
-                                : AppColors.paperBackground,
+                                : Theme.of(context).colorScheme.surfaceContainerLowest,
                             borderRadius:
                                 BorderRadius.circular(AppDimensions.radiusMd),
                             border: Border.all(
                               color: isSelected
                                   ? AppColors.statusPurple
-                                  : AppColors.paperBorder,
+                                  : Theme.of(context).colorScheme.outline,
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -1589,14 +1592,14 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                         )
                       : null,
                   filled: true,
-                  fillColor: AppColors.paperBackground,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
@@ -1628,14 +1631,14 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                   labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   hintText: 'Ej. Pago Aguardiente en caja',
                   filled: true,
-                  fillColor: AppColors.paperBackground,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),

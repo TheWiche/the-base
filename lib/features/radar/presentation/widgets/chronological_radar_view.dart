@@ -70,7 +70,7 @@ class _ChronologicalItemCard extends StatelessWidget {
       RadarUrgency.critical => AppColors.statusRed,
     };
 
-    const cardBg = AppColors.paperSurface;
+    final cardBg = Theme.of(context).colorScheme.surface;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.space10),
@@ -111,7 +111,7 @@ class _ChronologicalItemCard extends StatelessWidget {
             border: Border.all(
               color: item.urgency == RadarUrgency.critical
                   ? AppColors.statusRed
-                  : AppColors.paperBorder,
+                  : Theme.of(context).colorScheme.outline,
               width: item.urgency == RadarUrgency.critical ? 1.8 : 1.0,
             ),
             boxShadow: const [
@@ -201,11 +201,11 @@ class _ChronologicalItemCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.paperSurfaceAlt,
+                            color: Theme.of(context).colorScheme.surfaceContainerLowest,
                             borderRadius:
                                 BorderRadius.circular(AppDimensions.radiusSm),
                             border: Border.all(
-                              color: AppColors.paperBorder,
+                              color: Theme.of(context).colorScheme.outline,
                             ),
                           ),
                           child: Row(

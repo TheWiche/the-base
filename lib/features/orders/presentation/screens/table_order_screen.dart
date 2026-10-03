@@ -168,11 +168,11 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: AppColors.paperSurface,
+          color: Theme.of(ctx).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(AppDimensions.modalRadius),
           ),
-          border: Border.all(color: AppColors.paperBorder),
+          border: Border.all(color: Theme.of(ctx).colorScheme.outline),
         ),
         child: SafeArea(
           child: Column(
@@ -184,7 +184,7 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(top: 12, bottom: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.paperBorder,
+                    color: Theme.of(ctx).colorScheme.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -491,11 +491,11 @@ class _ActionBar extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
       decoration: BoxDecoration(
-        color: AppColors.paperSurface,
-        border: const Border(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
           top: BorderSide(
             width: 1,
-            color: AppColors.paperBorder,
+            color: Theme.of(context).colorScheme.outline,
           ),
         ),
         boxShadow: [

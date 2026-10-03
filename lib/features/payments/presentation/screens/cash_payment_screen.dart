@@ -86,7 +86,7 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
               ),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: AppColors.paperSurface,
+                fillColor: Theme.of(context).colorScheme.surface,
                 prefixText: '\$ ',
                 prefixStyle: AppTextStyles.headlineMedium.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -97,11 +97,11 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.paperBorder),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.paperBorder),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
@@ -216,9 +216,9 @@ class _BillTotalCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimensions.space20),
       decoration: BoxDecoration(
-        color: AppColors.paperSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
-        border: Border.all(color: AppColors.paperBorder),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
         boxShadow: [
           BoxShadow(
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),

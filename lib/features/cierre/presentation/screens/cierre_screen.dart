@@ -444,9 +444,9 @@ class _ShiftOverviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimensions.space16),
       decoration: BoxDecoration(
-        color: AppColors.paperSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
-        border: Border.all(color: AppColors.paperBorder),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
         boxShadow: [
           BoxShadow(
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
@@ -474,7 +474,7 @@ class _ShiftOverviewCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: AppColors.paperBorder),
+          Divider(height: 1, color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: 12),
 
           _OverviewRow(
@@ -502,7 +502,7 @@ class _ShiftOverviewCard extends StatelessWidget {
             ),
 
           const SizedBox(height: 10),
-          const Divider(height: 1, color: AppColors.paperBorder),
+          Divider(height: 1, color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: 10),
 
           _OverviewRow(
@@ -532,11 +532,12 @@ class _ShiftOverviewCard extends StatelessWidget {
             _OverviewRow(
               label: '  · Licores despachados',
               value: summary.totalLiquorDebt.toCop,
+              valueColor: summary.totalLiquorDebt > 0 ? AppColors.statusPurple : null,
               isSmall: true,
             ),
 
           const SizedBox(height: 10),
-          const Divider(height: 1, color: AppColors.paperBorder),
+          Divider(height: 1, color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: 10),
 
           _OverviewRow(
@@ -640,7 +641,7 @@ class _FinalizarButton extends StatelessWidget {
             onPressed: onPressed,
             style: FilledButton.styleFrom(
               backgroundColor:
-                  canClose ? AppColors.statusGreen : AppColors.paperBorder,
+                  canClose ? AppColors.statusGreen : Theme.of(context).colorScheme.outline,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(

@@ -322,8 +322,8 @@ class _HistoryModeToggle extends StatelessWidget {
         ? AppColors.primary
         : Colors.transparent;
     final fg = isSelected
-        ? Colors.black
-        : (isDark ? Colors.white70 : Colors.black87);
+        ? AppColors.onPrimary
+        : (isDark ? AppColors.darkOnSurfaceVariant : AppColors.lightOnSurfaceVariant);
 
     return GestureDetector(
       onTap: onTap,

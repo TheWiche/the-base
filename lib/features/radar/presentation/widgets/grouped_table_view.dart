@@ -108,10 +108,10 @@ class _ComandaCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppDimensions.space16),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.paperSurface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           border: Border.all(
-            color: AppColors.paperBorder,
+            color: Theme.of(context).colorScheme.outline,
             width: 1.0,
           ),
           boxShadow: const [
@@ -190,8 +190,8 @@ class _ComandaCard extends StatelessWidget {
                 ),
               ),
             ),
-            const Divider(
-              color: AppColors.paperBorder,
+            Divider(
+              color: Theme.of(context).colorScheme.outline,
               height: 20,
             ),
 
@@ -203,8 +203,8 @@ class _ComandaCard extends StatelessWidget {
                 onDelivered: () => onDelivered(radarItem.item.id),
               ),
 
-            const Divider(
-              color: AppColors.paperBorder,
+            Divider(
+              color: Theme.of(context).colorScheme.outline,
               height: 20,
             ),
 

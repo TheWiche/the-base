@@ -76,7 +76,7 @@ class _BarBatchCard extends StatelessWidget {
     final Color urgencyBorderColor = switch (batch.urgency) {
       RadarUrgency.critical => AppColors.statusRed,
       RadarUrgency.warning => AppColors.statusOrange,
-      RadarUrgency.normal => AppColors.paperBorder,
+      RadarUrgency.normal => Theme.of(context).colorScheme.outline,
     };
 
     final Color urgencyBgTint = switch (batch.urgency) {
@@ -85,7 +85,7 @@ class _BarBatchCard extends StatelessWidget {
       RadarUrgency.normal => Colors.transparent,
     };
 
-    const cardBg = AppColors.paperSurface;
+    final cardBg = Theme.of(context).colorScheme.surface;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.space16),
@@ -96,7 +96,7 @@ class _BarBatchCard extends StatelessWidget {
           border: Border.all(
             color: batch.urgency != RadarUrgency.normal
                 ? urgencyBorderColor
-                : AppColors.paperBorder,
+                : Theme.of(context).colorScheme.outline,
             width: batch.urgency == RadarUrgency.critical ? 1.8 : 1.0,
           ),
           boxShadow: const [
@@ -197,7 +197,7 @@ class _BarBatchCard extends StatelessWidget {
                 ),
 
                 const SizedBox(height: AppDimensions.space12),
-                const Divider(height: 1, thickness: 0.8, color: AppColors.paperBorder),
+                Divider(height: 1, thickness: 0.8, color: Theme.of(context).colorScheme.outline),
                 const SizedBox(height: AppDimensions.space12),
 
                 // ── Sub-desglose por mesas (chips legibles) ─────────────────

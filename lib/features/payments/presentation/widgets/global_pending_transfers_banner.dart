@@ -435,7 +435,7 @@ class _PendingReceiptTile extends StatelessWidget {
                 onPressed: onLegalize,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.statusGreen,
-                  foregroundColor: Colors.black,
+                  foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   textStyle: AppTextStyles.labelMedium.copyWith(

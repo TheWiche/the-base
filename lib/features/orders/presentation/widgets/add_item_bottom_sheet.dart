@@ -1158,7 +1158,7 @@ class _ProductCard extends StatelessWidget {
             ? Text(
                 '$inCartQty',
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: const Color(0xFF241A05),
+                  color: Colors.white,
                   fontWeight: FontWeight.w800,
                 ),
               )
@@ -1202,8 +1202,11 @@ class _ProductCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           product.price.toCop,
-                          style: AppTextStyles.titleSmall
-                              .copyWith(color: AppColors.secondaryDark),
+                          style: AppTextStyles.titleSmall.copyWith(
+                            color: isDark
+                                ? AppColors.secondaryLight
+                                : AppColors.secondaryDark,
+                          ),
                         ),
                       ),
                       if (product.defaultNotes.isNotEmpty && onCustomize != null)
@@ -1305,6 +1308,7 @@ class _CartLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -1316,8 +1320,11 @@ class _CartLine extends StatelessWidget {
                 Text(entry.name, style: AppTextStyles.bodyLarge),
                 Text(
                   (entry.price * entry.quantity).toCop,
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.secondaryDark),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: isDark
+                        ? AppColors.secondaryLight
+                        : AppColors.secondaryDark,
+                  ),
                 ),
                 if (entry.note != null)
                   Text(
