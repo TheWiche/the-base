@@ -33,6 +33,7 @@ final class WalletSummary {
     this.cashPaymentsTotal = 0,
     this.servedStandardItemsTotal = 0,
     this.transferTipsTotal = 0,
+    this.verifiedLiquorPaymentsTotal = 0,
     this.physicalCashInHand = 0,
   });
 
@@ -75,6 +76,10 @@ final class WalletSummary {
   /// Populated by the billing feature — defaults to 0 until integrated.
   final int transferTipsTotal;
 
+  /// Sum of [OrderItem.lineTotal] where category == liquor AND
+  /// it is paid with cash or a verified transfer.
+  final int verifiedLiquorPaymentsTotal;
+
   /// Entered manually by the waiter at Cierre time: total physical cash in hand.
   final int physicalCashInHand;
 
@@ -90,23 +95,25 @@ final class WalletSummary {
   /// (Note: [totalLiquorDebt] = liquorAdjustments − liquorSettlements).
   int get totalDebt => initialBase + totalIncreases - totalDecreases + totalLiquorDebt;
 
-  /// FORMULA: Efectivo Esperado en Mano = Base Inicial + Cobros en Efectivo + Aumentos − Devoluciones/Vueltos − Descargas de Base.
+  /// FORMULA: Efectivo Esperado en Mano = Base Inicial + Cobros en Efectivo + Aumentos − Devoluciones/Vueltos − Descargas de Base - Productos Comunes Despachados.
   /// Note: [cashPaymentsTotal] is already net of changeGiven (amountPaid − changeGiven).
   int get expectedCashInHand =>
-      initialBase + totalIncreases - totalDecreases + cashPaymentsTotal;
+      initialBase + totalIncreases - totalDecreases + cashPaymentsTotal - servedStandardItemsTotal;
 
-  /// FORMULA: Saldo Disponible = Base Inicial + Aumentos - Bajas + Transferencias Legalizadas + Cobros en Efectivo - Productos Comunes Despachados
+  /// FORMULA: Saldo Disponible = Base Inicial + Aumentos - Bajas + Transferencias Legalizadas + Cobros en Efectivo - Licores Pagados - Productos Comunes Despachados
   int get availableBalance =>
       initialBase +
       totalIncreases -
       totalDecreases +
       verifiedTransfersTotal +
       cashPaymentsTotal -
+      verifiedLiquorPaymentsTotal -
       servedStandardItemsTotal;
 
-  /// FORMULA: Net Profit = Physical Cash − Total Debt + Σ(Transfer Tips)
+  /// FORMULA: Net Profit = Physical Cash + Verified Transfers − Total Debt + Σ(Transfer Tips)
   int get netProfit =>
-      (physicalCashInHand > 0 ? physicalCashInHand : expectedCashInHand) -
+      (physicalCashInHand > 0 ? physicalCashInHand : expectedCashInHand) +
+      verifiedTransfersTotal -
       totalDebt +
       transferTipsTotal;
 
@@ -186,6 +193,7 @@ final class WalletSummary {
     int? cashPaymentsTotal,
     int? servedStandardItemsTotal,
     int? transferTipsTotal,
+    int? verifiedLiquorPaymentsTotal,
     int? physicalCashInHand,
   }) =>
       WalletSummary(
@@ -200,6 +208,7 @@ final class WalletSummary {
         servedStandardItemsTotal:
             servedStandardItemsTotal ?? this.servedStandardItemsTotal,
         transferTipsTotal: transferTipsTotal ?? this.transferTipsTotal,
+        verifiedLiquorPaymentsTotal: verifiedLiquorPaymentsTotal ?? this.verifiedLiquorPaymentsTotal,
         physicalCashInHand: physicalCashInHand ?? this.physicalCashInHand,
       );
 

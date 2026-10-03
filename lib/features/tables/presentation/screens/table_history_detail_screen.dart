@@ -385,19 +385,19 @@ class _HistoryReceiptHeader extends StatelessWidget {
       children: [
         Text(
           barName.toUpperCase(),
-          style: AppTextStyles.receiptTitle.copyWith(color: AppColors.paperInk),
+          style: AppTextStyles.receiptTitle.copyWith(color: Theme.of(context).colorScheme.onSurface),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
         Text(
           'MESA ${session.tableNumber}${session.apodo != null ? ' · "${session.apodo}"' : ''}',
-          style: AppTextStyles.receiptBodyBold.copyWith(color: AppColors.paperInk),
+          style: AppTextStyles.receiptBodyBold.copyWith(color: Theme.of(context).colorScheme.onSurface),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 2),
         Text(
           'Apertura: $openedStr  |  Cierre: $closedStr',
-          style: AppTextStyles.receiptSmall.copyWith(color: AppColors.paperInkSoft),
+          style: AppTextStyles.receiptSmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
         if (session.verificationCode != null && session.verificationCode!.isNotEmpty) ...[
@@ -413,7 +413,7 @@ class _HistoryReceiptHeader extends StatelessWidget {
               'FACTURA: ${session.verificationCode}',
               style: AppTextStyles.receiptBodyBold.copyWith(
                 letterSpacing: 1.2,
-                color: AppColors.paperInk,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 13,
               ),
             ),
@@ -489,7 +489,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
           'PRODUCTOS CONSUMIDOS',
           style: AppTextStyles.receiptSmall.copyWith(
             fontWeight: FontWeight.w700,
-            color: AppColors.paperInkSoft,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             letterSpacing: 0.8,
           ),
         ),
@@ -508,7 +508,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
                       Text(
                         '${item.quantity}× ${item.name}',
                         style: AppTextStyles.receiptBody.copyWith(
-                          color: AppColors.paperInk,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -516,7 +516,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
                         Text(
                           '↳ ${item.note}',
                           style: AppTextStyles.receiptSmall.copyWith(
-                            color: AppColors.paperInkSoft,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -526,7 +526,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
                 Text(
                   item.lineTotal.toCop,
                   style: AppTextStyles.receiptBodyBold.copyWith(
-                    color: AppColors.paperInk,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -553,7 +553,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
                     child: Text(
                       '${c.quantity}× ${c.productName}',
                       style: AppTextStyles.receiptSmall.copyWith(
-                        color: AppColors.paperInkSoft,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         decoration: TextDecoration.lineThrough,
                       ),
                     ),
@@ -561,7 +561,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
                   Text(
                     c.lineTotal.toCop,
                     style: AppTextStyles.receiptSmall.copyWith(
-                      color: AppColors.paperInkSoft,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       decoration: TextDecoration.lineThrough,
                     ),
                   ),
@@ -579,14 +579,14 @@ class _AgrupadoHistoryView extends StatelessWidget {
             Text(
               'TOTAL CUENTA',
               style: AppTextStyles.receiptTitle.copyWith(
-                color: AppColors.paperInk,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 16,
               ),
             ),
             Text(
               totalBill.toCop,
               style: AppTextStyles.receiptTitle.copyWith(
-                color: AppColors.paperInk,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 18,
               ),
             ),
@@ -600,7 +600,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
           'MÉTODOS DE PAGO UTILIZADOS',
           style: AppTextStyles.receiptSmall.copyWith(
             fontWeight: FontWeight.w700,
-            color: AppColors.paperInkSoft,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             letterSpacing: 0.8,
           ),
         ),
@@ -614,7 +614,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
               children: [
                 Text('Efectivo:',
                     style: AppTextStyles.receiptBody
-                        .copyWith(color: AppColors.paperInk)),
+                        .copyWith(color: Theme.of(context).colorScheme.onSurface)),
                 Text(cashTotal.toCop,
                     style: AppTextStyles.receiptBodyBold
                         .copyWith(color: AppColors.statusGreen)),
@@ -630,7 +630,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
               children: [
                 Text('Transferencias:',
                     style: AppTextStyles.receiptBody
-                        .copyWith(color: AppColors.paperInk)),
+                        .copyWith(color: Theme.of(context).colorScheme.onSurface)),
                 Text(transferTotal.toCop,
                     style: AppTextStyles.receiptBodyBold
                         .copyWith(color: AppColors.statusBlue)),
@@ -646,12 +646,12 @@ class _AgrupadoHistoryView extends StatelessWidget {
                   Text(
                     '↳ ${tp.transferMethod != null ? tp.transferMethod!.displayLabel : "Transferencia"}',
                     style: AppTextStyles.receiptSmall
-                        .copyWith(color: AppColors.paperInkSoft),
+                        .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   Text(
                     tp.netReceived.toCop,
                     style: AppTextStyles.receiptSmall
-                        .copyWith(color: AppColors.paperInkSoft),
+                        .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -664,7 +664,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
             child: Text(
               'No se registraron recibos de pago detallados.',
               style: AppTextStyles.receiptSmall
-                  .copyWith(color: AppColors.paperInkSoft),
+                  .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
 
@@ -674,7 +674,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
           children: [
             Text('Total Pagado:',
                 style: AppTextStyles.receiptBodyBold
-                    .copyWith(color: AppColors.paperInk)),
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface)),
             Text(totalPaid.toCop,
                 style: AppTextStyles.receiptBodyBold
                     .copyWith(color: AppColors.statusGreen)),
@@ -699,7 +699,7 @@ class _AgrupadoHistoryView extends StatelessWidget {
               Text(
                 'Visor inmutable para auditoría del mesero',
                 style: AppTextStyles.receiptSmall.copyWith(
-                  color: AppColors.paperInkSoft,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -807,19 +807,20 @@ class _CronologicoHistoryView extends StatelessWidget {
           'LÍNEA DE TIEMPO (EVENTOS PASO A PASO)',
           style: AppTextStyles.receiptSmall.copyWith(
             fontWeight: FontWeight.w700,
-            color: AppColors.paperInkSoft,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             letterSpacing: 0.8,
           ),
         ),
         const SizedBox(height: 10),
 
         for (int i = 0; i < events.length; i++)
-          _buildTimelineRow(events[i], timeFormat, isLast: i == events.length - 1),
+          _buildTimelineRow(context, events[i], timeFormat, isLast: i == events.length - 1),
       ],
     );
   }
 
   Widget _buildTimelineRow(
+    BuildContext context,
     _TimelineEvent event,
     DateFormat timeFormat, {
     required bool isLast,
@@ -836,7 +837,7 @@ class _CronologicoHistoryView extends StatelessWidget {
         ),
       _ItemAddedEvent(:final item) => (
           Icons.add_shopping_cart_rounded,
-          AppColors.paperInk,
+          Theme.of(context).colorScheme.onSurface,
           '${item.quantity}× ${item.productName}',
           item.note != null && item.note!.isNotEmpty ? '↳ ${item.note}' : null,
           item.lineTotal.toCop,
@@ -882,7 +883,7 @@ class _CronologicoHistoryView extends StatelessWidget {
               timeStr,
               style: AppTextStyles.receiptSmall.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppColors.paperInk,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -903,7 +904,7 @@ class _CronologicoHistoryView extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: event is _ItemCancelledEvent
                         ? AppColors.statusRed
-                        : AppColors.paperInk,
+                        : Theme.of(context).colorScheme.onSurface,
                     decoration: event is _ItemCancelledEvent
                         ? TextDecoration.lineThrough
                         : null,
@@ -913,7 +914,7 @@ class _CronologicoHistoryView extends StatelessWidget {
                   Text(
                     subtitle,
                     style: AppTextStyles.receiptSmall.copyWith(
-                      color: AppColors.paperInkSoft,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -930,7 +931,7 @@ class _CronologicoHistoryView extends StatelessWidget {
                     ? AppColors.statusRed
                     : (event is _PaymentEvent
                         ? AppColors.statusGreen
-                        : AppColors.paperInk),
+                        : Theme.of(context).colorScheme.onSurface),
               ),
             ),
         ],

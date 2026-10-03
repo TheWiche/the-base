@@ -172,12 +172,12 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
                     const Icon(Icons.image_rounded, color: AppColors.primary),
                 title: Text(
                   'Imagen',
-                  style: AppTextStyles.titleMedium.copyWith(color: AppColors.ink),
+                  style: AppTextStyles.titleMedium.copyWith(color: Theme.of(context).colorScheme.onSurface),
                 ),
                 subtitle: Text(
                   'Comparte el tiquete como foto',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 onTap: () {
@@ -190,12 +190,12 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
                     const Icon(Icons.notes_rounded, color: AppColors.primary),
                 title: Text(
                   'Texto',
-                  style: AppTextStyles.titleMedium.copyWith(color: AppColors.ink),
+                  style: AppTextStyles.titleMedium.copyWith(color: Theme.of(context).colorScheme.onSurface),
                 ),
                 subtitle: Text(
                   'Comparte el tiquete como texto',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 onTap: () {

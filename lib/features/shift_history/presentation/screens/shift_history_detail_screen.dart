@@ -111,18 +111,18 @@ class _DetailBody extends StatelessWidget {
           children: [
             Text(
               barName.toUpperCase(),
-              style: AppTextStyles.receiptTitle.copyWith(color: AppColors.paperInk),
+              style: AppTextStyles.receiptTitle.copyWith(color: Theme.of(context).colorScheme.onSurface),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
               dateFormat.format(snapshot.snapshotAt),
-              style: AppTextStyles.receiptSmall.copyWith(color: AppColors.paperInkSoft),
+              style: AppTextStyles.receiptSmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const DashedDivider(padding: EdgeInsets.symmetric(vertical: 12)),
 
-            Text('BASE', style: AppTextStyles.receiptBodyBold.copyWith(color: AppColors.paperInk)),
+            Text('BASE', style: AppTextStyles.receiptBodyBold.copyWith(color: Theme.of(context).colorScheme.onSurface)),
             const SizedBox(height: 4),
             ReceiptRow(label: 'Base inicial', value: snapshot.initialBase.toCop),
             ReceiptRow(label: 'Incrementos', value: '+${snapshot.totalIncreases.toCop}'),
@@ -142,7 +142,7 @@ class _DetailBody extends StatelessWidget {
 
             const DashedDivider(padding: EdgeInsets.symmetric(vertical: 12)),
 
-            Text('COBROS', style: AppTextStyles.receiptBodyBold.copyWith(color: AppColors.paperInk)),
+            Text('COBROS', style: AppTextStyles.receiptBodyBold.copyWith(color: Theme.of(context).colorScheme.onSurface)),
             const SizedBox(height: 4),
             ReceiptRow(label: 'Transferencias verificadas', value: snapshot.verifiedTransfersTotal.toCop),
             ReceiptRow(label: 'Efectivo cobrado', value: snapshot.cashPaymentsTotal.toCop),
@@ -168,7 +168,7 @@ class _DetailBody extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('UTILIDAD NETA',
-                    style: AppTextStyles.receiptTotal.copyWith(color: AppColors.paperInk)),
+                    style: AppTextStyles.receiptTotal.copyWith(color: Theme.of(context).colorScheme.onSurface)),
                 Text(snapshot.netProfit.toSignedCop,
                     style: AppTextStyles.receiptTotal.copyWith(color: profitColor)),
               ],
@@ -178,7 +178,7 @@ class _DetailBody extends StatelessWidget {
               'Solo se guardan los totales financieros de este turno —\n'
               'las mesas y productos ya no existen tras el Cierre.',
               style: AppTextStyles.receiptSmall.copyWith(
-                color: AppColors.paperInkSoft,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
               ),
               textAlign: TextAlign.center,

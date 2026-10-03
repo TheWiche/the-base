@@ -359,7 +359,7 @@ class _BlockerCard extends StatelessWidget {
                   Text(
                     detail,
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.inkSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -417,7 +417,7 @@ class _ClearStateHeader extends StatelessWidget {
                 Text(
                   'Sin pedidos pendientes, mesas abiertas ni transferencias sin legalizar.',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -449,7 +449,7 @@ class _ShiftOverviewCard extends StatelessWidget {
         border: Border.all(color: AppColors.paperBorder),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.04),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -468,7 +468,7 @@ class _ShiftOverviewCard extends StatelessWidget {
                 style: AppTextStyles.titleMedium.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
-                  color: AppColors.ink,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -584,15 +584,15 @@ class _OverviewRow extends StatelessWidget {
             label,
             style: isSmall
                 ? AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   )
                 : (isBold
                     ? AppTextStyles.bodyLarge.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.ink,
+                        color: Theme.of(context).colorScheme.onSurface,
                       )
                     : AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.ink,
+                        color: Theme.of(context).colorScheme.onSurface,
                       )),
           ),
           Text(
@@ -600,15 +600,15 @@ class _OverviewRow extends StatelessWidget {
             style: isSmall
                 ? AppTextStyles.monoSmall.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: valueColor ?? AppColors.ink,
+                    color: valueColor ?? Theme.of(context).colorScheme.onSurface,
                   )
                 : (isBold
                     ? AppTextStyles.monoLarge.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: valueColor ?? AppColors.ink,
+                        color: valueColor ?? Theme.of(context).colorScheme.onSurface,
                       )
                     : AppTextStyles.monoMedium.copyWith(
-                        color: valueColor ?? AppColors.ink,
+                        color: valueColor ?? Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                       )),
           ),

@@ -76,7 +76,7 @@ class FinancialMetricCard extends StatelessWidget {
                 child: Text(
                   label.toUpperCase(),
                   style: AppTextStyles.statusBadge.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -101,7 +101,7 @@ class FinancialMetricCard extends StatelessWidget {
             Text(
               subtitle!,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.inkSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],

@@ -167,9 +167,9 @@ class _ComandaCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '"${group.tableApodo}"',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppColors.inkSecondary,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontStyle: FontStyle.italic,
                               fontWeight: FontWeight.w500,
                             ),
@@ -180,10 +180,10 @@ class _ComandaCard extends StatelessWidget {
                         const Spacer(),
                       _ElapsedBadge(minutes: oldest),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.chevron_right_rounded,
                         size: 20,
-                        color: AppColors.inkSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ],
                   ),
@@ -297,9 +297,9 @@ class _ComandaLine extends StatelessWidget {
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
-                        color: AppColors.ink,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       children: [
                         TextSpan(

@@ -193,7 +193,7 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                 child: Text(
                   '${item.quantity}× ${item.productName}',
-                  style: AppTextStyles.titleMedium.copyWith(color: AppColors.ink),
+                  style: AppTextStyles.titleMedium.copyWith(color: Theme.of(context).colorScheme.onSurface),
                 ),
               ),
               if (!item.isCancelled)
@@ -201,7 +201,7 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
                   leading: const Icon(Icons.replay_rounded, color: AppColors.primary),
                   title: Text(
                     'Repetir',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.ink),
+                    style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurface),
                   ),
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -500,7 +500,7 @@ class _ActionBar extends ConsumerWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),

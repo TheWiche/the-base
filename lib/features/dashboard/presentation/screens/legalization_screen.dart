@@ -225,22 +225,28 @@ class _TransferReceiptCard extends StatelessWidget {
               if (method != null) ...[
                 Icon(method.displayIcon, color: methodColor, size: 16),
                 const SizedBox(width: 4),
-                Text(
-                  method.displayLabel.toUpperCase(),
-                  style: AppTextStyles.receiptSmall
-                      .copyWith(color: methodColor, fontWeight: FontWeight.w700),
+                Flexible(
+                  child: Text(
+                    method.displayLabel.toUpperCase(),
+                    style: AppTextStyles.receiptSmall
+                        .copyWith(color: methodColor, fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 const SizedBox(width: 8),
               ],
               Expanded(
+                flex: 2,
                 child: Text(
                   receipt.tableSessionId == 0
-                      ? 'Cobro Suelto / Sin Mesa'
+                      ? 'Cobro Suelto'
                       : 'Mesa ${receipt.tableSessionId}',
                   style: AppTextStyles.receiptSmall
-                      .copyWith(color: AppColors.paperInkSoft),
+                      .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 isPending ? 'PENDIENTE' : 'LEGALIZADA',
                 style: AppTextStyles.receiptSmall.copyWith(
@@ -267,13 +273,17 @@ class _TransferReceiptCard extends StatelessWidget {
                     Text(
                       'MONTO TRANSFERIDO',
                       style: AppTextStyles.receiptSmall
-                          .copyWith(color: AppColors.paperInkSoft),
+                          .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      receipt.amountPaid.toCop,
-                      style: AppTextStyles.receiptTotal
-                          .copyWith(fontSize: 20, color: AppColors.paperInk),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        receipt.amountPaid.toCop,
+                        style: AppTextStyles.receiptTotal
+                            .copyWith(fontSize: 20, color: Theme.of(context).colorScheme.onSurface),
+                      ),
                     ),
                     if (receipt.tipAmount > 0) ...[
                       const SizedBox(height: 4),
@@ -288,7 +298,7 @@ class _TransferReceiptCard extends StatelessWidget {
                       DateFormat('d MMM yyyy • HH:mm', 'es_CO')
                           .format(receipt.paidAt),
                       style: AppTextStyles.receiptSmall
-                          .copyWith(color: AppColors.paperInkSoft),
+                          .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -432,11 +442,11 @@ class _VerificationCodeRow extends StatelessWidget {
         Icon(Icons.key_rounded, color: AppColors.primaryDark, size: 15),
         const SizedBox(width: 6),
         Text('Código:',
-            style: AppTextStyles.receiptSmall.copyWith(color: AppColors.paperInkSoft)),
+            style: AppTextStyles.receiptSmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(width: 6),
         Text(
           code,
-          style: AppTextStyles.receiptBodyBold.copyWith(color: AppColors.paperInk),
+          style: AppTextStyles.receiptBodyBold.copyWith(color: Theme.of(context).colorScheme.onSurface),
         ),
         const Spacer(),
         GestureDetector(
@@ -445,7 +455,7 @@ class _VerificationCodeRow extends StatelessWidget {
             AppToast.info(context, 'Código $code copiado');
           },
           child: const Icon(Icons.copy_rounded,
-              size: 16, color: AppColors.paperInkSoft),
+              size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );

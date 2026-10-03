@@ -52,7 +52,7 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
       appBar: AppBar(
         title: Text(
           'Pago en Efectivo',
-          style: AppTextStyles.headlineSmall.copyWith(color: AppColors.ink),
+          style: AppTextStyles.headlineSmall.copyWith(color: Theme.of(context).colorScheme.onSurface),
         ),
       ),
       body: SingleChildScrollView(
@@ -68,7 +68,7 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
             Text(
               'MONTO RECIBIDO',
               style: AppTextStyles.statusBadge.copyWith(
-                color: AppColors.inkSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: AppDimensions.space8),
@@ -81,7 +81,7 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
                 _ThousandsSeparatorFormatter(),
               ],
               style: AppTextStyles.monoLarge.copyWith(
-                color: AppColors.ink,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
               decoration: InputDecoration(
@@ -89,11 +89,11 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
                 fillColor: AppColors.paperSurface,
                 prefixText: '\$ ',
                 prefixStyle: AppTextStyles.headlineMedium.copyWith(
-                  color: AppColors.inkSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 hintText: '0',
                 hintStyle: AppTextStyles.monoLarge.copyWith(
-                  color: AppColors.inkSecondary.withValues(alpha: 0.3),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
@@ -221,7 +221,7 @@ class _BillTotalCard extends StatelessWidget {
         border: Border.all(color: AppColors.paperBorder),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.04),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -233,14 +233,14 @@ class _BillTotalCard extends StatelessWidget {
           Text(
             'TOTAL A COBRAR',
             style: AppTextStyles.statusBadge.copyWith(
-              color: AppColors.inkSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: AppDimensions.space8),
           Text(
             subtotal.toCop,
             style: AppTextStyles.monoLarge.copyWith(
-              color: AppColors.ink,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.bold,
               fontSize: 32,
             ),
@@ -276,7 +276,7 @@ class _ChangeDisplay extends StatelessWidget {
             ? (AppColors.statusGreen, 'PAGO EXACTO', Icons.check_circle_rounded)
             : hasChange
                 ? (AppColors.primary, 'VUELTO', Icons.currency_exchange_rounded)
-                : (AppColors.inkSecondary.withValues(alpha: 0.4),
+                : (Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                    'VUELTO', Icons.currency_exchange_rounded);
 
     return AnimatedContainer(

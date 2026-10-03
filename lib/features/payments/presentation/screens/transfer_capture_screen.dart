@@ -188,7 +188,7 @@ class _InitialBody extends StatelessWidget {
               border: Border.all(color: AppColors.paperBorder),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.ink.withValues(alpha: 0.04),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -200,7 +200,7 @@ class _InitialBody extends StatelessWidget {
                 Text(
                   'MONTO A TRANSFERIR',
                   style: AppTextStyles.statusBadge.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: AppDimensions.space8),
@@ -230,7 +230,7 @@ class _InitialBody extends StatelessWidget {
                   'Toma una foto clara del comprobante. Se guarda en '
                   '"Bonanza_Transferencias" y podrás verla en Comprobantes.',
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -273,7 +273,7 @@ class _InitialBody extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onPickFromGallery,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.ink,
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
                       side: const BorderSide(
                         color: AppColors.paperBorder,
                         width: 1.5,
@@ -328,166 +328,185 @@ class _PreviewBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        InteractiveViewer(
-          child: RotatedBox(
-            quarterTurns: rotationTurns,
-            child: Image.file(File(photo.path), fit: BoxFit.contain),
-          ),
-        ),
-        Positioned(
-          top: 12,
-          right: 12,
-          child: Material(
-            color: Colors.black54,
-            shape: const CircleBorder(),
-            child: IconButton(
-              icon: const Icon(Icons.rotate_right_rounded, color: Colors.white),
-              tooltip: 'Girar 90°',
-              onPressed: onRotate,
-            ),
-          ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withOpacity(0.88)],
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.pagePaddingH,
-              AppDimensions.space32,
-              AppDimensions.pagePaddingH,
-              AppDimensions.space24,
-            ),
-            child: SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Comprobante por ${billSubtotal.toCop}',
-                    style:
-                        AppTextStyles.bodyLarge.copyWith(color: Colors.white70),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppDimensions.space12),
-
-                  // ── Plataforma (chips compactos, Nequi por defecto) ──
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: TransferMethod.values.map((m) {
-                      final selected = m == method;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            onMethodChanged(m);
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? m.displayColor.withOpacity(0.3)
-                                  : Colors.white10,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color:
-                                    selected ? m.displayColor : Colors.white30,
-                                width: selected ? 2 : 1,
-                              ),
-                            ),
-                            child: Text(
-                              m.displayLabel,
-                              style: AppTextStyles.labelMedium.copyWith(
-                                color:
-                                    selected ? Colors.white : Colors.white70,
-                                fontWeight: selected
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: AppDimensions.space16),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: AppDimensions.buttonHeightMd,
-                          child: OutlinedButton.icon(
-                            onPressed: onRetake,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(
-                                  color: Colors.white54, width: 2),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppDimensions.buttonRadius),
-                              ),
-                            ),
-                            icon: const Icon(Icons.arrow_back_rounded),
-                            label: const Text(
-                              'CAMBIAR',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppDimensions.space12),
-                      Expanded(
-                        flex: 2,
-                        child: SizedBox(
-                          height: AppDimensions.buttonHeightMd,
-                          child: FilledButton.icon(
-                            onPressed: onRegister,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.statusGreen,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppDimensions.buttonRadius),
-                              ),
-                            ),
-                            icon: const Icon(Icons.check_rounded, size: 20),
-                            label: const Text(
-                              'REGISTRAR PAGO',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+    return Padding(
+      padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: InteractiveViewer(
+              child: RotatedBox(
+                quarterTurns: rotationTurns,
+                child: Image.file(
+                  File(photo.path),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Material(
+              color: Colors.black54,
+              shape: const CircleBorder(),
+              child: IconButton(
+                icon: const Icon(Icons.rotate_right_rounded, color: Colors.white),
+                tooltip: 'Girar 90°',
+                onPressed: onRotate,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.88)],
+                ),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+              ),
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.pagePaddingH,
+                AppDimensions.space32,
+                AppDimensions.pagePaddingH,
+                AppDimensions.space24,
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Comprobante por ${billSubtotal.toCop}',
+                        style: AppTextStyles.bodyLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.space16),
+
+                    // ── Plataforma (chips compactos, Nequi por defecto) ──
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: TransferMethod.values.map((m) {
+                        final selected = m == method;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              onMethodChanged(m);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? m.displayColor.withOpacity(0.3)
+                                    : Colors.white10,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color:
+                                      selected ? m.displayColor : Colors.white30,
+                                  width: selected ? 2 : 1,
+                                ),
+                              ),
+                              child: Text(
+                                m.displayLabel,
+                                style: AppTextStyles.labelMedium.copyWith(
+                                  color:
+                                      selected ? Colors.white : Colors.white70,
+                                  fontWeight: selected
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: AppDimensions.space24),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 52,
+                            child: OutlinedButton.icon(
+                              onPressed: onRetake,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(
+                                    color: Colors.white54, width: 2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      AppDimensions.buttonRadius),
+                                ),
+                              ),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              label: const Text(
+                                'Repetir Foto',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppDimensions.space12),
+                        Expanded(
+                          flex: 2,
+                          child: SizedBox(
+                            height: 52,
+                            child: FilledButton.icon(
+                              onPressed: onRegister,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.statusGreen,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      AppDimensions.buttonRadius),
+                                ),
+                              ),
+                              icon: const Icon(Icons.check_rounded, size: 20),
+                              label: const Text(
+                                'Confirmar / Guardar',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

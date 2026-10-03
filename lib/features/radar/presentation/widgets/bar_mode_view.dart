@@ -160,7 +160,7 @@ class _BarBatchCard extends StatelessWidget {
                               fontWeight: FontWeight.w800,
                               fontSize: 18,
                               height: 1.2,
-                              color: AppColors.ink,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           if (batch.note != null && batch.note!.isNotEmpty) ...[
@@ -203,17 +203,17 @@ class _BarBatchCard extends StatelessWidget {
                 // ── Sub-desglose por mesas (chips legibles) ─────────────────
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.table_restaurant_outlined,
                       size: 15,
-                      color: AppColors.inkSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       'Destinos por mesa (toca para despachar mesa):',
                       style: AppTextStyles.bodySmall.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.inkSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

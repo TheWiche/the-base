@@ -56,13 +56,13 @@ class ReportsScreen extends ConsumerWidget {
                   Text(
                     'RESUMEN GENERAL',
                     style: AppTextStyles.receiptTitle
-                        .copyWith(fontSize: 16, color: AppColors.paperInk),
+                        .copyWith(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
                     textAlign: TextAlign.center,
                   ),
                   Text(
                     '${snapshots.length} turno${snapshots.length == 1 ? '' : 's'} registrado${snapshots.length == 1 ? '' : 's'}',
                     style: AppTextStyles.receiptSmall
-                        .copyWith(color: AppColors.paperInkSoft),
+                        .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     textAlign: TextAlign.center,
                   ),
                   const DashedDivider(padding: EdgeInsets.symmetric(vertical: 12)),
@@ -105,7 +105,7 @@ class ReportsScreen extends ConsumerWidget {
                   Text(
                     'ÚLTIMOS ${recent.length} TURNOS · GANANCIA',
                     style: AppTextStyles.receiptBodyBold
-                        .copyWith(color: AppColors.paperInk),
+                        .copyWith(color: Theme.of(context).colorScheme.onSurface),
                   ),
                   const SizedBox(height: 10),
                   _ProfitBarChart(snapshots: recent),
@@ -115,7 +115,7 @@ class ReportsScreen extends ConsumerWidget {
                     'Solo se agregan los totales de dinero de cada turno — sin\n'
                     'desglose por producto (esos datos no sobreviven al Cierre).',
                     style: AppTextStyles.receiptSmall.copyWith(
-                      color: AppColors.paperInkSoft,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
                     textAlign: TextAlign.center,
@@ -173,7 +173,7 @@ class _BestWorstCard extends StatelessWidget {
           ),
           Text(
             DateFormat('d MMM yyyy', 'es_CO').format(snapshot.snapshotAt),
-            style: AppTextStyles.receiptSmall.copyWith(color: AppColors.paperInkSoft),
+            style: AppTextStyles.receiptSmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -225,7 +225,7 @@ class _ProfitBarChart extends StatelessWidget {
                         DateFormat('d/M').format(s.snapshotAt),
                         style: AppTextStyles.receiptSmall.copyWith(
                           fontSize: 8,
-                          color: AppColors.paperInkSoft,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 1,

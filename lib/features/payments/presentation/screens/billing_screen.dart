@@ -332,7 +332,7 @@ class _BillingReceipt extends StatelessWidget {
               Text(
                 barName.toUpperCase(),
                 style: AppTextStyles.receiptTitle
-                    .copyWith(color: AppColors.paperInk),
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface),
                 textAlign: TextAlign.center,
               ),
 
@@ -352,10 +352,10 @@ class _BillingReceipt extends StatelessWidget {
                       children: [
                         Text('Total Consumos',
                             style: AppTextStyles.receiptSmall
-                                .copyWith(color: AppColors.paperInk)),
+                                .copyWith(color: Theme.of(context).colorScheme.onSurface)),
                         Text(finSummary.totalAccount.toCop,
                             style: AppTextStyles.receiptSmallBold
-                                .copyWith(color: AppColors.paperInk)),
+                                .copyWith(color: Theme.of(context).colorScheme.onSurface)),
                       ],
                     ),
                     const SizedBox(height: 2),
@@ -376,7 +376,7 @@ class _BillingReceipt extends StatelessWidget {
                       children: [
                         Text('Saldo Pendiente',
                             style: AppTextStyles.receiptBodyBold
-                                .copyWith(color: AppColors.paperInk)),
+                                .copyWith(color: Theme.of(context).colorScheme.onSurface)),
                         Text(finSummary.pendingBalance.toCop,
                             style: AppTextStyles.receiptBodyBold
                                 .copyWith(color: AppColors.statusOrange)),
@@ -391,7 +391,7 @@ class _BillingReceipt extends StatelessWidget {
             Text(
               'TOCA PARA SELECCIONAR ÍTEMS',
               style: AppTextStyles.receiptSmall
-                  .copyWith(color: AppColors.paperInkSoft),
+                  .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
@@ -407,7 +407,7 @@ class _BillingReceipt extends StatelessWidget {
                       ? 'Cuenta saldada en su totalidad.'
                       : 'Todos los ítems están saldados.',
                   style: AppTextStyles.receiptBody
-                      .copyWith(color: AppColors.paperInkSoft),
+                      .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -527,7 +527,7 @@ class _SelectableLine extends StatelessWidget {
                     ? partialColor
                     : selected
                         ? AppColors.secondaryDark
-                        : AppColors.paperInkSoft,
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(width: 8),
@@ -543,14 +543,14 @@ class _SelectableLine extends StatelessWidget {
                             ? '$selectedQty/${item.quantity}× ${item.productName}'
                             : '${item.quantity}× ${item.productName}',
                         style: AppTextStyles.receiptBody
-                            .copyWith(color: AppColors.paperInk),
+                            .copyWith(color: Theme.of(context).colorScheme.onSurface),
                       ),
                       if (item.quantity > 1 && onLongPress != null) ...[
                         const SizedBox(width: 4),
                         const Icon(
                           Icons.touch_app_rounded,
                           size: 12,
-                          color: AppColors.paperInkSoft,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ],
                     ],
@@ -585,7 +585,7 @@ class _SelectableLine extends StatelessWidget {
                   ? (item.price * selectedQty).toCop
                   : item.lineTotal.toCop,
               style: AppTextStyles.receiptBodyBold
-                  .copyWith(color: AppColors.paperInk),
+                  .copyWith(color: Theme.of(context).colorScheme.onSurface),
             ),
           ],
         ),
@@ -666,12 +666,12 @@ class _UnitStepperSheetState extends State<_UnitStepperSheet> {
 
             Text(
               '¿Cuántas unidades cobrar?',
-              style: AppTextStyles.headlineSmall.copyWith(color: AppColors.ink),
+              style: AppTextStyles.headlineSmall.copyWith(color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: 4),
             Text(
               '${item.productName} · ${item.quantity} uds. disponibles',
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.inkSecondary),
+              style: AppTextStyles.bodySmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: AppDimensions.space24),
 
@@ -698,7 +698,7 @@ class _UnitStepperSheetState extends State<_UnitStepperSheet> {
                     ),
                     Text(
                       'de ${item.quantity}',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.inkSecondary),
+                      style: AppTextStyles.bodySmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -729,7 +729,7 @@ class _UnitStepperSheetState extends State<_UnitStepperSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Subtotal seleccionado',
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.ink)),
+                      style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onSurface)),
                   Text(
                     subtotalSelected.toCop,
                     style: AppTextStyles.headlineSmall.copyWith(
@@ -822,7 +822,7 @@ class _SelectedTotalRow extends StatelessWidget {
       children: [
         Text('SELECCIONADO',
             style:
-                AppTextStyles.receiptTotal.copyWith(color: AppColors.paperInk)),
+                AppTextStyles.receiptTotal.copyWith(color: Theme.of(context).colorScheme.onSurface)),
         Text(total.toCop,
             style: AppTextStyles.receiptTotal
                 .copyWith(color: AppColors.secondaryDark)),
@@ -867,7 +867,7 @@ class _BottomBar extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -881,7 +881,7 @@ class _BottomBar extends StatelessWidget {
               TextButton(
                 onPressed: onSelectAll,
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.inkSecondary,
+                  foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   minimumSize: const Size(0, AppDimensions.buttonHeightSm),
                 ),
@@ -890,7 +890,7 @@ class _BottomBar extends StatelessWidget {
               TextButton(
                 onPressed: onClearAll,
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.inkSecondary,
+                  foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   minimumSize: const Size(0, AppDimensions.buttonHeightSm),
                 ),
@@ -906,7 +906,7 @@ class _BottomBar extends StatelessWidget {
               Text(
                 selectedCount > 0 ? 'Selección:' : 'Saldo pendiente:',
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.inkSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
@@ -999,7 +999,7 @@ class _PaymentMethodSheet extends StatelessWidget {
             ),
             Text(
               isGeneralAdvance ? 'Abonar ${subtotal.toCop}' : '¿Cómo paga el cliente?',
-              style: AppTextStyles.headlineSmall.copyWith(color: AppColors.ink),
+              style: AppTextStyles.headlineSmall.copyWith(color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: AppDimensions.space20),
             _MethodTile(
@@ -1088,7 +1088,7 @@ class _MethodTile extends StatelessWidget {
                   Text(
                     description,
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.inkSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],

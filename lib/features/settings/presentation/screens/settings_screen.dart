@@ -37,12 +37,12 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 Text(
                   barName.toUpperCase(),
-                  style: AppTextStyles.receiptTitle.copyWith(color: AppColors.paperInk),
+                  style: AppTextStyles.receiptTitle.copyWith(color: Theme.of(context).colorScheme.onSurface),
                   textAlign: TextAlign.center,
                 ),
                 Text(
                   'Encabeza tus tiquetes y facturas',
-                  style: AppTextStyles.receiptSmall.copyWith(color: AppColors.paperInkSoft),
+                  style: AppTextStyles.receiptSmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   textAlign: TextAlign.center,
                 ),
                 const DashedDivider(padding: EdgeInsets.symmetric(vertical: 10)),
@@ -233,12 +233,12 @@ class _PaperActionRow extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(label,
-                  style: AppTextStyles.receiptBody.copyWith(color: AppColors.paperInk)),
+                  style: AppTextStyles.receiptBody.copyWith(color: Theme.of(context).colorScheme.onSurface)),
             ),
             Text(value,
-                style: AppTextStyles.receiptBodyBold.copyWith(color: AppColors.paperInk)),
+                style: AppTextStyles.receiptBodyBold.copyWith(color: Theme.of(context).colorScheme.onSurface)),
             const SizedBox(width: 6),
-            Icon(Icons.edit_rounded, size: 14, color: AppColors.paperInkSoft),
+            Icon(Icons.edit_rounded, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ],
         ),
       ),

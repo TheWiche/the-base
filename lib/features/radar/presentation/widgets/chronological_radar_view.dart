@@ -165,7 +165,7 @@ class _ChronologicalItemCard extends StatelessWidget {
                               '${item.quantity}× ${item.productName}',
                               style: AppTextStyles.bodyLarge.copyWith(
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.ink,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ),
@@ -211,25 +211,25 @@ class _ChronologicalItemCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.table_restaurant_rounded,
                                 size: 13,
-                                color: AppColors.inkSecondary,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 radarItem.shortTableLabel,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.inkSecondary,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Icon(
+                              Icon(
                                 Icons.open_in_new_rounded,
                                 size: 11,
-                                color: AppColors.paperInkSoft,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ],
                           ),

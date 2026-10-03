@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -39,7 +40,7 @@ class GlobalPendingTransfersBanner extends ConsumerWidget {
         child: InkWell(
           onTap: () {
             HapticFeedback.mediumImpact();
-            _showPendingTransfersSheet(context, ref);
+            context.push('/legalizacion');
           },
           child: Container(
             width: double.infinity,
@@ -86,7 +87,7 @@ class GlobalPendingTransfersBanner extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'VER',
+                        'IR',
                         style: AppTextStyles.statusBadge.copyWith(
                           color: const Color(0xFFE65100),
                           fontWeight: FontWeight.w900,
@@ -106,15 +107,6 @@ class GlobalPendingTransfersBanner extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-
-  void _showPendingTransfersSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => const _PendingTransfersSheet(),
     );
   }
 }

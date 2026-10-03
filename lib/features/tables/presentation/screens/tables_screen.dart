@@ -522,7 +522,7 @@ class _TableCard extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _elapsedColor(session.openedAt).withOpacity(0.12),
+                        color: _elapsedColor(context, session.openedAt).withOpacity(0.12),
                         borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
                       ),
                       child: Text(
@@ -530,7 +530,7 @@ class _TableCard extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: _elapsedColor(session.openedAt),
+                          color: _elapsedColor(context, session.openedAt),
                         ),
                       ),
                     ),
@@ -627,11 +627,11 @@ class _TableCard extends ConsumerWidget {
     return '${d.inMinutes}m';
   }
 
-  Color _elapsedColor(DateTime openedAt) {
+  Color _elapsedColor(BuildContext context, DateTime openedAt) {
     final d = DateTime.now().difference(openedAt);
     if (d.inHours >= 2) return AppColors.statusRed;
     if (d.inHours >= 1) return AppColors.statusOrange;
-    return AppColors.paperInkSoft;
+    return Theme.of(context).colorScheme.onSurfaceVariant;
   }
 }
 

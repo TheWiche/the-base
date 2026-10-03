@@ -19,7 +19,7 @@ abstract final class AppTextStyles {
     required FontWeight weight,
     double letterSpacing = 0.0,
     double height = 1.25,
-    Color color = AppColors.ink,
+    Color? color,
   }) =>
       TextStyle(
         fontFamily: 'Nunito',
@@ -174,7 +174,7 @@ abstract final class AppTextStyles {
     required FontWeight weight,
     double letterSpacing = 0.0,
     double height = 1.35,
-    Color color = AppColors.ink,
+    Color? color,
   }) =>
       TextStyle(
         fontFamily: 'SpaceMono',
