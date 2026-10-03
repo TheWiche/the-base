@@ -193,12 +193,14 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppDimensions.pagePaddingH,
                 ),
-                child: _ThumbZoneActions(
-                  isDark: isDark,
-                  openTables: openTables,
-                  radarCount: radarCount,
-                  onNewTable: _openNewTable,
-                ),
+                child: hasShift
+                    ? _ThumbZoneActions(
+                        isDark: isDark,
+                        openTables: openTables,
+                        radarCount: radarCount,
+                        onNewTable: _openNewTable,
+                      )
+                    : const _NoShiftEmptyStateActions(),
               ),
             ),
           ),
@@ -214,14 +216,14 @@ class _InicioScreenState extends ConsumerState<InicioScreen>
 
 // ── Hero Header ────────────────────────────────────────────────────────────────
 
-class _HeroHeader extends StatelessWidget {
+class _HeroHeader extends ConsumerWidget {
   const _HeroHeader({required this.isDark, required this.hasShift});
 
   final bool isDark;
   final bool hasShift;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final weekdays = [
       'Lunes', 'Martes', 'Miércoles', 'Jueves',
@@ -234,15 +236,18 @@ class _HeroHeader extends StatelessWidget {
     final dayLabel =
         '${weekdays[now.weekday - 1]}, ${now.day} de ${months[now.month - 1]}';
 
+    final themeMode = ref.watch(themeModeProvider);
+
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.paperSurface, AppColors.paperBackground],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
+      decoration: BoxDecoration(
+        gradient: isDark 
+          ? AppColors.darkHeaderGradient 
+          : AppColors.lightHeaderGradient,
         border: Border(
-          bottom: BorderSide(color: AppColors.paperBorder, width: 1.0),
+          bottom: BorderSide(
+            color: isDark ? AppColors.darkOutline : AppColors.lightOutline, 
+            width: 1.0,
+          ),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -261,7 +266,7 @@ class _HeroHeader extends StatelessWidget {
                 Text(
                   'Billetera del Mesero',
                   style: AppTextStyles.headlineMedium.copyWith(
-                    color: AppColors.ink,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -269,19 +274,36 @@ class _HeroHeader extends StatelessWidget {
                 Text(
                   dayLabel,
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.inkSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: AppDimensions.space12),
+          const SizedBox(width: AppDimensions.space8),
+          // Theme Toggle
+          IconButton(
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              ref.read(themeModeProvider.notifier).toggle();
+            },
+            icon: Icon(themeMode.icon),
+            color: AppColors.primary,
+            style: IconButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                side: BorderSide(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppDimensions.space8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.paperSurface,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-              border: Border.all(color: AppColors.paperBorder),
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -326,15 +348,15 @@ class _BaseVsDeudaCard extends StatelessWidget {
         margin: const EdgeInsets.only(top: AppDimensions.space16),
         padding: const EdgeInsets.all(AppDimensions.space16),
         decoration: BoxDecoration(
-          color: AppColors.paperSurface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           border: Border.all(
-            color: AppColors.paperBorder,
+            color: Theme.of(context).colorScheme.outline,
             width: 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.ink.withValues(alpha: 0.04),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -366,14 +388,14 @@ class _BaseVsDeudaCard extends StatelessWidget {
                       'Turno no iniciado',
                       style: AppTextStyles.titleMedium.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.ink,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Toca para registrar tu base inicial (\$300.000).',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.inkSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -392,17 +414,17 @@ class _BaseVsDeudaCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: AppDimensions.space16),
       decoration: BoxDecoration(
-        color: AppColors.paperSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
         border: Border.all(
           color: isNegative
               ? AppColors.statusRed.withValues(alpha: 0.5)
-              : AppColors.paperBorder,
+              : Theme.of(context).colorScheme.outline,
           width: isNegative ? 1.5 : 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.04),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -433,7 +455,7 @@ class _BaseVsDeudaCard extends StatelessWidget {
                         Text(
                           'CONTROL DE BILLETERA',
                           style: AppTextStyles.statusBadge.copyWith(
-                            color: AppColors.inkSecondary,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             letterSpacing: 1.0,
                           ),
                         ),
@@ -470,7 +492,7 @@ class _BaseVsDeudaCard extends StatelessWidget {
                           Text(
                             'BASE CAPITAL',
                             style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.inkSecondary,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -498,7 +520,7 @@ class _BaseVsDeudaCard extends StatelessWidget {
                     Container(
                       height: 48,
                       width: 1,
-                      color: AppColors.paperLine,
+                      color: Theme.of(context).colorScheme.outlineVariant,
                     ),
                     const SizedBox(width: AppDimensions.space12),
 
@@ -510,7 +532,7 @@ class _BaseVsDeudaCard extends StatelessWidget {
                           Text(
                             'DEUDA AL LOCAL',
                             style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.inkSecondary,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -525,7 +547,7 @@ class _BaseVsDeudaCard extends StatelessWidget {
                           Text(
                             'A responder en cierre',
                             style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.inkSecondary,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -653,7 +675,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.paperSurface,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
       child: InkWell(
         onTap: () {
@@ -669,7 +691,7 @@ class _StatCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             border: Border.all(
-              color: AppColors.paperBorder,
+              color: Theme.of(context).colorScheme.outline,
             ),
           ),
           child: Column(
@@ -680,7 +702,7 @@ class _StatCard extends StatelessWidget {
                 value,
                 style: AppTextStyles.labelMedium.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: AppColors.ink,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -689,7 +711,7 @@ class _StatCard extends StatelessWidget {
               Text(
                 label,
                 style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.inkSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -798,7 +820,7 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                 icon: Icons.table_restaurant_rounded,
                 title: 'Mesas',
                 subtitle: '${widget.openTables} abiertas',
-                gradient: const [AppColors.paperSurface, AppColors.paperSurface],
+                gradient: [Theme.of(context).colorScheme.surface, Theme.of(context).colorScheme.surface],
                 onTap: () => context.go('/tables'),
               ),
             ),
@@ -812,8 +834,8 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                 subtitle: 'Transferencias en caja',
                 gradient: pendingTransfers > 0
                     ? const [Color(0xFFE65100), Color(0xFFBF360C)]
-                    : const [AppColors.paperSurface, AppColors.paperSurface],
-                textColor: pendingTransfers > 0 ? Colors.white : AppColors.ink,
+                    : [Theme.of(context).colorScheme.surface, Theme.of(context).colorScheme.surface],
+                textColor: pendingTransfers > 0 ? Colors.white : Theme.of(context).colorScheme.onSurface,
                 iconColor: pendingTransfers > 0 ? Colors.white : AppColors.primary,
                 onTap: () => context.push('/legalizacion'),
               ),
@@ -829,7 +851,7 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                 icon: Icons.restaurant_menu_rounded,
                 title: 'Menú',
                 subtitle: 'Productos y precios',
-                gradient: const [AppColors.paperSurface, AppColors.paperSurface],
+                gradient: [Theme.of(context).colorScheme.surface, Theme.of(context).colorScheme.surface],
                 onTap: () => context.push('/products'),
               ),
             ),
@@ -839,7 +861,7 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                 icon: Icons.lock_clock_rounded,
                 title: 'Cierre',
                 subtitle: 'Arqueo de turno',
-                gradient: const [AppColors.paperSurface, AppColors.paperSurface],
+                gradient: [Theme.of(context).colorScheme.surface, Theme.of(context).colorScheme.surface],
                 onTap: () => context.go('/cierre'),
               ),
             ),
@@ -888,9 +910,9 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                         icon: Icons.photo_library_rounded,
                         title: 'Comprobantes',
                         subtitle: 'Fotos guardadas',
-                        gradient: const [
-                          AppColors.paperSurface,
-                          AppColors.paperSurface
+                        gradient: [
+                          Theme.of(context).colorScheme.surface,
+                          Theme.of(context).colorScheme.surface
                         ],
                         onTap: () => context.push('/comprobantes'),
                       ),
@@ -901,9 +923,9 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                         icon: Icons.history_rounded,
                         title: 'Historial',
                         subtitle: 'Turnos anteriores',
-                        gradient: const [
-                          AppColors.paperSurface,
-                          AppColors.paperSurface
+                        gradient: [
+                          Theme.of(context).colorScheme.surface,
+                          Theme.of(context).colorScheme.surface
                         ],
                         onTap: () => context.push('/cierre/historial'),
                       ),
@@ -915,9 +937,9 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                   icon: Icons.settings_rounded,
                   title: 'Configuración',
                   subtitle: 'Ajustes de la app',
-                  gradient: const [
-                    AppColors.paperSurface,
-                    AppColors.paperSurface
+                  gradient: [
+                    Theme.of(context).colorScheme.surface,
+                    Theme.of(context).colorScheme.surface
                   ],
                   onTap: () => context.push('/settings'),
                 ),
@@ -1158,7 +1180,7 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = textColor ?? AppColors.ink;
+    final fg = textColor ?? Theme.of(context).colorScheme.onSurface;
     final iconFg = iconColor ?? (textColor != null ? fg : AppColors.primary);
 
     return Container(
@@ -1169,10 +1191,10 @@ class _ActionCard extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
-        border: Border.all(color: AppColors.paperBorder),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.03),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.03),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -1209,7 +1231,7 @@ class _ActionCard extends StatelessWidget {
                         style: AppTextStyles.bodySmall.copyWith(
                           color: textColor != null
                               ? fg.withValues(alpha: 0.75)
-                              : AppColors.inkSecondary,
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 11,
                         ),
                         maxLines: 1,
@@ -1223,6 +1245,29 @@ class _ActionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NoShiftEmptyStateActions extends StatelessWidget {
+  const _NoShiftEmptyStateActions({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(Icons.lock_rounded, size: 80, color: AppColors.statusOrange.withOpacity(0.5)),
+        const SizedBox(height: 16),
+        Text('Turno no iniciado', style: AppTextStyles.headlineMedium.copyWith(color: AppColors.statusOrange)),
+        const SizedBox(height: 8),
+        Text('Debes iniciar el turno con tu base para operar.', style: AppTextStyles.bodyLarge, textAlign: TextAlign.center),
+        const SizedBox(height: 32),
+        FilledButton.icon(
+          onPressed: () => context.go('/'),
+          icon: const Icon(Icons.play_arrow_rounded),
+          label: const Text('Iniciar Turno con Base Inicial'),
+        ),
+      ],
     );
   }
 }

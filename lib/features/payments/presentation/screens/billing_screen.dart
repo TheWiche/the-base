@@ -85,11 +85,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Abono libre',
-            icon: const Icon(Icons.edit_note_rounded),
-            onPressed: () => _showArbitraryAmountModal(finSummary.pendingBalance),
-          ),
-          IconButton(
             tooltip: 'Compartir factura',
             icon: const Icon(Icons.share_rounded),
             onPressed: () => FacturaSheet.show(context, sessionId),
@@ -159,8 +154,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             onClearAll: () => ref
                 .read(billingSelectionProvider(sessionId).notifier)
                 .clearAll(),
-            onAbonarLibre: () =>
-                _showArbitraryAmountModal(finSummary.pendingBalance),
             onCobrar: subtotal > 0
                 ? () => _showPaymentMethodSheet(
                       subtotal: subtotal,
@@ -179,23 +172,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
-  // ── Modal de Abono Libre por Valor Arbitrario ───────────────────────────────
-
-  void _showArbitraryAmountModal(int defaultBalance) {
-    showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _ArbitraryAmountSheet(
-        pendingBalance: defaultBalance,
-        onAmountConfirmed: (amount) {
-          Navigator.of(ctx).pop();
-          _showPaymentMethodSheet(subtotal: amount, isGeneralAdvance: true);
-        },
-      ),
-    );
-  }
 
   // ── Payment method sheet ─────────────────────────────────────────────────────
 
@@ -864,7 +840,6 @@ class _BottomBar extends StatelessWidget {
     required this.pendingBalance,
     required this.onSelectAll,
     required this.onClearAll,
-    required this.onAbonarLibre,
     required this.onCobrar,
   });
 
@@ -873,7 +848,6 @@ class _BottomBar extends StatelessWidget {
   final int pendingBalance;
   final VoidCallback onSelectAll;
   final VoidCallback onClearAll;
-  final VoidCallback onAbonarLibre;
   final VoidCallback? onCobrar;
 
   @override
@@ -923,16 +897,6 @@ class _BottomBar extends StatelessWidget {
                 child: const Text('Ninguno'),
               ),
               const Spacer(),
-              TextButton.icon(
-                onPressed: onAbonarLibre,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  minimumSize: const Size(0, AppDimensions.buttonHeightSm),
-                ),
-                icon: const Icon(Icons.edit_note_rounded, size: 18),
-                label: const Text('Abono Libre'),
-              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -985,217 +949,6 @@ class _BottomBar extends StatelessWidget {
   }
 }
 
-// ── Sheet de Abono Arbitrario ─────────────────────────────────────────────────
-
-class _ArbitraryAmountSheet extends StatefulWidget {
-  const _ArbitraryAmountSheet({
-    required this.pendingBalance,
-    required this.onAmountConfirmed,
-  });
-
-  final int pendingBalance;
-  final void Function(int) onAmountConfirmed;
-
-  @override
-  State<_ArbitraryAmountSheet> createState() => _ArbitraryAmountSheetState();
-}
-
-class _ArbitraryAmountSheetState extends State<_ArbitraryAmountSheet> {
-  final _amountController = TextEditingController();
-  int _amount = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.pendingBalance > 0) {
-      _setAmount(widget.pendingBalance);
-    }
-  }
-
-  void _setAmount(int val) {
-    _amount = val;
-    _amountController.text = _formatNumber(val);
-    setState(() {});
-  }
-
-  String _formatNumber(int val) {
-    if (val == 0) return '0';
-    final str = val.toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < str.length; i++) {
-      if (i > 0 && (str.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(str[i]);
-    }
-    return buffer.toString();
-  }
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.paperSurface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.modalRadius),
-        ),
-        border: Border.all(color: AppColors.paperBorder),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        AppDimensions.pagePaddingH,
-        AppDimensions.space20,
-        AppDimensions.pagePaddingH,
-        AppDimensions.space24 + bottomInset,
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: AppDimensions.space16),
-                decoration: BoxDecoration(
-                  color: AppColors.paperBorder,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(
-              'Abonar Monto Libre',
-              style: AppTextStyles.headlineSmall.copyWith(color: AppColors.ink),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Ingresa cualquier valor arbitrario a abonar a la mesa.',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.inkSecondary,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.space16),
-
-            // Chips de montos rápidos
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (widget.pendingBalance > 0)
-                  ActionChip(
-                    label: Text('Total (${widget.pendingBalance.toCop})'),
-                    avatar: const Icon(Icons.all_inclusive_rounded, size: 16),
-                    backgroundColor: AppColors.paperBackground,
-                    side: const BorderSide(color: AppColors.paperBorder),
-                    labelStyle: AppTextStyles.monoSmall.copyWith(
-                      color: AppColors.ink,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    onPressed: () => _setAmount(widget.pendingBalance),
-                  ),
-                ActionChip(
-                  label: const Text('\$10.000'),
-                  backgroundColor: AppColors.paperBackground,
-                  side: const BorderSide(color: AppColors.paperBorder),
-                  labelStyle: AppTextStyles.monoSmall.copyWith(color: AppColors.ink),
-                  onPressed: () => _setAmount(10000),
-                ),
-                ActionChip(
-                  label: const Text('\$20.000'),
-                  backgroundColor: AppColors.paperBackground,
-                  side: const BorderSide(color: AppColors.paperBorder),
-                  labelStyle: AppTextStyles.monoSmall.copyWith(color: AppColors.ink),
-                  onPressed: () => _setAmount(20000),
-                ),
-                ActionChip(
-                  label: const Text('\$50.000'),
-                  backgroundColor: AppColors.paperBackground,
-                  side: const BorderSide(color: AppColors.paperBorder),
-                  labelStyle: AppTextStyles.monoSmall.copyWith(color: AppColors.ink),
-                  onPressed: () => _setAmount(50000),
-                ),
-                ActionChip(
-                  label: const Text('\$100.000'),
-                  backgroundColor: AppColors.paperBackground,
-                  side: const BorderSide(color: AppColors.paperBorder),
-                  labelStyle: AppTextStyles.monoSmall.copyWith(color: AppColors.ink),
-                  onPressed: () => _setAmount(100000),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppDimensions.space16),
-
-            TextFormField(
-              controller: _amountController,
-              autofocus: true,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                _ThousandsSeparatorFormatter(),
-              ],
-              style: AppTextStyles.monoLarge.copyWith(
-                color: AppColors.ink,
-                fontWeight: FontWeight.bold,
-              ),
-              decoration: InputDecoration(
-                prefixText: '\$ ',
-                hintText: '0',
-                filled: true,
-                fillColor: AppColors.paperBackground,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.paperBorder),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.paperBorder),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                  borderSide:
-                      const BorderSide(color: AppColors.statusGreen, width: 2),
-                ),
-              ),
-              onChanged: (raw) {
-                final digits = raw.replaceAll('.', '');
-                setState(() {
-                  _amount = int.tryParse(digits) ?? 0;
-                });
-              },
-            ),
-            const SizedBox(height: AppDimensions.space20),
-
-            SizedBox(
-              height: AppDimensions.buttonHeightMd,
-              child: FilledButton.icon(
-                onPressed: _amount > 0 ? () => widget.onAmountConfirmed(_amount) : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.statusGreen,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-                  ),
-                ),
-                icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                label: Text(
-                  _amount > 0 ? 'Continuar con ${_amount.toCop}' : 'Ingresa un monto',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ── Payment method sheet ─────────────────────────────────────────────────────
 

@@ -39,39 +39,100 @@ abstract final class AppTheme {
     onError: AppColors.onStatusRed,
     errorContainer: AppColors.statusRedDim,
     onErrorContainer: Color(0xFF991B1B),
-    surface: AppColors.paperSurface,
-    onSurface: AppColors.ink,
-    surfaceDim: AppColors.paperBackground,
-    surfaceBright: AppColors.paperCard,
-    surfaceContainerLowest: AppColors.paperBackground,
-    surfaceContainerLow: AppColors.paperSurfaceAlt,
-    surfaceContainer: AppColors.paperSurface,
-    surfaceContainerHigh: AppColors.paperSurfaceAlt,
+    surface: AppColors.lightSurface,
+    onSurface: AppColors.lightOnSurface,
+    surfaceDim: AppColors.lightBackground,
+    surfaceBright: AppColors.lightCard,
+    surfaceContainerLowest: AppColors.lightBackground,
+    surfaceContainerLow: AppColors.lightSurfaceVariant,
+    surfaceContainer: AppColors.lightSurface,
+    surfaceContainerHigh: AppColors.lightSurfaceVariant,
     surfaceContainerHighest: Color(0xFFEFE9DC),
-    onSurfaceVariant: AppColors.inkSecondary,
+    onSurfaceVariant: AppColors.lightOnSurfaceVariant,
     surfaceTint: Colors.transparent,
-    outline: AppColors.paperBorder,
+    outline: AppColors.lightOutline,
     outlineVariant: AppColors.lightOutlineVariant,
     shadow: AppColors.paperShadow,
     scrim: AppColors.scrim,
-    inverseSurface: AppColors.ink,
-    onInverseSurface: AppColors.paperSurface,
+    inverseSurface: AppColors.lightOnSurface,
+    onInverseSurface: AppColors.lightSurface,
+    inversePrimary: AppColors.primaryLight,
+  );
+
+  static const ColorScheme _darkScheme = ColorScheme(
+    brightness: Brightness.dark,
+    primary: AppColors.primary,
+    onPrimary: AppColors.onPrimary,
+    primaryContainer: AppColors.statusOrangeDim,
+    onPrimaryContainer: AppColors.primaryDark,
+    secondary: AppColors.secondary,
+    onSecondary: AppColors.onSecondary,
+    secondaryContainer: AppColors.statusGreenDim,
+    onSecondaryContainer: AppColors.secondaryDark,
+    tertiary: AppColors.statusBlue,
+    onTertiary: AppColors.onStatusBlue,
+    tertiaryContainer: AppColors.statusBlueDim,
+    onTertiaryContainer: Color(0xFF1E40AF),
+    error: AppColors.statusRed,
+    onError: AppColors.onStatusRed,
+    errorContainer: AppColors.statusRedDim,
+    onErrorContainer: Color(0xFF991B1B),
+    surface: AppColors.darkSurface,
+    onSurface: AppColors.darkOnSurface,
+    surfaceDim: AppColors.darkBackground,
+    surfaceBright: AppColors.darkCard,
+    surfaceContainerLowest: AppColors.darkBackground,
+    surfaceContainerLow: AppColors.darkSurfaceVariant,
+    surfaceContainer: AppColors.darkSurface,
+    surfaceContainerHigh: AppColors.darkSurfaceVariant,
+    surfaceContainerHighest: Color(0xFF2F3033),
+    onSurfaceVariant: AppColors.darkOnSurfaceVariant,
+    surfaceTint: Colors.transparent,
+    outline: AppColors.darkOutline,
+    outlineVariant: AppColors.darkOutlineVariant,
+    shadow: Colors.black54,
+    scrim: AppColors.scrim,
+    inverseSurface: AppColors.darkOnSurface,
+    onInverseSurface: AppColors.darkSurface,
     inversePrimary: AppColors.primaryLight,
   );
 
   // ── ThemeData públicos ──────────────────────────────────────────────────────
 
-  static ThemeData get light => _build(_paperScheme);
-  // El tema inmutable de la app es el papel beige; dark hereda la misma paleta cálida
-  static ThemeData get dark  => _build(_paperScheme);
+  static ThemeData get light => _build(
+        scheme: _paperScheme,
+        onSurface: AppColors.lightOnSurface,
+        surface: AppColors.lightSurface,
+        background: AppColors.lightBackground,
+        inkSecondary: AppColors.lightOnSurfaceVariant,
+        paperBorder: AppColors.lightOutline,
+        cardColor: AppColors.lightCard,
+        inkDisabled: AppColors.lightDisabled,
+      );
+
+  static ThemeData get dark => _build(
+        scheme: _darkScheme,
+        onSurface: AppColors.darkOnSurface,
+        surface: AppColors.darkSurface,
+        background: AppColors.darkBackground,
+        inkSecondary: AppColors.darkOnSurfaceVariant,
+        paperBorder: AppColors.darkOutline,
+        cardColor: AppColors.darkCard,
+        inkDisabled: AppColors.darkDisabled,
+      );
 
   // ── Builder ────────────────────────────────────────────────────────────────
 
-  static ThemeData _build(ColorScheme scheme) {
-    const Color onSurface  = AppColors.ink;
-    const Color surface    = AppColors.paperSurface;
-    const Color background = AppColors.paperBackground;
-
+  static ThemeData _build({
+    required ColorScheme scheme,
+    required Color onSurface,
+    required Color surface,
+    required Color background,
+    required Color inkSecondary,
+    required Color paperBorder,
+    required Color cardColor,
+    required Color inkDisabled,
+  }) {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
@@ -93,7 +154,7 @@ abstract final class AppTheme {
           color: onSurface,
           fontWeight: FontWeight.w800,
         ),
-        iconTheme: const IconThemeData(
+        iconTheme: IconThemeData(
           color: onSurface,
           size: AppDimensions.iconMd,
         ),
@@ -121,8 +182,8 @@ abstract final class AppTheme {
           foregroundColor: scheme.primary,
           minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          side: const BorderSide(
-            color: AppColors.paperBorder,
+          side: BorderSide(
+            color: paperBorder,
             width: AppDimensions.buttonBorderWidth,
           ),
           shape: RoundedRectangleBorder(
@@ -171,27 +232,27 @@ abstract final class AppTheme {
         elevation: 0,
         labelTextStyle: WidgetStatePropertyAll(
           AppTextStyles.labelSmall.copyWith(
-            color: AppColors.inkSecondary,
+            color: inkSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? AppColors.primary : AppColors.inkSecondary,
+            color: selected ? AppColors.primary : inkSecondary,
             size: AppDimensions.iconMd,
           );
         }),
       ),
 
       // ── BottomSheet (Superficie papel beige, 20px borde superior) ───────────
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
         modalBackgroundColor: surface,
         elevation: 0,
         modalElevation: 0,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppDimensions.modalRadius),
           ),
@@ -199,14 +260,14 @@ abstract final class AppTheme {
       ),
 
       // ── Menus ───────────────────────────────────────────────────────────────
-      menuTheme: const MenuThemeData(
+      menuTheme: MenuThemeData(
         style: MenuStyle(
           backgroundColor: WidgetStatePropertyAll(surface),
-          surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
-          elevation: WidgetStatePropertyAll(2),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(2),
         ),
       ),
-      popupMenuTheme: const PopupMenuThemeData(
+      popupMenuTheme: PopupMenuThemeData(
         color: surface,
         surfaceTintColor: Colors.transparent,
         elevation: 2,
@@ -216,14 +277,14 @@ abstract final class AppTheme {
 
       // ── Card (Blanco papel suave, borde papel 1px, 16px radius) ────────────
       cardTheme: CardThemeData(
-        color: surface,
+        color: cardColor,
         surfaceTintColor: Colors.transparent,
         elevation: AppDimensions.cardElevation,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
-          side: const BorderSide(
-            color: AppColors.paperBorder,
+          side: BorderSide(
+            color: paperBorder,
             width: 1.0,
           ),
         ),
@@ -232,22 +293,22 @@ abstract final class AppTheme {
       // ── Input (Campos de entrada en papel limpio) ───────────────────────────
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.paperCard,
+        fillColor: cardColor,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppDimensions.space16,
           vertical: AppDimensions.space16,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-          borderSide: const BorderSide(
-            color: AppColors.paperBorder,
+          borderSide: BorderSide(
+            color: paperBorder,
             width: AppDimensions.inputBorderWidth,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
-          borderSide: const BorderSide(
-            color: AppColors.paperBorder,
+          borderSide: BorderSide(
+            color: paperBorder,
             width: AppDimensions.inputBorderWidth,
           ),
         ),
@@ -273,10 +334,10 @@ abstract final class AppTheme {
           ),
         ),
         labelStyle: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.inkSecondary,
+          color: inkSecondary,
         ),
         hintStyle: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.inkDisabled,
+          color: inkDisabled,
         ),
         errorStyle: AppTextStyles.labelSmall.copyWith(
           color: AppColors.statusRed,
@@ -286,14 +347,14 @@ abstract final class AppTheme {
 
       // ── Chip (40px alto, papel crema, borde sutil) ──────────────────────────
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.paperSurfaceAlt,
+        backgroundColor: scheme.surfaceContainerLow,
         selectedColor: AppColors.primary.withValues(alpha: 0.16),
         labelStyle: AppTextStyles.labelMedium.copyWith(
           color: onSurface,
           fontWeight: FontWeight.w700,
         ),
-        side: const BorderSide(
-          color: AppColors.paperBorder,
+        side: BorderSide(
+          color: paperBorder,
           width: 1.0,
         ),
         shape: RoundedRectangleBorder(
@@ -309,7 +370,7 @@ abstract final class AppTheme {
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: surface,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.inkSecondary,
+        unselectedItemColor: inkSecondary,
         selectedLabelStyle: AppTextStyles.labelSmall,
         unselectedLabelStyle: AppTextStyles.labelSmall,
         type: BottomNavigationBarType.fixed,
@@ -317,8 +378,8 @@ abstract final class AppTheme {
       ),
 
       // ── Divider (Línea de papel sutil) ──────────────────────────────────────
-      dividerTheme: const DividerThemeData(
-        color: AppColors.paperBorder,
+      dividerTheme: DividerThemeData(
+        color: paperBorder,
         thickness: AppDimensions.dividerThickness,
         space: 0,
       ),
@@ -330,7 +391,7 @@ abstract final class AppTheme {
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.modalRadius),
-          side: const BorderSide(color: AppColors.paperBorder, width: 1.0),
+          side: BorderSide(color: paperBorder, width: 1.0),
         ),
         titleTextStyle: AppTextStyles.headlineSmall.copyWith(
           color: onSurface,
@@ -341,9 +402,9 @@ abstract final class AppTheme {
 
       // ── SnackBar ─────────────────────────────────────────────────────────────
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.ink,
+        backgroundColor: onSurface,
         contentTextStyle: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.paperSurface,
+          color: surface,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
@@ -364,7 +425,7 @@ abstract final class AppTheme {
           fontWeight: FontWeight.w700,
         ),
         subtitleTextStyle: AppTextStyles.bodySmall.copyWith(
-          color: AppColors.inkSecondary,
+          color: inkSecondary,
         ),
         iconColor: scheme.primary,
       ),
@@ -376,8 +437,8 @@ abstract final class AppTheme {
           return Colors.transparent;
         }),
         checkColor: WidgetStateProperty.all(scheme.onPrimary),
-        side: const BorderSide(
-          color: AppColors.paperBorder,
+        side: BorderSide(
+          color: paperBorder,
           width: 2.0,
         ),
         shape: RoundedRectangleBorder(
@@ -398,14 +459,14 @@ abstract final class AppTheme {
       ),
 
       // ── Icons ─────────────────────────────────────────────────────────────────
-      iconTheme: const IconThemeData(color: onSurface, size: AppDimensions.iconMd),
+      iconTheme: IconThemeData(color: onSurface, size: AppDimensions.iconMd),
       primaryIconTheme:
           IconThemeData(color: scheme.primary, size: AppDimensions.iconMd),
 
       // ── TabBar ───────────────────────────────────────────────────────────────
       tabBarTheme: TabBarThemeData(
         labelColor: AppColors.primary,
-        unselectedLabelColor: AppColors.inkSecondary,
+        unselectedLabelColor: inkSecondary,
         labelStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w800),
         unselectedLabelStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w600),
         indicatorColor: AppColors.primary,

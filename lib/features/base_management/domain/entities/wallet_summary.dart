@@ -95,8 +95,14 @@ final class WalletSummary {
   int get expectedCashInHand =>
       initialBase + totalIncreases - totalDecreases + cashPaymentsTotal;
 
-  /// In The Base, the waiter's available balance in hand represents their expected physical cash.
-  int get availableBalance => expectedCashInHand;
+  /// FORMULA: Saldo Disponible = Base Inicial + Aumentos - Bajas + Transferencias Legalizadas + Cobros en Efectivo - Productos Comunes Despachados
+  int get availableBalance =>
+      initialBase +
+      totalIncreases -
+      totalDecreases +
+      verifiedTransfersTotal +
+      cashPaymentsTotal -
+      servedStandardItemsTotal;
 
   /// FORMULA: Net Profit = Physical Cash − Total Debt + Σ(Transfer Tips)
   int get netProfit =>

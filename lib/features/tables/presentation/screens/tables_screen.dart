@@ -15,6 +15,7 @@ import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/stagger_entrance.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../../../payments/presentation/providers/payment_providers.dart';
+import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/entities/table_session_entity.dart';
 import '../widgets/new_table_dialog.dart';
 
@@ -70,6 +71,8 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final walletAsync = ref.watch(enrichedWalletSummaryProvider);
+    final hasShift = walletAsync.valueOrNull?.hasInitialBase ?? false;
     final sessionsAsync = ref.watch(activeSessionsProvider);
 
     return Scaffold(
@@ -82,7 +85,6 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
             icon: const Icon(Icons.history_rounded),
             color: AppColors.brand,
           ),
-          // Acceso claro al Menú: botón con etiqueta, no un ícono suelto.
           Padding(
             padding: const EdgeInsets.only(right: AppDimensions.space12),
             child: FilledButton.tonalIcon(
@@ -100,40 +102,75 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: hasShift ? FloatingActionButton.extended(
         onPressed: () => _showNewTableDialog(context),
         icon: const Icon(Icons.table_restaurant_rounded),
         label: const Text('Nueva Mesa'),
-      ),
-      body: sessionsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _ErrorBody(error: e),
-        data: (sessions) {
-          if (sessions.isEmpty) {
-            return _EmptyState(onNewTable: () => _showNewTableDialog(context));
-          }
-          final filtered = _applyFilter(sessions);
-          return Column(
-            children: [
-              _FilterBar(
-                selected: _filter,
-                onChanged: (f) => setState(() => _filter = f),
-                openCount: sessions.where((s) => s.status == TableStatus.open).length,
-                partialCount: sessions.where((s) => s.status == TableStatus.partiallyPaid).length,
-              ),
-              Expanded(
-                child: filtered.isEmpty
-                    ? _EmptyFilterState()
-                    : _SessionsGrid(
-                        sessions: filtered,
-                        onTap: (s) => context.push('/tables/${s.id}/orders'),
-                        onLongPress: _onTableLongPress,
+      ) : null,
+      body: !hasShift
+          ? _NoShiftEmptyState()
+          : sessionsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => _ErrorBody(error: e),
+              data: (sessions) {
+                if (sessions.isEmpty) {
+                  return _EmptyState(onNewTable: () => _showNewTableDialog(context));
+                }
+                final filtered = _applyFilter(sessions);
+                final totalPending = ref.watch(totalPendingInTablesProvider);
+                
+                return Column(
+                  children: [
+                    // Total en Mesas Banner
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, AppDimensions.space16, AppDimensions.pagePaddingH, 0),
+                      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space16, vertical: AppDimensions.space12),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusOrange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                        border: Border.all(color: AppColors.statusOrange.withOpacity(0.3)),
                       ),
-              ),
-            ],
-          );
-        },
-      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'TOTAL EN MESAS',
+                            style: AppTextStyles.labelMedium.copyWith(
+                              color: AppColors.statusOrange,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          Text(
+                            totalPending.toCop,
+                            style: AppTextStyles.headlineSmall.copyWith(
+                              color: AppColors.statusOrange,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.space8),
+                    _FilterBar(
+                      selected: _filter,
+                      onChanged: (f) => setState(() => _filter = f),
+                      openCount: sessions.where((s) => s.status == TableStatus.open).length,
+                      partialCount: sessions.where((s) => s.status == TableStatus.partiallyPaid).length,
+                    ),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? _EmptyFilterState()
+                          : _SessionsGrid(
+                              sessions: filtered,
+                              onTap: (s) => context.push('/tables/${s.id}/orders'),
+                              onLongPress: _onTableLongPress,
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
     );
   }
 
@@ -666,6 +703,33 @@ class _ErrorBody extends StatelessWidget {
           'Error cargando mesas: $error',
           style: AppTextStyles.bodyMedium.copyWith(color: AppColors.statusRed),
           textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+class _NoShiftEmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_rounded, size: 80, color: AppColors.statusOrange.withOpacity(0.5)),
+            const SizedBox(height: 16),
+            Text('Turno no iniciado', style: AppTextStyles.headlineMedium.copyWith(color: AppColors.statusOrange)),
+            const SizedBox(height: 8),
+            Text('Debes iniciar el turno con tu base para operar.', style: AppTextStyles.bodyLarge, textAlign: TextAlign.center),
+            const SizedBox(height: 32),
+            FilledButton.icon(
+              onPressed: () => context.go('/'),
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Iniciar Turno con Base Inicial'),
+            ),
+          ],
         ),
       ),
     );

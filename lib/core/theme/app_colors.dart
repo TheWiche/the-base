@@ -101,27 +101,26 @@ abstract final class AppColors {
   static const Color lightOnSurfaceVariant = inkSecondary;
   static const Color lightDisabled         = inkDisabled;
 
-  // ── Compatibilidad de Modo Oscuro mapeada a tonalidades cálidas de papel ──
-  // La identidad visual inmutable es el papel beige; alineamos estos tokens
-  // para que ningún contenedor antiguo genere bloques negros/oscuros.
-  static const Color darkBackground       = paperBackground;
-  static const Color darkSurface          = paperSurface;
-  static const Color darkSurfaceVariant   = paperSurfaceAlt;
-  static const Color darkCard             = paperCard;
-  static const Color darkOutline          = paperBorder;
-  static const Color darkOutlineVariant   = Color(0xFFF0E5D8);
+  // ── Modos Oscuros Verdaderos (Carbon Contrast) ─────────────────────────────
+  // Implementación de Dark Mode de alto contraste y legibilidad nocturna
+  static const Color darkBackground       = Color(0xFF121212); // Negro Carbón Profundo
+  static const Color darkSurface          = Color(0xFF1E1F21); // Gris Grafito pulido
+  static const Color darkSurfaceVariant   = Color(0xFF252628); // Grafito más claro
+  static const Color darkCard             = Color(0xFF1E1F21); // Tarjeta Oscura
+  static const Color darkOutline          = Color(0x1FFFFFFF); // Border.all(color: Colors.white12) => aprox 12%-1E%
+  static const Color darkOutlineVariant   = Color(0x33FFFFFF); // 20% white
 
-  static const Color darkOnBackground     = ink;
-  static const Color darkOnSurface        = ink;
-  static const Color darkOnSurfaceVariant = inkSecondary;
-  static const Color darkDisabled         = inkDisabled;
+  static const Color darkOnBackground     = Color(0xFFF5F5F7); // Blanco tiza alto impacto
+  static const Color darkOnSurface        = Color(0xFFF5F5F7); 
+  static const Color darkOnSurfaceVariant = Color(0xFFA0A0A5); // Gris humo cálido
+  static const Color darkDisabled         = Color(0xFF6B6B6D);
 
   // ── Barra de navegación inferior ─────────────────────────────────────────
-  static const Color navBarDark  = paperSurface;
+  static const Color navBarDark  = Color(0xFF1E1F21);
   static const Color navBarLight = paperSurface;
 
   // ── Scrim / Overlay ───────────────────────────────────────────────────────
-  static const Color scrim      = Color(0x661E1C1A);
+  static const Color scrim      = Color(0x99000000);
   static const Color scrimLight = Color(0x331E1C1A);
 
   // ── Gradientes Estilo Papel Beige ─────────────────────────────────────────
@@ -137,8 +136,13 @@ abstract final class AppColors {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
+  
+  /// Header oscuro sutil
+  static const LinearGradient darkHeaderGradient = LinearGradient(
+    colors: [Color(0xFF1E1F21), Color(0xFF121212)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 
-  /// Aliases de gradientes
-  static const LinearGradient darkHeaderGradient = paperHeaderGradient;
   static const LinearGradient lightHeaderGradient = paperHeaderGradient;
 }
