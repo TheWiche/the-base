@@ -547,7 +547,7 @@ class _SelectableLine extends StatelessWidget {
                       ),
                       if (item.quantity > 1 && onLongPress != null) ...[
                         const SizedBox(width: 4),
-                        const Icon(
+                        Icon(
                           Icons.touch_app_rounded,
                           size: 12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,

@@ -375,7 +375,7 @@ class ReceiptCategoryHeader extends StatelessWidget {
             AnimatedRotation(
               turns: collapsed! ? -0.25 : 0,
               duration: const Duration(milliseconds: 180),
-              child: const Icon(
+              child: Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 20,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -450,7 +450,7 @@ class _FooterRow extends StatelessWidget {
   final String label;
   final String value;
   final bool bold;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
