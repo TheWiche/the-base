@@ -6,13 +6,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
-/// Giant primary CTA button for requesting a base increase (monto
-/// configurable en Ajustes, default $100.000).
+/// Primary action button for requesting a base increase (monto configurable en Ajustes).
 ///
 /// Design requirements:
-///   • 64dp minimum height — safe for wet / gloved hands.
-///   • Brand amber color — instantly recognizable as the primary action.
-///   • Haptic feedback on tap — confirms the touch in noisy environments.
+///   • 52dp standardized height with 14px border radius.
+///   • Warm Amber color (#D97706) for high contrast and quick recognition.
+///   • Haptic feedback on tap.
 ///   • [isLoading] replaces the label with a spinner during async work.
 ///   • [isEnabled] dims the button when the shift is not yet initialized.
 class IncrementoButton extends StatelessWidget {
@@ -35,13 +34,13 @@ class IncrementoButton extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: AppDimensions.tapTargetLg,
+      height: AppDimensions.buttonHeightMd, // 52px
       child: AnimatedOpacity(
         opacity: canTap ? 1.0 : 0.45,
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 180),
         child: Material(
-          color: AppColors.brand,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           child: InkWell(
             onTap: canTap
                 ? () {
@@ -49,34 +48,30 @@ class IncrementoButton extends StatelessWidget {
                     onPressed();
                   }
                 : null,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-            splashColor: Colors.white24,
-            highlightColor: Colors.white12,
+            borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+            splashColor: Colors.white.withValues(alpha: 0.22),
+            highlightColor: Colors.white.withValues(alpha: 0.1),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.space24,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (isLoading)
                     const SizedBox(
-                      width: 24,
-                      height: 24,
+                      width: 22,
+                      height: 22,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFF1A0A00),
-                        ),
+                        strokeWidth: 2.2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
                   else ...[
                     const Icon(
                       Icons.add_circle_rounded,
-                      color: Color(0xFF1A0A00),
-                      size: AppDimensions.iconLg,
+                      color: Colors.white,
+                      size: AppDimensions.iconMd,
                     ),
-                    const SizedBox(width: AppDimensions.space12),
+                    const SizedBox(width: 10),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,14 +79,15 @@ class IncrementoButton extends StatelessWidget {
                         Text(
                           'SOLICITAR INCREMENTO',
                           style: AppTextStyles.labelLarge.copyWith(
-                            color: const Color(0xFF1A0A00),
-                            letterSpacing: 1.2,
+                            color: Colors.white,
+                            letterSpacing: 0.8,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                         Text(
                           '+${amount.toCop} al saldo base',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: const Color(0xFF3D2000),
+                            color: Colors.white.withValues(alpha: 0.85),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -125,7 +121,7 @@ class IniciarTurnoButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: AppDimensions.tapTargetLg,
+      height: AppDimensions.buttonHeightMd, // 52px
       child: FilledButton.icon(
         onPressed: isLoading
             ? null
@@ -135,20 +131,24 @@ class IniciarTurnoButton extends StatelessWidget {
               },
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.statusGreen,
-          foregroundColor: AppColors.onStatusGreen,
-          minimumSize: const Size.fromHeight(AppDimensions.buttonHeightLg),
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           ),
           textStyle: AppTextStyles.labelLarge,
+          elevation: 0,
         ),
         icon: isLoading
             ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
               )
-            : const Icon(Icons.play_arrow_rounded, size: AppDimensions.iconLg),
+            : const Icon(Icons.play_arrow_rounded, size: AppDimensions.iconMd),
         label: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,13 +156,14 @@ class IniciarTurnoButton extends StatelessWidget {
             Text(
               'INICIAR TURNO',
               style: AppTextStyles.labelLarge.copyWith(
-                color: AppColors.onStatusGreen,
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
               ),
             ),
             Text(
               'Base inicial: ${amount.toCop}',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.onStatusGreen.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.85),
                 fontWeight: FontWeight.w700,
               ),
             ),

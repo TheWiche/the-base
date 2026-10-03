@@ -143,14 +143,13 @@ class _RadarViewSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceVariant : const Color(0xFFE8E8EE),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        color: const Color(0xFFEFE9DC), // Papel crema cálido
+        borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
         border: Border.all(
-          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+          color: AppColors.paperBorder,
+          width: 1.0,
         ),
       ),
       padding: const EdgeInsets.all(4),
@@ -188,28 +187,28 @@ class _RadarViewSelector extends StatelessWidget {
     required IconData icon,
   }) {
     final isSelected = currentMode == mode;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final selectedBg = AppColors.primary;
-    final selectedFg = const Color(0xFF121212);
-    final unselectedFg = isDark
-        ? AppColors.darkOnSurfaceVariant
-        : AppColors.lightOnSurfaceVariant;
+    const selectedBg = AppColors.primary;
+    const selectedFg = Colors.white;
+    const unselectedFg = AppColors.inkSecondary;
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => onModeChanged(mode),
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onModeChanged(mode);
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected ? selectedBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
-                      blurRadius: 8,
+                      color: AppColors.primary.withValues(alpha: 0.28),
+                      blurRadius: 6,
                       offset: const Offset(0, 2),
                     )
                   ]

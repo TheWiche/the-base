@@ -39,7 +39,7 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   ThemeMode build() {
     final prefs = ref.read(sharedPreferencesProvider);
     final stored = prefs.getString(_kThemeModeKey);
-    return _fromString(stored) ?? ThemeMode.dark;
+    return _fromString(stored) ?? ThemeMode.light;
   }
 
   /// Cycles: dark → light → system → dark.

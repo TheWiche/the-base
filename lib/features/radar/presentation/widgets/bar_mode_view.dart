@@ -73,23 +73,19 @@ class _BarBatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final Color urgencyBorderColor = switch (batch.urgency) {
       RadarUrgency.critical => AppColors.statusRed,
       RadarUrgency.warning => AppColors.statusOrange,
-      RadarUrgency.normal => isDark
-          ? AppColors.darkOutline.withOpacity(0.5)
-          : AppColors.lightOutline.withOpacity(0.5),
+      RadarUrgency.normal => AppColors.paperBorder,
     };
 
     final Color urgencyBgTint = switch (batch.urgency) {
-      RadarUrgency.critical => AppColors.statusRed.withOpacity(0.08),
-      RadarUrgency.warning => AppColors.statusOrange.withOpacity(0.05),
+      RadarUrgency.critical => AppColors.statusRed.withValues(alpha: 0.08),
+      RadarUrgency.warning => AppColors.statusOrange.withValues(alpha: 0.05),
       RadarUrgency.normal => Colors.transparent,
     };
 
-    final cardBg = isDark ? AppColors.darkSurfaceVariant : Colors.white;
+    const cardBg = AppColors.paperSurface;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.space16),
@@ -100,14 +96,14 @@ class _BarBatchCard extends StatelessWidget {
           border: Border.all(
             color: batch.urgency != RadarUrgency.normal
                 ? urgencyBorderColor
-                : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
-            width: batch.urgency == RadarUrgency.critical ? 2.0 : 1.0,
+                : AppColors.paperBorder,
+            width: batch.urgency == RadarUrgency.critical ? 1.8 : 1.0,
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.35 : 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: AppColors.paperShadow,
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -135,7 +131,7 @@ class _BarBatchCard extends StatelessWidget {
                             BorderRadius.circular(AppDimensions.radiusSm),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
+                            color: AppColors.primary.withValues(alpha: 0.28),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -146,7 +142,7 @@ class _BarBatchCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: Colors.black,
+                          color: Colors.white,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -164,6 +160,7 @@ class _BarBatchCard extends StatelessWidget {
                               fontWeight: FontWeight.w800,
                               fontSize: 18,
                               height: 1.2,
+                              color: AppColors.ink,
                             ),
                           ),
                           if (batch.note != null && batch.note!.isNotEmpty) ...[
@@ -174,21 +171,16 @@ class _BarBatchCard extends StatelessWidget {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: (isDark
-                                        ? AppColors.primaryLight
-                                        : AppColors.primaryDark)
-                                    .withOpacity(0.12),
+                                color: AppColors.primary.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 '↳ ${batch.note}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontStyle: FontStyle.italic,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? AppColors.primaryLight
-                                      : AppColors.primaryDark,
+                                  color: AppColors.primaryDark,
                                 ),
                               ),
                             ),
@@ -205,27 +197,23 @@ class _BarBatchCard extends StatelessWidget {
                 ),
 
                 const SizedBox(height: AppDimensions.space12),
-                const Divider(height: 1, thickness: 0.8),
+                const Divider(height: 1, thickness: 0.8, color: AppColors.paperBorder),
                 const SizedBox(height: AppDimensions.space12),
 
                 // ── Sub-desglose por mesas (chips legibles) ─────────────────
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.table_restaurant_outlined,
                       size: 15,
-                      color: isDark
-                          ? AppColors.darkOnSurfaceVariant
-                          : AppColors.lightOnSurfaceVariant,
+                      color: AppColors.inkSecondary,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       'Destinos por mesa (toca para despachar mesa):',
                       style: AppTextStyles.bodySmall.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.darkOnSurfaceVariant
-                            : AppColors.lightOnSurfaceVariant,
+                        color: AppColors.inkSecondary,
                       ),
                     ),
                   ],
@@ -249,7 +237,7 @@ class _BarBatchCard extends StatelessWidget {
 
                 const SizedBox(height: AppDimensions.space16),
 
-                // ── Botón: Completar Lote Completo ─────────────────────────
+                // ── Botón: Completar Lote Completo (52px estándar) ─────────
                 FilledButton.icon(
                   onPressed: () {
                     HapticFeedback.heavyImpact();
@@ -257,12 +245,13 @@ class _BarBatchCard extends StatelessWidget {
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.statusGreen,
-                    foregroundColor: const Color(0xFF121212),
-                    minimumSize: const Size.fromHeight(52),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
                     shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(AppDimensions.buttonRadius),
                     ),
+                    elevation: 0,
                   ),
                   icon: const Icon(Icons.done_all_rounded, size: 20),
                   label: Text(

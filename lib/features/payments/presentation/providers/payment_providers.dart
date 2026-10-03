@@ -185,3 +185,18 @@ final tableFinancialSummaryProvider =
     isFullyPaid: isFullyPaid,
   );
 });
+
+/// Reactive sum of [TableFinancialSummary.pendingBalance] across ALL active
+/// table sessions. Used by [TablesScreen] to display the "Total en Mesas"
+/// header indicator.
+///
+/// Re-evaluates whenever any session's items or payments change. Derived
+/// purely from already-watched streams — no extra Isar queries.
+final totalPendingInTablesProvider = Provider<int>((ref) {
+  final sessions =
+      ref.watch(activeSessionsProvider).valueOrNull ?? [];
+  return sessions.fold<int>(0, (sum, session) {
+    final summary = ref.watch(tableFinancialSummaryProvider(session.id));
+    return sum + summary.pendingBalance;
+  });
+});

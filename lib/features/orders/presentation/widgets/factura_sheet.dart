@@ -46,8 +46,6 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surface = isDark ? AppColors.darkSurface : AppColors.lightBackground;
     final items = ref.watch(tableOrderProvider(widget.sessionId)).valueOrNull ?? [];
     final session = ref.watch(tableSessionByIdProvider(widget.sessionId));
     final barName = ref.watch(barNameProvider);
@@ -59,10 +57,11 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
       minChildSize: 0.5,
       builder: (context, scrollCtrl) => Container(
         decoration: BoxDecoration(
-          color: surface,
+          color: AppColors.paperSurface,
           borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppDimensions.radiusXl),
+            top: Radius.circular(AppDimensions.modalRadius),
           ),
+          border: Border.all(color: AppColors.paperBorder),
         ),
         child: Column(
           children: [
@@ -72,7 +71,7 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                  color: AppColors.paperBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -101,16 +100,32 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: FilledButton.icon(
-                  onPressed: _sharing || session == null
-                      ? null
-                      : () => _showShareOptions(session, items, barName),
-                  icon: const Icon(Icons.share_rounded),
-                  label: Text(
-                    _sharing ? 'Compartiendo…' : 'Compartir factura',
-                    style: AppTextStyles.labelLarge
-                        .copyWith(color: const Color(0xFF241A05)),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: AppDimensions.buttonHeightMd,
+                  child: FilledButton.icon(
+                    onPressed: _sharing || session == null
+                        ? null
+                        : () => _showShareOptions(session, items, barName),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.buttonRadius),
+                      ),
+                    ),
+                    icon: const Icon(Icons.share_rounded, size: 20),
+                    label: Text(
+                      _sharing ? 'Compartiendo…' : 'Compartir factura',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -128,31 +143,69 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
   ) {
     showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.image_rounded, color: AppColors.primary),
-              title: Text('Imagen', style: AppTextStyles.titleMedium),
-              subtitle: Text('Comparte el tiquete como foto',
-                  style: AppTextStyles.bodySmall),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _shareAsImage();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.notes_rounded, color: AppColors.primary),
-              title: Text('Texto', style: AppTextStyles.titleMedium),
-              subtitle: Text('Comparte el tiquete como texto',
-                  style: AppTextStyles.bodySmall),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _shareAsText(session, items, barName);
-              },
-            ),
-          ],
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.paperSurface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppDimensions.modalRadius),
+          ),
+          border: Border.all(color: AppColors.paperBorder),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.paperBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.image_rounded, color: AppColors.primary),
+                title: Text(
+                  'Imagen',
+                  style: AppTextStyles.titleMedium.copyWith(color: AppColors.ink),
+                ),
+                subtitle: Text(
+                  'Comparte el tiquete como foto',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.inkSecondary,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _shareAsImage();
+                },
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.notes_rounded, color: AppColors.primary),
+                title: Text(
+                  'Texto',
+                  style: AppTextStyles.titleMedium.copyWith(color: AppColors.ink),
+                ),
+                subtitle: Text(
+                  'Comparte el tiquete como texto',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.inkSecondary,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _shareAsText(session, items, barName);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );

@@ -165,46 +165,77 @@ class _TableOrderScreenState extends ConsumerState<TableOrderScreen> {
   void _showItemMenu(OrderItemEntity item) {
     showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text(
-                '${item.quantity}× ${item.productName}',
-                style: AppTextStyles.titleMedium,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.paperSurface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppDimensions.modalRadius),
+          ),
+          border: Border.all(color: AppColors.paperBorder),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.paperBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-            ),
-            if (!item.isCancelled)
-              ListTile(
-                leading: const Icon(Icons.replay_rounded, color: AppColors.primary),
-                title: const Text('Repetir'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _repeatItem(item);
-                },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Text(
+                  '${item.quantity}× ${item.productName}',
+                  style: AppTextStyles.titleMedium.copyWith(color: AppColors.ink),
+                ),
               ),
-            if (!item.isCancelled && !item.isPaid)
-              ListTile(
-                leading: const Icon(Icons.cancel_rounded, color: AppColors.statusRed),
-                title: const Text('Cancelar ítem'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _cancelItem(item);
-                },
-              ),
-            if (item.isCancelled)
-              ListTile(
-                leading:
-                    const Icon(Icons.delete_forever_rounded, color: AppColors.statusRed),
-                title: const Text('Eliminar'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _deleteItem(item.id);
-                },
-              ),
-          ],
+              if (!item.isCancelled)
+                ListTile(
+                  leading: const Icon(Icons.replay_rounded, color: AppColors.primary),
+                  title: Text(
+                    'Repetir',
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.ink),
+                  ),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _repeatItem(item);
+                  },
+                ),
+              if (!item.isCancelled && !item.isPaid)
+                ListTile(
+                  leading: const Icon(Icons.cancel_rounded, color: AppColors.statusRed),
+                  title: Text(
+                    'Cancelar ítem',
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.statusRed),
+                  ),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _cancelItem(item);
+                  },
+                ),
+              if (item.isCancelled)
+                ListTile(
+                  leading:
+                      const Icon(Icons.delete_forever_rounded, color: AppColors.statusRed),
+                  title: Text(
+                    'Eliminar',
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.statusRed),
+                  ),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _deleteItem(item.id);
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -446,7 +477,6 @@ class _ActionBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     final finSummary = ref.watch(tableFinancialSummaryProvider(sessionId));
 
@@ -459,47 +489,83 @@ class _ActionBar extends ConsumerWidget {
     final hasPending = finSummary.pendingBalance > 0 || unpaidTotal > 0;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + bottomInset),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        border: Border(
+        color: AppColors.paperSurface,
+        border: const Border(
           top: BorderSide(
             width: 1,
-            color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+            color: AppColors.paperBorder,
           ),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Expanded(
-            child: FilledButton.icon(
-              onPressed: onAgregar,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: const Color(0xFF241A05),
-                minimumSize: const Size.fromHeight(52),
+            child: SizedBox(
+              height: AppDimensions.buttonHeightMd,
+              child: FilledButton.icon(
+                onPressed: onAgregar,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.buttonRadius),
+                  ),
+                ),
+                icon: const Icon(Icons.add_rounded, size: 20),
+                label: const Text(
+                  'Agregar',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
               ),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Agregar'),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
-            child: FilledButton.icon(
-              onPressed: allPaid
-                  ? onCerrarMesa
-                  : (hasPending
-                      ? () => context.push('/billing/$sessionId')
-                      : null),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.statusGreen,
-                foregroundColor: Colors.black,
-                minimumSize: const Size.fromHeight(52),
+            child: SizedBox(
+              height: AppDimensions.buttonHeightMd,
+              child: FilledButton.icon(
+                onPressed: allPaid
+                    ? onCerrarMesa
+                    : (hasPending
+                        ? () => context.push('/billing/$sessionId')
+                        : null),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.statusGreen,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.buttonRadius),
+                  ),
+                ),
+                icon: Icon(
+                  allPaid
+                      ? Icons.check_circle_rounded
+                      : Icons.point_of_sale_rounded,
+                  size: 20,
+                ),
+                label: Text(
+                  allPaid ? 'Cerrar Mesa' : 'Cobrar',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
               ),
-              icon: Icon(allPaid
-                  ? Icons.check_circle_rounded
-                  : Icons.point_of_sale_rounded),
-              label: Text(allPaid ? 'Cerrar Mesa' : 'Cobrar'),
             ),
           ),
         ],

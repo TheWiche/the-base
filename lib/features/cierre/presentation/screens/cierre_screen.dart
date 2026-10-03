@@ -209,11 +209,12 @@ class _CierreScreenState extends ConsumerState<CierreScreen> {
 
   Future<void> _onCierreConfirmed() async {
     final summary = ref.read(enrichedWalletSummaryProvider).valueOrNull;
-    if (summary == null || !mounted) return;
+    if (summary == null || !summary.hasInitialBase || !mounted) return;
 
+    final expectedCash = summary.expectedCashInHand;
     final result = await ref.read(finalizeShiftUseCaseProvider).call(
-          summary: summary,
-          cashInHand: summary.cashPaymentsTotal,
+          summary: summary.copyWith(physicalCashInHand: expectedCash),
+          cashInHand: expectedCash,
         );
     if (!mounted) return;
 
@@ -293,9 +294,15 @@ class _BlockerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final (icon, title, detail, color, route, usePush) = switch (blocker) {
+      NoShiftInitializedBlocker() => (
+          Icons.account_balance_wallet_rounded,
+          'Jornada No Iniciada o Sin Movimientos',
+          'La jornada no ha sido iniciada previamente o no registra movimientos válidos. Ve a Billetera para iniciar turno.',
+          AppColors.statusOrange,
+          '/base',
+          false,
+        ),
       PendingRadarBlocker(:final count) => (
           Icons.radar_rounded,
           'Pedidos Pendientes en el Radar',
@@ -324,13 +331,13 @@ class _BlockerCard extends StatelessWidget {
     };
 
     return InkWell(
-      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
       onTap: () => usePush ? context.push(route) : context.go(route),
       child: Container(
         padding: const EdgeInsets.all(AppDimensions.space16),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
@@ -343,15 +350,16 @@ class _BlockerCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: AppTextStyles.titleMedium.copyWith(color: color),
+                    style: AppTextStyles.titleMedium.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.space4),
                   Text(
                     detail,
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: isDark
-                          ? AppColors.darkOnSurfaceVariant
-                          : AppColors.lightOnSurfaceVariant,
+                      color: AppColors.inkSecondary,
                     ),
                   ),
                 ],
@@ -385,7 +393,7 @@ class _ClearStateHeader extends StatelessWidget {
       padding: const EdgeInsets.all(AppDimensions.space16),
       decoration: BoxDecoration(
         color: AppColors.statusGreen.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
         border: Border.all(color: AppColors.statusGreen.withValues(alpha: 0.4)),
       ),
       child: Row(
@@ -408,7 +416,9 @@ class _ClearStateHeader extends StatelessWidget {
                 const SizedBox(height: AppDimensions.space4),
                 Text(
                   'Sin pedidos pendientes, mesas abiertas ni transferencias sin legalizar.',
-                  style: AppTextStyles.bodySmall,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.inkSecondary,
+                  ),
                 ),
               ],
             ),
@@ -428,21 +438,18 @@ class _ShiftOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final totalFacturado =
         summary.cashPaymentsTotal + summary.verifiedTransfersTotal;
 
     return Container(
       padding: const EdgeInsets.all(AppDimensions.space16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E28) : Colors.white,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2E2E3E) : const Color(0xFFE2E2EA),
-        ),
+        color: AppColors.paperSurface,
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+        border: Border.all(color: AppColors.paperBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+            color: AppColors.ink.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -461,12 +468,13 @@ class _ShiftOverviewCard extends StatelessWidget {
                 style: AppTextStyles.titleMedium.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
+                  color: AppColors.ink,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1),
+          const Divider(height: 1, color: AppColors.paperBorder),
           const SizedBox(height: 12),
 
           _OverviewRow(
@@ -494,7 +502,7 @@ class _ShiftOverviewCard extends StatelessWidget {
             ),
 
           const SizedBox(height: 10),
-          const Divider(height: 1),
+          const Divider(height: 1, color: AppColors.paperBorder),
           const SizedBox(height: 10),
 
           _OverviewRow(
@@ -528,16 +536,21 @@ class _ShiftOverviewCard extends StatelessWidget {
             ),
 
           const SizedBox(height: 10),
-          const Divider(height: 1),
+          const Divider(height: 1, color: AppColors.paperBorder),
           const SizedBox(height: 10),
 
           _OverviewRow(
-            label: 'Saldo Disponible Billetera',
-            value: summary.availableBalance.toCop,
-            valueColor: summary.availableBalance >= 0
-                ? AppColors.primary
+            label: 'Efectivo Esperado en Mano',
+            value: summary.expectedCashInHand.toCop,
+            valueColor: summary.expectedCashInHand >= 0
+                ? AppColors.statusGreen
                 : AppColors.statusRed,
             isBold: true,
+          ),
+          _OverviewRow(
+            label: '  · Saldo disponible billetera',
+            value: summary.availableBalance.toCop,
+            isSmall: true,
           ),
         ],
       ),
@@ -562,8 +575,6 @@ class _OverviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Padding(
       padding: EdgeInsets.symmetric(vertical: isSmall ? 2 : 4),
       child: Row(
@@ -573,29 +584,31 @@ class _OverviewRow extends StatelessWidget {
             label,
             style: isSmall
                 ? AppTextStyles.bodySmall.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
+                    color: AppColors.inkSecondary,
                   )
                 : (isBold
-                    ? AppTextStyles.bodyLarge
-                        .copyWith(fontWeight: FontWeight.w700)
-                    : AppTextStyles.bodyMedium),
+                    ? AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      )
+                    : AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.ink,
+                      )),
           ),
           Text(
             value,
             style: isSmall
-                ? AppTextStyles.bodySmall.copyWith(
+                ? AppTextStyles.monoSmall.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: valueColor,
+                    color: valueColor ?? AppColors.ink,
                   )
                 : (isBold
-                    ? AppTextStyles.bodyLarge.copyWith(
+                    ? AppTextStyles.monoLarge.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: valueColor,
+                        color: valueColor ?? AppColors.ink,
                       )
-                    : AppTextStyles.bodyMedium.copyWith(
-                        color: valueColor,
+                    : AppTextStyles.monoMedium.copyWith(
+                        color: valueColor ?? AppColors.ink,
                         fontWeight: FontWeight.w600,
                       )),
           ),
@@ -622,22 +635,31 @@ class _FinalizarButton extends StatelessWidget {
       children: [
         SizedBox(
           width: double.infinity,
-          height: AppDimensions.buttonHeightLg,
+          height: AppDimensions.buttonHeightMd,
           child: FilledButton.icon(
             onPressed: onPressed,
             style: FilledButton.styleFrom(
-              backgroundColor: canClose ? AppColors.statusGreen : null,
-              foregroundColor: canClose ? Colors.black : null,
+              backgroundColor:
+                  canClose ? AppColors.statusGreen : AppColors.paperBorder,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(AppDimensions.buttonRadius),
+              ),
             ),
             icon: Icon(
               canClose ? Icons.check_circle_rounded : Icons.lock_rounded,
+              color: Colors.white,
+              size: 20,
             ),
             label: Text(
               'FINALIZAR JORNADA',
-              style: AppTextStyles.labelLarge.copyWith(
-                color: canClose ? Colors.black : null,
+              style: const TextStyle(
+                color: Colors.white,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
+                fontSize: 15,
               ),
             ),
           ),

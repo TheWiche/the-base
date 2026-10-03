@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../base_management/presentation/providers/base_wallet_providers.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../../data/repositories/cierre_repository_impl.dart';
@@ -35,22 +36,31 @@ final unlegalizedTransferTotalProvider = Provider<int>((ref) {
 
 // ── Cierre Blindado validation ────────────────────────────────────────────────
 
-/// Computes the [CierreValidationResult] by checking all three blocking conditions:
+/// Computes the [CierreValidationResult] by checking all four blocking conditions:
 ///
-///   1. [PendingRadarBlocker]         — items still pending in El Radar
-///   2. [OpenTablesBlocker]           — sessions with status open/partiallyPaid
-///   3. [UnlegalizedTransfersBlocker] — transfers not confirmed in register
+///   0. [NoShiftInitializedBlocker]    — no initial base has been created
+///   1. [PendingRadarBlocker]          — items still pending in El Radar
+///   2. [OpenTablesBlocker]            — sessions with status open/partiallyPaid
+///   3. [UnlegalizedTransfersBlocker]  — transfers not confirmed in register
 ///
-/// This is a synchronous [Provider] that combines three reactive sub-providers.
+/// This is a synchronous [Provider] that combines reactive sub-providers.
 /// Every Isar write that changes any of these conditions triggers an automatic
 /// re-evaluation — the Cierre screen stays current with no manual polling.
 final cierreValidationProvider = Provider<CierreValidationResult>((ref) {
+  final hasBase = ref.watch(hasInitialBaseProvider);
   final radarCount = ref.watch(pendingRadarCountProvider);
   final activeSessions = ref.watch(activeSessionsProvider).valueOrNull ?? [];
   final unlegalizedCount = ref.watch(unlegalizedTransferCountProvider);
   final unlegalizedTotal = ref.watch(unlegalizedTransferTotalProvider);
 
   final blockers = <CierreBlocker>[];
+
+  // Block #0: Shift not initialized or no valid movements recorded.
+  final summary = ref.watch(baseWalletProvider).valueOrNull;
+  final hasValidMovements = hasBase && (summary?.transactions.isNotEmpty ?? false);
+  if (!hasValidMovements) {
+    blockers.add(const NoShiftInitializedBlocker());
+  }
 
   if (radarCount > 0) {
     blockers.add(PendingRadarBlocker(count: radarCount));
@@ -69,3 +79,4 @@ final cierreValidationProvider = Provider<CierreValidationResult>((ref) {
 
   return CierreValidationResult(blockers: blockers);
 });
+

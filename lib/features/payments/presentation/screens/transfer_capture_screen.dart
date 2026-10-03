@@ -174,8 +174,6 @@ class _InitialBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
       child: Column(
@@ -185,29 +183,33 @@ class _InitialBody extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(AppDimensions.space20),
             decoration: BoxDecoration(
-              color: AppColors.statusBlue.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-              border: Border.all(
-                color: AppColors.statusBlue.withOpacity(0.4),
-                width: 2,
-              ),
+              color: AppColors.paperSurface,
+              borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+              border: Border.all(color: AppColors.paperBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.ink.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'MONTO A TRANSFERIR',
-                  style: AppTextStyles.statusBadge
-                      .copyWith(color: AppColors.statusBlue),
+                  style: AppTextStyles.statusBadge.copyWith(
+                    color: AppColors.inkSecondary,
+                  ),
                 ),
                 const SizedBox(height: AppDimensions.space8),
                 Text(
                   billSubtotal.toCop,
-                  style: AppTextStyles.receiptTotal.copyWith(
-                    fontSize: 34,
-                    color: isDark
-                        ? AppColors.darkOnSurface
-                        : AppColors.lightOnSurface,
+                  style: AppTextStyles.monoLarge.copyWith(
+                    fontSize: 32,
+                    color: AppColors.statusBlue,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -217,17 +219,18 @@ class _InitialBody extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.info_outline_rounded,
-                  color: AppColors.brand, size: AppDimensions.iconSm),
+              const Icon(
+                Icons.info_outline_rounded,
+                color: AppColors.primary,
+                size: AppDimensions.iconSm,
+              ),
               const SizedBox(width: AppDimensions.space8),
               Expanded(
                 child: Text(
                   'Toma una foto clara del comprobante. Se guarda en '
                   '"Bonanza_Transferencias" y podrás verla en Comprobantes.',
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
+                    color: AppColors.inkSecondary,
                   ),
                 ),
               ),
@@ -239,18 +242,26 @@ class _InitialBody extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: SizedBox(
-                  height: AppDimensions.buttonHeightLg,
+                  height: AppDimensions.buttonHeightMd,
                   child: FilledButton.icon(
                     onPressed: onTakePhoto,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.statusBlue,
                       foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.buttonRadius),
+                      ),
                     ),
-                    icon: const Icon(Icons.camera_alt_rounded),
-                    label: Text(
+                    icon: const Icon(Icons.camera_alt_rounded, size: 20),
+                    label: const Text(
                       'TOMAR FOTO',
-                      style:
-                          AppTextStyles.labelLarge.copyWith(color: Colors.white),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                 ),
@@ -258,22 +269,28 @@ class _InitialBody extends StatelessWidget {
               const SizedBox(width: AppDimensions.space12),
               Expanded(
                 child: SizedBox(
-                  height: AppDimensions.buttonHeightLg,
+                  height: AppDimensions.buttonHeightMd,
                   child: OutlinedButton.icon(
                     onPressed: onPickFromGallery,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark
-                          ? AppColors.darkOnSurface
-                          : AppColors.lightOnSurface,
-                      side: BorderSide(
-                        color: isDark
-                            ? AppColors.darkOutline
-                            : AppColors.lightOutline,
+                      foregroundColor: AppColors.ink,
+                      side: const BorderSide(
+                        color: AppColors.paperBorder,
                         width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.buttonRadius),
                       ),
                     ),
                     icon: const Icon(Icons.photo_library_rounded, size: 20),
-                    label: Text('GALERÍA', style: AppTextStyles.labelMedium),
+                    label: const Text(
+                      'GALERÍA',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -418,12 +435,19 @@ class _PreviewBody extends StatelessWidget {
                               foregroundColor: Colors.white,
                               side: const BorderSide(
                                   color: Colors.white54, width: 2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    AppDimensions.buttonRadius),
+                              ),
                             ),
                             icon: const Icon(Icons.arrow_back_rounded),
-                            label: Text(
+                            label: const Text(
                               'CAMBIAR',
-                              style: AppTextStyles.labelMedium
-                                  .copyWith(color: Colors.white),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ),
@@ -437,13 +461,21 @@ class _PreviewBody extends StatelessWidget {
                             onPressed: onRegister,
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.statusGreen,
-                              foregroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    AppDimensions.buttonRadius),
+                              ),
                             ),
-                            icon: const Icon(Icons.check_rounded),
-                            label: Text(
+                            icon: const Icon(Icons.check_rounded, size: 20),
+                            label: const Text(
                               'REGISTRAR PAGO',
-                              style: AppTextStyles.labelMedium
-                                  .copyWith(color: Colors.black),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ),

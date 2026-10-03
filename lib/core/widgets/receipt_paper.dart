@@ -133,13 +133,13 @@ class _StubPainter extends CustomPainter {
 
     canvas.drawPath(
       path.shift(const Offset(0, 2)),
-      Paint()..color = Colors.black.withOpacity(0.2),
+      Paint()..color = const Color(0x142D2A26),
     );
     canvas.drawPath(path, Paint()..color = color);
     canvas.drawPath(
       path,
       Paint()
-        ..color = Colors.white.withOpacity(0.08)
+        ..color = AppColors.paperBorder
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0,
     );
@@ -167,18 +167,16 @@ class _ReceiptPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final path = _buildPath(size);
 
-    // Sombra barata: relleno desplazado sin blur (drawShadow con blur causaba
-    // jank con Impeller apagado en el dispositivo de prueba).
     canvas.drawPath(
-      path.shift(const Offset(0, 3)),
-      Paint()..color = Colors.black.withOpacity(0.22),
+      path.shift(const Offset(0, 2)),
+      Paint()..color = const Color(0x142D2A26),
     );
 
     canvas.drawPath(path, Paint()..color = color);
     canvas.drawPath(
       path,
       Paint()
-        ..color = Colors.white.withOpacity(0.08)
+        ..color = AppColors.paperBorder
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0,
     );

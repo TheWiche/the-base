@@ -10,6 +10,12 @@ sealed class CierreBlocker {
   const CierreBlocker();
 }
 
+/// No shift has been initialized — the waiter has not set up an initial base.
+/// Resolution: go to Billetera and press "Inicializar Turno".
+final class NoShiftInitializedBlocker extends CierreBlocker {
+  const NoShiftInitializedBlocker();
+}
+
 /// El Radar has [count] items still in the pending queue.
 /// Resolution: deliver or cancel every pending item from El Radar.
 final class PendingRadarBlocker extends CierreBlocker {

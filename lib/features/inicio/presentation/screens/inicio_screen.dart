@@ -9,7 +9,6 @@ import '../../../../core/services/table_counter_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/animated_amount.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../base_management/domain/entities/wallet_summary.dart';
@@ -236,10 +235,15 @@ class _HeroHeader extends StatelessWidget {
         '${weekdays[now.weekday - 1]}, ${now.day} de ${months[now.month - 1]}';
 
     return Container(
-      decoration: BoxDecoration(
-        gradient: isDark
-            ? AppColors.darkHeaderGradient
-            : AppColors.lightHeaderGradient,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.paperSurface, AppColors.paperBackground],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        border: Border(
+          bottom: BorderSide(color: AppColors.paperBorder, width: 1.0),
+        ),
       ),
       padding: EdgeInsets.fromLTRB(
         AppDimensions.pagePaddingH,
@@ -248,7 +252,7 @@ class _HeroHeader extends StatelessWidget {
         AppDimensions.space20,
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
@@ -257,7 +261,7 @@ class _HeroHeader extends StatelessWidget {
                 Text(
                   'Billetera del Mesero',
                   style: AppTextStyles.headlineMedium.copyWith(
-                    color: Colors.white,
+                    color: AppColors.ink,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -265,134 +269,36 @@ class _HeroHeader extends StatelessWidget {
                 Text(
                   dayLabel,
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: Colors.white.withValues(alpha: 0.75),
+                    color: AppColors.inkSecondary,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: AppDimensions.space12),
-          const _ThemeModeToggle(),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Theme Mode Toggle ──────────────────────────────────────────────────────────
-
-class _ThemeModeToggle extends ConsumerStatefulWidget {
-  const _ThemeModeToggle();
-
-  @override
-  ConsumerState<_ThemeModeToggle> createState() => _ThemeModeToggleState();
-}
-
-class _ThemeModeToggleState extends ConsumerState<_ThemeModeToggle>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    final isDark = ref.read(themeModeProvider) != ThemeMode.light;
-    _ctrl = AnimationController(
-      duration: const Duration(milliseconds: 250),
-      vsync: this,
-      value: isDark ? 0.0 : 1.0,
-    );
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  void _toggle() {
-    HapticFeedback.selectionClick();
-    final isDark = ref.read(themeModeProvider) != ThemeMode.light;
-    if (isDark) {
-      _ctrl.forward();
-      ref.read(themeModeProvider.notifier).setMode(ThemeMode.light);
-    } else {
-      _ctrl.reverse();
-      ref.read(themeModeProvider.notifier).setMode(ThemeMode.dark);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    ref.listen(themeModeProvider, (_, next) {
-      final goLight = next == ThemeMode.light;
-      if (goLight && _ctrl.value < 1) _ctrl.forward();
-      if (!goLight && _ctrl.value > 0) _ctrl.reverse();
-    });
-
-    return GestureDetector(
-      onTap: _toggle,
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, _) {
-          final t = Curves.easeInOutCubic.transform(_ctrl.value);
-          final circleLeft = 3.0 + t * 27.0;
-
-          return Container(
-            width: 58,
-            height: 30,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              color: Color.lerp(
-                const Color(0xFF3A2A0F),
-                const Color(0xFFF7E9C9),
-                t,
-              ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3 + t * 0.1),
-                width: 1.5,
-              ),
+              color: AppColors.paperSurface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              border: Border.all(color: AppColors.paperBorder),
             ),
-            child: Stack(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Positioned(
-                  left: circleLeft,
-                  top: 3,
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color.lerp(
-                        AppColors.primaryLight,
-                        const Color(0xFFF59E0B),
-                        t,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color.lerp(
-                            AppColors.primary,
-                            const Color(0xFFF59E0B),
-                            t,
-                          )!
-                              .withValues(alpha: 0.5),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      t < 0.5
-                          ? Icons.dark_mode_rounded
-                          : Icons.light_mode_rounded,
-                      size: 13,
-                      color: Colors.white,
-                    ),
+                const Icon(Icons.receipt_rounded, size: 14, color: AppColors.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'THE BASE',
+                  style: AppTextStyles.statusBadge.copyWith(
+                    color: AppColors.primary,
+                    letterSpacing: 0.8,
                   ),
                 ),
               ],
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -420,22 +326,29 @@ class _BaseVsDeudaCard extends StatelessWidget {
         margin: const EdgeInsets.only(top: AppDimensions.space16),
         padding: const EdgeInsets.all(AppDimensions.space16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          color: AppColors.paperSurface,
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            width: 1.5,
+            color: AppColors.paperBorder,
+            width: 1.0,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ink.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(AppDimensions.space10),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -453,15 +366,14 @@ class _BaseVsDeudaCard extends StatelessWidget {
                       'Turno no iniciado',
                       style: AppTextStyles.titleMedium.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: AppColors.ink,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Toca para registrar tu base inicial (\$300.000).',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: isDark
-                            ? AppColors.darkOnSurfaceVariant
-                            : AppColors.lightOnSurfaceVariant,
+                        color: AppColors.inkSecondary,
                       ),
                     ),
                   ],
@@ -480,19 +392,17 @@ class _BaseVsDeudaCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: AppDimensions.space16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        color: AppColors.paperSurface,
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
         border: Border.all(
           color: isNegative
               ? AppColors.statusRed.withValues(alpha: 0.5)
-              : (isDark
-                  ? AppColors.primary.withValues(alpha: 0.25)
-                  : AppColors.lightOutline),
+              : AppColors.paperBorder,
           width: isNegative ? 1.5 : 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppColors.ink.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -502,7 +412,7 @@ class _BaseVsDeudaCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           child: Padding(
             padding: const EdgeInsets.all(AppDimensions.space16),
             child: Column(
@@ -517,15 +427,13 @@ class _BaseVsDeudaCard extends StatelessWidget {
                         const Icon(
                           Icons.account_balance_wallet_rounded,
                           size: 16,
-                          color: AppColors.brand,
+                          color: AppColors.primary,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           'CONTROL DE BILLETERA',
                           style: AppTextStyles.statusBadge.copyWith(
-                            color: isDark
-                                ? AppColors.darkOnSurfaceVariant
-                                : AppColors.lightOnSurfaceVariant,
+                            color: AppColors.inkSecondary,
                             letterSpacing: 1.0,
                           ),
                         ),
@@ -562,16 +470,14 @@ class _BaseVsDeudaCard extends StatelessWidget {
                           Text(
                             'BASE CAPITAL',
                             style: AppTextStyles.labelSmall.copyWith(
-                              color: isDark
-                                  ? AppColors.darkOnSurfaceVariant
-                                  : AppColors.lightOnSurfaceVariant,
+                              color: AppColors.inkSecondary,
                             ),
                           ),
                           const SizedBox(height: 2),
                           AnimatedAmount(
                             amount: summary!.baseCapital,
                             style: AppTextStyles.headlineSmall.copyWith(
-                              color: AppColors.brand,
+                              color: AppColors.primary,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -592,9 +498,7 @@ class _BaseVsDeudaCard extends StatelessWidget {
                     Container(
                       height: 48,
                       width: 1,
-                      color: isDark
-                          ? AppColors.darkOutline
-                          : AppColors.lightOutline,
+                      color: AppColors.paperLine,
                     ),
                     const SizedBox(width: AppDimensions.space12),
 
@@ -606,9 +510,7 @@ class _BaseVsDeudaCard extends StatelessWidget {
                           Text(
                             'DEUDA AL LOCAL',
                             style: AppTextStyles.labelSmall.copyWith(
-                              color: isDark
-                                  ? AppColors.darkOnSurfaceVariant
-                                  : AppColors.lightOnSurfaceVariant,
+                              color: AppColors.inkSecondary,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -623,9 +525,7 @@ class _BaseVsDeudaCard extends StatelessWidget {
                           Text(
                             'A responder en cierre',
                             style: AppTextStyles.labelSmall.copyWith(
-                              color: isDark
-                                  ? AppColors.darkOnSurfaceVariant
-                                  : AppColors.lightOnSurfaceVariant,
+                              color: AppColors.inkSecondary,
                             ),
                           ),
                         ],
@@ -753,7 +653,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      color: AppColors.paperSurface,
       borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
       child: InkWell(
         onTap: () {
@@ -769,7 +669,7 @@ class _StatCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             border: Border.all(
-              color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+              color: AppColors.paperBorder,
             ),
           ),
           child: Column(
@@ -780,9 +680,7 @@ class _StatCard extends StatelessWidget {
                 value,
                 style: AppTextStyles.labelMedium.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: isDark
-                      ? AppColors.darkOnBackground
-                      : AppColors.lightOnBackground,
+                  color: AppColors.ink,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -791,9 +689,7 @@ class _StatCard extends StatelessWidget {
               Text(
                 label,
                 style: AppTextStyles.labelSmall.copyWith(
-                  color: isDark
-                      ? AppColors.darkOnSurfaceVariant
-                      : AppColors.lightOnSurfaceVariant,
+                  color: AppColors.inkSecondary,
                 ),
               ),
             ],
@@ -902,12 +798,7 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                 icon: Icons.table_restaurant_rounded,
                 title: 'Mesas',
                 subtitle: '${widget.openTables} abiertas',
-                gradient: isDark
-                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
-                textColor: isDark
-                    ? AppColors.darkOnBackground
-                    : AppColors.lightOnSurface,
+                gradient: const [AppColors.paperSurface, AppColors.paperSurface],
                 onTap: () => context.go('/tables'),
               ),
             ),
@@ -921,17 +812,9 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                 subtitle: 'Transferencias en caja',
                 gradient: pendingTransfers > 0
                     ? const [Color(0xFFE65100), Color(0xFFBF360C)]
-                    : (isDark
-                        ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                        : [
-                            AppColors.lightSurfaceVariant,
-                            AppColors.lightSurface
-                          ]),
-                textColor: pendingTransfers > 0
-                    ? Colors.white
-                    : (isDark
-                        ? AppColors.darkOnBackground
-                        : AppColors.lightOnSurface),
+                    : const [AppColors.paperSurface, AppColors.paperSurface],
+                textColor: pendingTransfers > 0 ? Colors.white : AppColors.ink,
+                iconColor: pendingTransfers > 0 ? Colors.white : AppColors.primary,
                 onTap: () => context.push('/legalizacion'),
               ),
             ),
@@ -946,12 +829,7 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                 icon: Icons.restaurant_menu_rounded,
                 title: 'Menú',
                 subtitle: 'Productos y precios',
-                gradient: isDark
-                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
-                textColor: isDark
-                    ? AppColors.darkOnBackground
-                    : AppColors.lightOnSurface,
+                gradient: const [AppColors.paperSurface, AppColors.paperSurface],
                 onTap: () => context.push('/products'),
               ),
             ),
@@ -961,12 +839,7 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                 icon: Icons.lock_clock_rounded,
                 title: 'Cierre',
                 subtitle: 'Arqueo de turno',
-                gradient: isDark
-                    ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                    : [AppColors.lightSurfaceVariant, AppColors.lightSurface],
-                textColor: isDark
-                    ? AppColors.darkOnBackground
-                    : AppColors.lightOnSurface,
+                gradient: const [AppColors.paperSurface, AppColors.paperSurface],
                 onTap: () => context.go('/cierre'),
               ),
             ),
@@ -1015,18 +888,10 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                         icon: Icons.photo_library_rounded,
                         title: 'Comprobantes',
                         subtitle: 'Fotos guardadas',
-                        gradient: isDark
-                            ? [
-                                AppColors.darkSurfaceVariant,
-                                AppColors.darkOutline
-                              ]
-                            : [
-                                AppColors.lightSurfaceVariant,
-                                AppColors.lightSurface
-                              ],
-                        textColor: isDark
-                            ? AppColors.darkOnBackground
-                            : AppColors.lightOnSurface,
+                        gradient: const [
+                          AppColors.paperSurface,
+                          AppColors.paperSurface
+                        ],
                         onTap: () => context.push('/comprobantes'),
                       ),
                     ),
@@ -1036,18 +901,10 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                         icon: Icons.history_rounded,
                         title: 'Historial',
                         subtitle: 'Turnos anteriores',
-                        gradient: isDark
-                            ? [
-                                AppColors.darkSurfaceVariant,
-                                AppColors.darkOutline
-                              ]
-                            : [
-                                AppColors.lightSurfaceVariant,
-                                AppColors.lightSurface
-                              ],
-                        textColor: isDark
-                            ? AppColors.darkOnBackground
-                            : AppColors.lightOnSurface,
+                        gradient: const [
+                          AppColors.paperSurface,
+                          AppColors.paperSurface
+                        ],
                         onTap: () => context.push('/cierre/historial'),
                       ),
                     ),
@@ -1058,15 +915,10 @@ class _ThumbZoneActionsState extends ConsumerState<_ThumbZoneActions> {
                   icon: Icons.settings_rounded,
                   title: 'Configuración',
                   subtitle: 'Ajustes de la app',
-                  gradient: isDark
-                      ? [AppColors.darkSurfaceVariant, AppColors.darkOutline]
-                      : [
-                          AppColors.lightSurfaceVariant,
-                          AppColors.lightSurface
-                        ],
-                  textColor: isDark
-                      ? AppColors.darkOnBackground
-                      : AppColors.lightOnSurface,
+                  gradient: const [
+                    AppColors.paperSurface,
+                    AppColors.paperSurface
+                  ],
                   onTap: () => context.push('/settings'),
                 ),
               ],
@@ -1107,7 +959,7 @@ class _ThumbZoneHeroButton extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
         boxShadow: [
           BoxShadow(
             color: gradient.first.withValues(alpha: 0.35),
@@ -1123,7 +975,7 @@ class _ThumbZoneHeroButton extends StatelessWidget {
             HapticFeedback.mediumImpact();
             onTap();
           },
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Row(
@@ -1199,7 +1051,7 @@ class _ThumbZoneTile extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
         boxShadow: [
           BoxShadow(
             color: gradient.first.withValues(alpha: 0.3),
@@ -1215,7 +1067,7 @@ class _ThumbZoneTile extends StatelessWidget {
             HapticFeedback.lightImpact();
             onTap();
           },
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
@@ -1293,6 +1145,7 @@ class _ActionCard extends StatelessWidget {
     required this.gradient,
     required this.onTap,
     this.textColor,
+    this.iconColor,
   });
 
   final IconData icon;
@@ -1301,10 +1154,12 @@ class _ActionCard extends StatelessWidget {
   final List<Color> gradient;
   final VoidCallback onTap;
   final Color? textColor;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
-    final fg = textColor ?? Colors.white;
+    final fg = textColor ?? AppColors.ink;
+    final iconFg = iconColor ?? (textColor != null ? fg : AppColors.primary);
 
     return Container(
       decoration: BoxDecoration(
@@ -1313,10 +1168,11 @@ class _ActionCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+        border: Border.all(color: AppColors.paperBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppColors.ink.withValues(alpha: 0.03),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -1329,12 +1185,12 @@ class _ActionCard extends StatelessWidget {
             HapticFeedback.lightImpact();
             onTap();
           },
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           child: Padding(
             padding: const EdgeInsets.all(AppDimensions.space12),
             child: Row(
               children: [
-                Icon(icon, color: fg, size: 24),
+                Icon(icon, color: iconFg, size: 24),
                 const SizedBox(width: AppDimensions.space10),
                 Expanded(
                   child: Column(
@@ -1351,7 +1207,9 @@ class _ActionCard extends StatelessWidget {
                       Text(
                         subtitle,
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: fg.withValues(alpha: 0.75),
+                          color: textColor != null
+                              ? fg.withValues(alpha: 0.75)
+                              : AppColors.inkSecondary,
                           fontSize: 11,
                         ),
                         maxLines: 1,

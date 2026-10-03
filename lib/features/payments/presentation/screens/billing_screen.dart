@@ -25,10 +25,11 @@ import '../providers/payment_providers.dart';
 /// Pantalla de Cobro — estilo tiquete.
 ///
 /// Soporta:
-/// 1. Cobro selectivo de ítems específicos.
+/// 1. Cobro selectivo de ítems específicos con selección fraccionada de unidades.
 /// 2. Abonos por valor numérico libre/arbitrario al saldo pendiente de la mesa.
-/// 3. Cobros mixtos (Efectivo + Transferencia simultáneos).
-/// 4. Liquidación normal de botellas de licores y vinos integradas en la cuenta común.
+/// 3. Liquidación normal de botellas de licores y vinos integradas en la cuenta común.
+///
+/// Pagos disponibles: Efectivo y Transferencia. El flujo Pago Mixto ha sido eliminado.
 class BillingScreen extends ConsumerStatefulWidget {
   const BillingScreen({super.key, required this.sessionId});
 
@@ -134,6 +135,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   onToggle: (item) => ref
                       .read(billingSelectionProvider(sessionId).notifier)
                       .toggle(item.id, item.quantity),
+                  onLongPress: (item) =>
+                      _showUnitStepperDialog(item, selection),
                 ),
               ),
             ],
@@ -277,6 +280,30 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
     AppToast.success(context, 'Pago exacto registrado: ${subtotal.toCop}');
   }
+
+  // ── Stepper fraccionado de unidades ─────────────────────────────────────────
+
+  /// Muestra un bottom sheet con un stepper para elegir cuántas unidades de
+  /// [item] cobrar (1 … item.quantity). Solo visible para ítems con qty > 1.
+  void _showUnitStepperDialog(
+    OrderItemEntity item,
+    BillingSelection currentSelection,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _UnitStepperSheet(
+        item: item,
+        initialQty: currentSelection.quantityOf(item.id).clamp(1, item.quantity),
+        onConfirm: (qty) {
+          ref
+              .read(billingSelectionProvider(sessionId).notifier)
+              .setQuantity(item.id, qty);
+        },
+      ),
+    );
+  }
 }
 
 // ── Recibo de cobro ──────────────────────────────────────────────────────────
@@ -293,6 +320,7 @@ class _BillingReceipt extends StatelessWidget {
     required this.collapsedCats,
     required this.onToggleCat,
     required this.onToggle,
+    required this.onLongPress,
   });
 
   final String barName;
@@ -305,6 +333,9 @@ class _BillingReceipt extends StatelessWidget {
   final Set<String> collapsedCats;
   final void Function(String) onToggleCat;
   final void Function(OrderItemEntity) onToggle;
+
+  /// Called when the user long-presses a multi-unit line to pick partial units.
+  final void Function(OrderItemEntity) onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -453,7 +484,11 @@ class _BillingReceipt extends StatelessWidget {
         key: ValueKey(item.id),
         item: item,
         selected: selection.isSelected(item.id),
+        selectedQty: selection.quantityOf(item.id),
         onTap: () => onToggle(item),
+        onLongPress: item.quantity > 1
+            ? () => onLongPress(item)
+            : null,
       );
 }
 
@@ -462,26 +497,45 @@ class _SelectableLine extends StatelessWidget {
     super.key,
     required this.item,
     required this.selected,
+    required this.selectedQty,
     required this.onTap,
+    this.onLongPress,
   });
 
   final OrderItemEntity item;
   final bool selected;
+
+  /// Units currently selected (0 = unselected, 1..item.quantity = partial/full).
+  final int selectedQty;
   final VoidCallback onTap;
+
+  /// Non-null only when item.quantity > 1 — triggers the unit stepper.
+  final VoidCallback? onLongPress;
+
+  bool get _isPartial => selected && selectedQty < item.quantity;
 
   @override
   Widget build(BuildContext context) {
+    const partialColor = AppColors.brand;
+    const selectedColor = AppColors.secondary;
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 2),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
         decoration: BoxDecoration(
-          color: selected
-              ? AppColors.secondary.withOpacity(0.18)
-              : Colors.transparent,
+          color: _isPartial
+              ? partialColor.withOpacity(0.15)
+              : selected
+                  ? selectedColor.withOpacity(0.18)
+                  : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
+          border: _isPartial
+              ? Border.all(color: partialColor.withOpacity(0.5))
+              : null,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,7 +547,11 @@ class _SelectableLine extends StatelessWidget {
                     ? Icons.check_box_rounded
                     : Icons.check_box_outline_blank_rounded,
                 size: 18,
-                color: selected ? AppColors.secondaryDark : AppColors.paperInkSoft,
+                color: _isPartial
+                    ? partialColor
+                    : selected
+                        ? AppColors.secondaryDark
+                        : AppColors.paperInkSoft,
               ),
             ),
             const SizedBox(width: 8),
@@ -501,10 +559,25 @@ class _SelectableLine extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${item.quantity}× ${item.productName}',
-                    style:
-                        AppTextStyles.receiptBody.copyWith(color: AppColors.paperInk),
+                  Row(
+                    children: [
+                      // Show "selectedQty/totalQty ×" for partial selections
+                      Text(
+                        _isPartial
+                            ? '$selectedQty/${item.quantity}× ${item.productName}'
+                            : '${item.quantity}× ${item.productName}',
+                        style: AppTextStyles.receiptBody
+                            .copyWith(color: AppColors.paperInk),
+                      ),
+                      if (item.quantity > 1 && onLongPress != null) ...[
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.touch_app_rounded,
+                          size: 12,
+                          color: AppColors.paperInkSoft,
+                        ),
+                      ],
+                    ],
                   ),
                   if (item.note != null && item.note!.trim().isNotEmpty)
                     Padding(
@@ -518,16 +591,241 @@ class _SelectableLine extends StatelessWidget {
                         ),
                       ),
                     ),
+                  if (_isPartial)
+                    Text(
+                      'Mantén presionado para ajustar unidades',
+                      style: AppTextStyles.receiptSmall.copyWith(
+                        color: partialColor,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
             Text(
-              item.lineTotal.toCop,
+              // Show price × selectedQty when partial
+              _isPartial
+                  ? (item.price * selectedQty).toCop
+                  : item.lineTotal.toCop,
               style: AppTextStyles.receiptBodyBold
                   .copyWith(color: AppColors.paperInk),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Stepper fraccionado de unidades ──────────────────────────────────────────
+
+/// Bottom sheet que permite elegir cuántas unidades de un ítem de múltiple
+/// cantidad se cobran en este pago. El resto queda pendiente en la mesa.
+///
+/// Ejemplo: "3 Coronitas" → stepper de 1..3. Si el mesero elige 1, el repo
+/// registra 1 unidad como pagada y deja 2 con su subtotal recalculado.
+class _UnitStepperSheet extends StatefulWidget {
+  const _UnitStepperSheet({
+    required this.item,
+    required this.initialQty,
+    required this.onConfirm,
+  });
+
+  final OrderItemEntity item;
+  final int initialQty;
+  final void Function(int qty) onConfirm;
+
+  @override
+  State<_UnitStepperSheet> createState() => _UnitStepperSheetState();
+}
+
+class _UnitStepperSheetState extends State<_UnitStepperSheet> {
+  late int _qty;
+
+  @override
+  void initState() {
+    super.initState();
+    _qty = widget.initialQty.clamp(1, widget.item.quantity);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final subtotalSelected = item.price * _qty;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.paperSurface,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppDimensions.modalRadius),
+        ),
+        border: Border(
+          top: BorderSide(color: AppColors.paperBorder, width: 1.0),
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        AppDimensions.pagePaddingH,
+        AppDimensions.space20,
+        AppDimensions.pagePaddingH,
+        AppDimensions.space24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Handle ─────────────────────────────────────────────────
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: AppDimensions.space16),
+                decoration: BoxDecoration(
+                  color: AppColors.paperBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text(
+              '¿Cuántas unidades cobrar?',
+              style: AppTextStyles.headlineSmall.copyWith(color: AppColors.ink),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${item.productName} · ${item.quantity} uds. disponibles',
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.inkSecondary),
+            ),
+            const SizedBox(height: AppDimensions.space24),
+
+            // ── Stepper ─────────────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Minus
+                _StepButton(
+                  icon: Icons.remove_rounded,
+                  onPressed: _qty > 1
+                      ? () => setState(() => _qty--)
+                      : null,
+                ),
+                const SizedBox(width: AppDimensions.space20),
+                Column(
+                  children: [
+                    Text(
+                      '$_qty',
+                      style: AppTextStyles.displaySmall.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Text(
+                      'de ${item.quantity}',
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.inkSecondary),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: AppDimensions.space20),
+                // Plus
+                _StepButton(
+                  icon: Icons.add_rounded,
+                  onPressed: _qty < item.quantity
+                      ? () => setState(() => _qty++)
+                      : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.space20),
+
+            // ── Resumen del subtotal seleccionado ───────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.space16,
+                vertical: AppDimensions.space12,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Subtotal seleccionado',
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.ink)),
+                  Text(
+                    subtotalSelected.toCop,
+                    style: AppTextStyles.headlineSmall.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimensions.space20),
+
+            // ── Confirm ────────────────────────────────────────────────
+            SizedBox(
+              height: AppDimensions.buttonHeightMd,
+              child: FilledButton.icon(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  Navigator.of(context).pop();
+                  widget.onConfirm(_qty);
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.statusGreen,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                  ),
+                ),
+                icon: const Icon(Icons.check_rounded),
+                label: Text(
+                  'Cobrar $_qty ${_qty == 1 ? 'unidad' : 'unidades'} · ${subtotalSelected.toCop}',
+                  style: AppTextStyles.labelLarge.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StepButton extends StatelessWidget {
+  const _StepButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: onPressed != null
+          ? AppColors.primary.withOpacity(0.12)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(
+            icon,
+            color: onPressed != null
+                ? AppColors.primary
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkDisabled
+                    : AppColors.lightDisabled),
+            size: 28,
+          ),
         ),
       ),
     );
@@ -580,20 +878,26 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
-
     final targetAmount = selectedCount > 0 ? subtotal : pendingBalance;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(12, 10, 12, 10 + bottomInset),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        border: Border(
+        color: AppColors.paperSurface,
+        border: const Border(
           top: BorderSide(
-            color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+            color: AppColors.paperBorder,
+            width: 1,
           ),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -603,16 +907,18 @@ class _BottomBar extends StatelessWidget {
               TextButton(
                 onPressed: onSelectAll,
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: const Size(0, 32),
+                  foregroundColor: AppColors.inkSecondary,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  minimumSize: const Size(0, AppDimensions.buttonHeightSm),
                 ),
                 child: const Text('Todos'),
               ),
               TextButton(
                 onPressed: onClearAll,
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: const Size(0, 32),
+                  foregroundColor: AppColors.inkSecondary,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  minimumSize: const Size(0, AppDimensions.buttonHeightSm),
                 ),
                 child: const Text('Ninguno'),
               ),
@@ -620,9 +926,9 @@ class _BottomBar extends StatelessWidget {
               TextButton.icon(
                 onPressed: onAbonarLibre,
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.brand,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: const Size(0, 32),
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  minimumSize: const Size(0, AppDimensions.buttonHeightSm),
                 ),
                 icon: const Icon(Icons.edit_note_rounded, size: 18),
                 label: const Text('Abono Libre'),
@@ -635,33 +941,41 @@ class _BottomBar extends StatelessWidget {
             children: [
               Text(
                 selectedCount > 0 ? 'Selección:' : 'Saldo pendiente:',
-                style: AppTextStyles.labelMedium,
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: AppColors.inkSecondary,
+                ),
               ),
               Text(
                 targetAmount.toCop,
-                style: AppTextStyles.headlineSmall.copyWith(
+                style: AppTextStyles.monoMedium.copyWith(
                   color: AppColors.statusGreen,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
+            height: AppDimensions.buttonHeightMd,
             child: FilledButton.icon(
               onPressed: onCobrar,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.statusGreen,
-                foregroundColor: Colors.black,
-                minimumSize: const Size.fromHeight(52),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                ),
               ),
-              icon: const Icon(Icons.point_of_sale_rounded),
+              icon: const Icon(Icons.point_of_sale_rounded, size: 20),
               label: Text(
                 selectedCount > 0
                     ? 'Cobrar seleccionados ($selectedCount)'
                     : (pendingBalance > 0
                         ? 'Cobrar saldo pendiente (${pendingBalance.toCop})'
                         : 'Cuenta saldada'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
             ),
           ),
@@ -723,15 +1037,15 @@ class _ArbitraryAmountSheetState extends State<_ArbitraryAmountSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightBackground,
+        color: AppColors.paperSurface,
         borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusXl),
+          top: Radius.circular(AppDimensions.modalRadius),
         ),
+        border: Border.all(color: AppColors.paperBorder),
       ),
       padding: EdgeInsets.fromLTRB(
         AppDimensions.pagePaddingH,
@@ -750,16 +1064,21 @@ class _ArbitraryAmountSheetState extends State<_ArbitraryAmountSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: AppDimensions.space16),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                  color: AppColors.paperBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            Text('Abonar Monto Libre', style: AppTextStyles.headlineSmall),
+            Text(
+              'Abonar Monto Libre',
+              style: AppTextStyles.headlineSmall.copyWith(color: AppColors.ink),
+            ),
             const SizedBox(height: 4),
             Text(
               'Ingresa cualquier valor arbitrario a abonar a la mesa.',
-              style: AppTextStyles.bodySmall,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.inkSecondary,
+              ),
             ),
             const SizedBox(height: AppDimensions.space16),
 
@@ -772,22 +1091,40 @@ class _ArbitraryAmountSheetState extends State<_ArbitraryAmountSheet> {
                   ActionChip(
                     label: Text('Total (${widget.pendingBalance.toCop})'),
                     avatar: const Icon(Icons.all_inclusive_rounded, size: 16),
+                    backgroundColor: AppColors.paperBackground,
+                    side: const BorderSide(color: AppColors.paperBorder),
+                    labelStyle: AppTextStyles.monoSmall.copyWith(
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.bold,
+                    ),
                     onPressed: () => _setAmount(widget.pendingBalance),
                   ),
                 ActionChip(
                   label: const Text('\$10.000'),
+                  backgroundColor: AppColors.paperBackground,
+                  side: const BorderSide(color: AppColors.paperBorder),
+                  labelStyle: AppTextStyles.monoSmall.copyWith(color: AppColors.ink),
                   onPressed: () => _setAmount(10000),
                 ),
                 ActionChip(
                   label: const Text('\$20.000'),
+                  backgroundColor: AppColors.paperBackground,
+                  side: const BorderSide(color: AppColors.paperBorder),
+                  labelStyle: AppTextStyles.monoSmall.copyWith(color: AppColors.ink),
                   onPressed: () => _setAmount(20000),
                 ),
                 ActionChip(
                   label: const Text('\$50.000'),
+                  backgroundColor: AppColors.paperBackground,
+                  side: const BorderSide(color: AppColors.paperBorder),
+                  labelStyle: AppTextStyles.monoSmall.copyWith(color: AppColors.ink),
                   onPressed: () => _setAmount(50000),
                 ),
                 ActionChip(
                   label: const Text('\$100.000'),
+                  backgroundColor: AppColors.paperBackground,
+                  side: const BorderSide(color: AppColors.paperBorder),
+                  labelStyle: AppTextStyles.monoSmall.copyWith(color: AppColors.ink),
                   onPressed: () => _setAmount(100000),
                 ),
               ],
@@ -802,16 +1139,27 @@ class _ArbitraryAmountSheetState extends State<_ArbitraryAmountSheet> {
                 FilteringTextInputFormatter.digitsOnly,
                 _ThousandsSeparatorFormatter(),
               ],
-              style: AppTextStyles.displaySmall,
+              style: AppTextStyles.monoLarge.copyWith(
+                color: AppColors.ink,
+                fontWeight: FontWeight.bold,
+              ),
               decoration: InputDecoration(
                 prefixText: '\$ ',
                 hintText: '0',
                 filled: true,
-                fillColor: AppColors.statusGreen.withOpacity(0.08),
+                fillColor: AppColors.paperBackground,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.paperBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.paperBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
                   borderSide:
-                      BorderSide(color: AppColors.statusGreen.withOpacity(0.4)),
+                      const BorderSide(color: AppColors.statusGreen, width: 2),
                 ),
               ),
               onChanged: (raw) {
@@ -823,16 +1171,23 @@ class _ArbitraryAmountSheetState extends State<_ArbitraryAmountSheet> {
             ),
             const SizedBox(height: AppDimensions.space20),
 
-            FilledButton.icon(
-              onPressed: _amount > 0 ? () => widget.onAmountConfirmed(_amount) : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.statusGreen,
-                foregroundColor: Colors.black,
-                minimumSize: const Size.fromHeight(50),
-              ),
-              icon: const Icon(Icons.arrow_forward_rounded),
-              label: Text(
-                _amount > 0 ? 'Continuar con ${_amount.toCop}' : 'Ingresa un monto',
+            SizedBox(
+              height: AppDimensions.buttonHeightMd,
+              child: FilledButton.icon(
+                onPressed: _amount > 0 ? () => widget.onAmountConfirmed(_amount) : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.statusGreen,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                  ),
+                ),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                label: Text(
+                  _amount > 0 ? 'Continuar con ${_amount.toCop}' : 'Ingresa un monto',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
               ),
             ),
           ],
@@ -859,14 +1214,13 @@ class _PaymentMethodSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightBackground,
+        color: AppColors.paperSurface,
         borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusXl),
+          top: Radius.circular(AppDimensions.modalRadius),
         ),
+        border: Border.all(color: AppColors.paperBorder),
       ),
       padding: const EdgeInsets.fromLTRB(
         AppDimensions.pagePaddingH,
@@ -885,14 +1239,14 @@ class _PaymentMethodSheet extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: AppDimensions.space16),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+                  color: AppColors.paperBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             Text(
               isGeneralAdvance ? 'Abonar ${subtotal.toCop}' : '¿Cómo paga el cliente?',
-              style: AppTextStyles.headlineSmall,
+              style: AppTextStyles.headlineSmall.copyWith(color: AppColors.ink),
             ),
             const SizedBox(height: AppDimensions.space20),
             _MethodTile(
@@ -945,16 +1299,14 @@ class _MethodTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppDimensions.space16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(color: color.withOpacity(0.4), width: 2),
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
         ),
         child: Row(
           children: [
@@ -962,7 +1314,7 @@ class _MethodTile extends StatelessWidget {
               width: AppDimensions.tapTargetStd,
               height: AppDimensions.tapTargetStd,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
               ),
               child: Icon(icon, color: color, size: AppDimensions.iconLg),
@@ -972,15 +1324,18 @@ class _MethodTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label.toUpperCase(),
-                      style: AppTextStyles.labelLarge.copyWith(color: color)),
+                  Text(
+                    label.toUpperCase(),
+                    style: AppTextStyles.labelLarge.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: AppDimensions.space4),
                   Text(
                     description,
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: isDark
-                          ? AppColors.darkOnSurfaceVariant
-                          : AppColors.lightOnSurfaceVariant,
+                      color: AppColors.inkSecondary,
                     ),
                   ),
                 ],

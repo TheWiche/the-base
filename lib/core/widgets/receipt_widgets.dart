@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -118,7 +119,7 @@ class PillToggle extends StatelessWidget {
     required this.options,
     required this.selectedIndex,
     required this.onChanged,
-    this.isDark = true,
+    this.isDark = false,
   });
 
   final List<String> options;
@@ -128,8 +129,8 @@ class PillToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final track = isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant;
-    final inactive = isDark ? AppColors.darkOnSurfaceVariant : AppColors.lightOnSurfaceVariant;
+    const track = Color(0xFFEFE9DC); // Papel crema cálido
+    const inactive = AppColors.inkSecondary;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -141,7 +142,8 @@ class PillToggle extends StatelessWidget {
             color: track,
             borderRadius: BorderRadius.circular(23),
             border: Border.all(
-              color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+              color: AppColors.paperBorder,
+              width: 1.0,
             ),
           ),
           child: Stack(
@@ -161,6 +163,13 @@ class PillToggle extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(23),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.28),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -170,12 +179,15 @@ class PillToggle extends StatelessWidget {
                   return Expanded(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => onChanged(i),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        onChanged(i);
+                      },
                       child: Center(
                         child: Text(
                           options[i],
                           style: AppTextStyles.labelMedium.copyWith(
-                            color: selected ? const Color(0xFF241A05) : inactive,
+                            color: selected ? Colors.white : inactive,
                             fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
                           ),
                         ),

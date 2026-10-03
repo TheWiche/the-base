@@ -62,7 +62,6 @@ class _ChronologicalItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final item = radarItem.item;
 
     final Color urgencyColor = switch (item.urgency) {
@@ -71,7 +70,7 @@ class _ChronologicalItemCard extends StatelessWidget {
       RadarUrgency.critical => AppColors.statusRed,
     };
 
-    final cardBg = isDark ? AppColors.darkSurfaceVariant : Colors.white;
+    const cardBg = AppColors.paperSurface;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.space10),
@@ -87,7 +86,7 @@ class _ChronologicalItemCard extends StatelessWidget {
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.only(left: 20),
           decoration: BoxDecoration(
-            color: AppColors.statusGreen.withOpacity(0.25),
+            color: AppColors.statusGreen.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           ),
           child: const Row(
@@ -112,14 +111,14 @@ class _ChronologicalItemCard extends StatelessWidget {
             border: Border.all(
               color: item.urgency == RadarUrgency.critical
                   ? AppColors.statusRed
-                  : (isDark ? AppColors.darkOutline : AppColors.lightOutline),
+                  : AppColors.paperBorder,
               width: item.urgency == RadarUrgency.critical ? 1.8 : 1.0,
             ),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                color: AppColors.paperShadow,
                 blurRadius: 8,
-                offset: const Offset(0, 2),
+                offset: Offset(0, 2),
               ),
             ],
           ),
@@ -137,10 +136,10 @@ class _ChronologicalItemCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                   decoration: BoxDecoration(
-                    color: urgencyColor.withOpacity(0.12),
+                    color: urgencyColor.withValues(alpha: 0.12),
                     borderRadius:
                         BorderRadius.circular(AppDimensions.radiusSm),
-                    border: Border.all(color: urgencyColor.withOpacity(0.4)),
+                    border: Border.all(color: urgencyColor.withValues(alpha: 0.4)),
                   ),
                   child: Text(
                     '${item.elapsedMinutes}m',
@@ -166,6 +165,7 @@ class _ChronologicalItemCard extends StatelessWidget {
                               '${item.quantity}× ${item.productName}',
                               style: AppTextStyles.bodyLarge.copyWith(
                                 fontWeight: FontWeight.w700,
+                                color: AppColors.ink,
                               ),
                             ),
                           ),
@@ -175,12 +175,10 @@ class _ChronologicalItemCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           '↳ ${item.note}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             fontStyle: FontStyle.italic,
-                            color: isDark
-                                ? AppColors.primaryLight
-                                : AppColors.primaryDark,
+                            color: AppColors.primaryDark,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -203,36 +201,28 @@ class _ChronologicalItemCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.darkSurface
-                                : const Color(0xFFF0F0F5),
+                            color: AppColors.paperSurfaceAlt,
                             borderRadius:
                                 BorderRadius.circular(AppDimensions.radiusSm),
                             border: Border.all(
-                              color: isDark
-                                  ? AppColors.darkOutline
-                                  : AppColors.lightOutline,
+                              color: AppColors.paperBorder,
                             ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.table_restaurant_rounded,
                                 size: 13,
-                                color: isDark
-                                    ? AppColors.darkOnSurfaceVariant
-                                    : AppColors.lightOnSurfaceVariant,
+                                color: AppColors.inkSecondary,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 radarItem.shortTableLabel,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? AppColors.darkOnSurfaceVariant
-                                      : AppColors.lightOnSurfaceVariant,
+                                  color: AppColors.inkSecondary,
                                 ),
                               ),
                               const SizedBox(width: 4),

@@ -272,28 +272,26 @@ class _NoShiftBody extends StatelessWidget {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: AppColors.brand.withOpacity(0.12),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.account_balance_wallet_rounded,
-                color: AppColors.brand,
+                color: AppColors.primary,
                 size: 64,
               ),
             ),
             const SizedBox(height: AppDimensions.space24),
             Text(
               'Sin turno activo',
-              style: AppTextStyles.headlineLarge,
+              style: AppTextStyles.headlineLarge.copyWith(color: AppColors.ink),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppDimensions.space8),
             Text(
               'Inicia tu turno para activar la billetera y comenzar a tomar pedidos.',
               style: AppTextStyles.bodyLarge.copyWith(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant,
+                color: AppColors.inkSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -388,17 +386,19 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
           expandedHeight: 266,
           pinned: true,
           stretch: true,
+          backgroundColor: AppColors.paperBackground,
+          elevation: 0,
           title: Text(
             AppStrings.appTagline,
             style: AppTextStyles.titleMedium.copyWith(
-              color: isDark ? AppColors.darkOnSurface : AppColors.darkOnBackground,
+              color: AppColors.ink,
+              fontWeight: FontWeight.w800,
             ),
           ),
           actions: [
             IconButton(
               tooltip: 'Reportes',
-              icon: Icon(Icons.bar_chart_rounded,
-                  color: isDark ? AppColors.darkOnSurface : AppColors.darkOnBackground),
+              icon: const Icon(Icons.bar_chart_rounded, color: AppColors.ink),
               onPressed: () => context.push('/reportes'),
             ),
           ],
@@ -407,13 +407,12 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
             background: _WalletHeader(
               summary: widget.summary,
               balanceColor: balanceColor,
-              isDark: isDark,
             ),
           ),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(62),
             child: Container(
-              color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+              color: AppColors.paperBackground,
               padding: const EdgeInsets.fromLTRB(
                 AppDimensions.pagePaddingH, 8, AppDimensions.pagePaddingH, 10,
               ),
@@ -421,7 +420,6 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
                 options: const ['Resumen', 'Movimientos'],
                 selectedIndex: _tabIndex,
                 onChanged: _setTab,
-                isDark: isDark,
               ),
             ),
           ),
@@ -482,20 +480,20 @@ class _ActiveDashboardState extends State<_ActiveDashboard>
                         const SizedBox(height: AppDimensions.space8),
                         SizedBox(
                           width: double.infinity,
+                          height: AppDimensions.buttonHeightMd,
                           child: FilledButton.icon(
                             onPressed: widget.isActionLoading
                                 ? null
-                                : widget.onSettleLiquorDebt,
+                                : () {
+                                    HapticFeedback.lightImpact();
+                                    widget.onSettleLiquorDebt();
+                                  },
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.statusPurple,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: AppDimensions.space12,
-                                horizontal: AppDimensions.space16,
-                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(
-                                  AppDimensions.radiusMd,
+                                  AppDimensions.buttonRadius,
                                 ),
                               ),
                             ),
@@ -616,23 +614,22 @@ class _WalletHeader extends StatelessWidget {
   const _WalletHeader({
     required this.summary,
     required this.balanceColor,
-    required this.isDark,
   });
 
   final WalletSummary summary;
   final Color balanceColor;
-  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: isDark
-              ? [AppColors.darkBackground, AppColors.darkSurface]
-              : [AppColors.brandDark, AppColors.brand],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [AppColors.paperSurface, AppColors.paperBackground],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        border: Border(
+          bottom: BorderSide(color: AppColors.paperBorder, width: 1.0),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -649,9 +646,8 @@ class _WalletHeader extends StatelessWidget {
           Text(
             'SALDO DISPONIBLE',
             style: AppTextStyles.statusBadge.copyWith(
-              color: isDark
-                  ? AppColors.darkOnSurfaceVariant
-                  : Colors.white70,
+              color: AppColors.inkSecondary,
+              letterSpacing: 1.2,
             ),
           ),
           const SizedBox(height: AppDimensions.space4),
@@ -663,7 +659,7 @@ class _WalletHeader extends StatelessWidget {
                   amount: summary.availableBalance,
                   style: AppTextStyles.receiptTotal.copyWith(
                     fontSize: 36,
-                    color: isDark ? balanceColor : Colors.white,
+                    color: summary.isSolvent ? AppColors.ink : AppColors.statusRed,
                   ),
                   duration: const Duration(milliseconds: 700),
                 ),
@@ -675,7 +671,7 @@ class _WalletHeader extends StatelessWidget {
           Text(
             'Turno activo • ${summary.transactions.length} movimientos',
             style: AppTextStyles.bodySmall.copyWith(
-              color: isDark ? AppColors.darkOnSurfaceVariant : Colors.white70,
+              color: AppColors.inkSecondary,
             ),
           ),
         ],
@@ -702,9 +698,9 @@ class _SolvencyBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -713,7 +709,10 @@ class _SolvencyBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: AppTextStyles.statusBadge.copyWith(color: color),
+            style: AppTextStyles.statusBadge.copyWith(
+              color: color,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -735,17 +734,13 @@ class _EmptyTransactions extends StatelessWidget {
           Icon(
             Icons.receipt_long_outlined,
             size: AppDimensions.iconXl,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.darkDisabled
-                : AppColors.lightDisabled,
+            color: AppColors.inkSecondary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: AppDimensions.space12),
           Text(
             'Sin movimientos aún',
             style: AppTextStyles.bodyLarge.copyWith(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.darkDisabled
-                  : AppColors.lightDisabled,
+              color: AppColors.inkSecondary.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -863,10 +858,13 @@ class _DecrementoButton extends StatelessWidget {
             side: BorderSide(
               color: canTap
                   ? AppColors.statusOrange
-                  : AppColors.statusOrange.withOpacity(0.4),
+                  : AppColors.statusOrange.withValues(alpha: 0.4),
               width: 1.5,
             ),
             foregroundColor: AppColors.statusOrange,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+            ),
           ),
           icon: isLoading
               ? const SizedBox(
@@ -885,8 +883,9 @@ class _DecrementoButton extends StatelessWidget {
             style: AppTextStyles.labelLarge.copyWith(
               color: canTap
                   ? AppColors.statusOrange
-                  : AppColors.statusOrange.withOpacity(0.4),
+                  : AppColors.statusOrange.withValues(alpha: 0.4),
               letterSpacing: 0.8,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -915,14 +914,19 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
     return AlertDialog(
+      backgroundColor: AppColors.paperSurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+        side: const BorderSide(color: AppColors.paperBorder),
+      ),
       icon: const Icon(
         Icons.trending_up_rounded,
-        color: AppColors.brand,
+        color: AppColors.primary,
         size: AppDimensions.iconXl,
       ),
       title: Text(
         '¿Confirmar Incremento?',
-        style: AppTextStyles.headlineSmall,
+        style: AppTextStyles.headlineSmall.copyWith(color: AppColors.ink),
         textAlign: TextAlign.center,
       ),
       content: Column(
@@ -931,7 +935,7 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
         children: [
           Text(
             'Se agregarán ${amount.toCop} a tu base.\nEsta acción quedará registrada con la hora exacta.',
-            style: AppTextStyles.bodyMedium,
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.inkSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppDimensions.space16),
@@ -939,38 +943,56 @@ class _IncreaseConfirmationDialog extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: AppDimensions.space12, vertical: AppDimensions.space10),
             decoration: BoxDecoration(
-              color: AppColors.brand.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              border: Border.all(color: AppColors.brand.withOpacity(0.3)),
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.schedule_rounded, color: AppColors.brand, size: 16),
+                const Icon(Icons.schedule_rounded, color: AppColors.primary, size: 16),
                 const SizedBox(width: 8),
                 Text(
                   time,
-                  style: AppTextStyles.mono.copyWith(color: AppColors.brand),
+                  style: AppTextStyles.mono.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: AppDimensions.space20),
           SizedBox(
-            height: AppDimensions.buttonHeightLg,
+            height: AppDimensions.buttonHeightMd,
             child: FilledButton(
-              onPressed: onConfirm,
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                onConfirm();
+              },
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.brand,
-                foregroundColor: const Color(0xFF1A0A00),
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                ),
               ),
-              child: const Text(AppStrings.actionConfirm),
+              child: Text(
+                AppStrings.actionConfirm,
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: AppDimensions.space4),
           TextButton(
             onPressed: onCancel,
-            child: const Text(AppStrings.actionCancel),
+            child: Text(
+              AppStrings.actionCancel,
+              style: TextStyle(color: AppColors.inkSecondary),
+            ),
           ),
         ],
       ),
@@ -1028,15 +1050,17 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isValid = _amount > 0 && _amount <= widget.maxAllowed;
     final isExceeded = _amount > widget.maxAllowed;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        color: AppColors.paperSurface,
         borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusLg),
+          top: Radius.circular(AppDimensions.modalRadius),
+        ),
+        border: const Border(
+          top: BorderSide(color: AppColors.paperBorder, width: 1.0),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -1057,10 +1081,7 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: (isDark
-                            ? AppColors.darkOutline
-                            : AppColors.lightOutline)
-                        .withOpacity(0.5),
+                    color: AppColors.paperBorder,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1071,7 +1092,7 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                   Container(
                     padding: const EdgeInsets.all(AppDimensions.space8),
                     decoration: BoxDecoration(
-                      color: AppColors.statusOrange.withOpacity(0.12),
+                      color: AppColors.statusOrange.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1085,21 +1106,22 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Bajar Base a Caja',
-                            style: AppTextStyles.titleLarge),
+                        Text(
+                          'Bajar Base a Caja',
+                          style: AppTextStyles.titleLarge.copyWith(color: AppColors.ink),
+                        ),
                         Text(
                           'Disponible para bajar: ${widget.maxAllowed.toCop}',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: isDark
-                                ? AppColors.darkOnSurfaceVariant
-                                : AppColors.lightOnSurfaceVariant,
+                            color: AppColors.inkSecondary,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.ink),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -1110,9 +1132,7 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
               Text(
                 'Montos rápidos',
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: isDark
-                      ? AppColors.darkOnSurfaceVariant
-                      : AppColors.lightOnSurfaceVariant,
+                  color: AppColors.inkSecondary,
                 ),
               ),
               const SizedBox(height: AppDimensions.space8),
@@ -1127,21 +1147,19 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                           ? const Icon(Icons.check_rounded, size: 16)
                           : null,
                       backgroundColor: q == _amount
-                          ? AppColors.statusOrange.withOpacity(0.2)
-                          : null,
+                          ? AppColors.statusOrange.withValues(alpha: 0.15)
+                          : AppColors.paperBackground,
                       side: BorderSide(
                         color: q == _amount
                             ? AppColors.statusOrange
-                            : (isDark
-                                ? AppColors.darkOutline
-                                : AppColors.lightOutline),
+                            : AppColors.paperBorder,
                         width: q == _amount ? 1.5 : 1,
                       ),
                       labelStyle: TextStyle(
                         fontWeight: q == _amount
                             ? FontWeight.bold
                             : FontWeight.normal,
-                        color: q == _amount ? AppColors.statusOrange : null,
+                        color: q == _amount ? AppColors.statusOrange : AppColors.ink,
                       ),
                       onPressed: () => _selectAmount(q),
                     ),
@@ -1153,9 +1171,7 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
               Text(
                 'O escribe el valor exacto:',
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: isDark
-                      ? AppColors.darkOnSurfaceVariant
-                      : AppColors.lightOnSurfaceVariant,
+                  color: AppColors.inkSecondary,
                 ),
               ),
               const SizedBox(height: AppDimensions.space8),
@@ -1167,6 +1183,7 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                   prefixText: '\$ ',
                   prefixStyle: AppTextStyles.headlineSmall.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: AppColors.ink,
                   ),
                   hintText: '0',
                   suffixIcon: _controller.text.isNotEmpty
@@ -1179,11 +1196,18 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                         )
                       : null,
                   filled: true,
-                  fillColor: isDark
-                      ? AppColors.darkBackground
-                      : AppColors.lightBackground,
+                  fillColor: AppColors.paperBackground,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.statusOrange, width: 1.5),
                   ),
                   errorText: isExceeded
                       ? 'No puedes descargar más de ${widget.maxAllowed.toCop}'
@@ -1204,16 +1228,14 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                 Text(
                   'Quedarán en base por descargar: ${(widget.maxAllowed - _amount).toCop}',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
+                    color: AppColors.inkSecondary,
                   ),
                 ),
               const SizedBox(height: AppDimensions.space20),
 
               // Botón de confirmación
               SizedBox(
-                height: AppDimensions.buttonHeightLg,
+                height: AppDimensions.buttonHeightMd,
                 child: FilledButton.icon(
                   onPressed: isValid
                       ? () {
@@ -1224,6 +1246,9 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.statusOrange,
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    ),
                   ),
                   icon: const Icon(Icons.check_circle_outline_rounded),
                   label: Text(
@@ -1232,6 +1257,7 @@ class _DecreaseBaseSheetState extends State<_DecreaseBaseSheet> {
                         : 'Ingresa un monto válido',
                     style: AppTextStyles.labelLarge.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -1328,7 +1354,6 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final maxAllowed = widget.summary.totalLiquorDebt;
     final isValid = _amount > 0 && _amount <= maxAllowed;
     final isExceeded = _amount > maxAllowed;
@@ -1339,9 +1364,12 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        color: AppColors.paperSurface,
         borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusLg),
+          top: Radius.circular(AppDimensions.modalRadius),
+        ),
+        border: const Border(
+          top: BorderSide(color: AppColors.paperBorder, width: 1.0),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -1363,10 +1391,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: (isDark
-                            ? AppColors.darkOutline
-                            : AppColors.lightOutline)
-                        .withOpacity(0.5),
+                    color: AppColors.paperBorder,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1379,7 +1404,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                   Container(
                     padding: const EdgeInsets.all(AppDimensions.space8),
                     decoration: BoxDecoration(
-                      color: AppColors.statusPurple.withOpacity(0.15),
+                      color: AppColors.statusPurple.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1395,14 +1420,12 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                       children: [
                         Text(
                           'Pagar Botella en Caja',
-                          style: AppTextStyles.titleLarge,
+                          style: AppTextStyles.titleLarge.copyWith(color: AppColors.ink),
                         ),
                         Text(
                           'Deuda de licor pendiente: ${maxAllowed.toCop}',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: isDark
-                                ? AppColors.darkOnSurfaceVariant
-                                : AppColors.lightOnSurfaceVariant,
+                            color: AppColors.inkSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1410,7 +1433,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.ink),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -1427,9 +1450,9 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                       color: AppColors.statusPurple,
                     ),
                     label: Text('Liquidar Todo (${maxAllowed.toCop})'),
-                    backgroundColor: AppColors.statusPurple.withOpacity(0.12),
+                    backgroundColor: AppColors.paperBackground,
                     side: BorderSide(
-                      color: AppColors.statusPurple.withOpacity(0.4),
+                      color: AppColors.statusPurple.withValues(alpha: 0.4),
                     ),
                     labelStyle: AppTextStyles.labelMedium.copyWith(
                       color: AppColors.statusPurple,
@@ -1446,9 +1469,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                 Text(
                   'Selecciona una botella de la lista:',
                   style: AppTextStyles.labelMedium.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
+                    color: AppColors.inkSecondary,
                   ),
                 ),
                 const SizedBox(height: AppDimensions.space8),
@@ -1474,18 +1495,14 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? AppColors.statusPurple.withOpacity(0.15)
-                                : (isDark
-                                    ? AppColors.darkSurfaceVariant
-                                    : AppColors.lightSurfaceVariant),
+                                ? AppColors.statusPurple.withValues(alpha: 0.12)
+                                : AppColors.paperBackground,
                             borderRadius:
                                 BorderRadius.circular(AppDimensions.radiusMd),
                             border: Border.all(
                               color: isSelected
                                   ? AppColors.statusPurple
-                                  : (isDark
-                                      ? AppColors.darkOutline
-                                      : AppColors.lightOutline),
+                                  : AppColors.paperBorder,
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -1497,9 +1514,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                                     : Icons.radio_button_unchecked_rounded,
                                 color: isSelected
                                     ? AppColors.statusPurple
-                                    : (isDark
-                                        ? AppColors.darkOnSurfaceVariant
-                                        : AppColors.lightOnSurfaceVariant),
+                                    : AppColors.inkSecondary,
                                 size: 20,
                               ),
                               const SizedBox(width: AppDimensions.space10),
@@ -1511,6 +1526,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                                     Text(
                                       tx.note ?? 'Botella de licor',
                                       style: AppTextStyles.titleSmall.copyWith(
+                                        color: AppColors.ink,
                                         fontWeight: isSelected
                                             ? FontWeight.bold
                                             : FontWeight.normal,
@@ -1519,9 +1535,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                                     Text(
                                       timeStr,
                                       style: AppTextStyles.labelSmall.copyWith(
-                                        color: isDark
-                                            ? AppColors.darkOnSurfaceVariant
-                                            : AppColors.lightOnSurfaceVariant,
+                                        color: AppColors.inkSecondary,
                                       ),
                                     ),
                                   ],
@@ -1548,9 +1562,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
               Text(
                 'Monto a pagar en caja (COP)',
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: isDark
-                      ? AppColors.darkOnSurfaceVariant
-                      : AppColors.lightOnSurfaceVariant,
+                  color: AppColors.inkSecondary,
                 ),
               ),
               const SizedBox(height: AppDimensions.space8),
@@ -1577,11 +1589,18 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                         )
                       : null,
                   filled: true,
-                  fillColor: isDark
-                      ? AppColors.darkBackground
-                      : AppColors.lightBackground,
+                  fillColor: AppColors.paperBackground,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.statusPurple, width: 1.5),
                   ),
                   errorText: isExceeded
                       ? 'No puedes liquidar más de ${maxAllowed.toCop}'
@@ -1606,13 +1625,21 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   labelText: 'Concepto / Detalle (opcional)',
+                  labelStyle: TextStyle(color: AppColors.inkSecondary),
                   hintText: 'Ej. Pago Aguardiente en caja',
                   filled: true,
-                  fillColor: isDark
-                      ? AppColors.darkBackground
-                      : AppColors.lightBackground,
+                  fillColor: AppColors.paperBackground,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.paperBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.statusPurple, width: 1.5),
                   ),
                   prefixIcon: const Icon(Icons.notes_rounded),
                 ),
@@ -1624,10 +1651,10 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                 Container(
                   padding: const EdgeInsets.all(AppDimensions.space12),
                   decoration: BoxDecoration(
-                    color: AppColors.statusPurple.withOpacity(0.08),
+                    color: AppColors.statusPurple.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                     border: Border.all(
-                      color: AppColors.statusPurple.withOpacity(0.2),
+                      color: AppColors.statusPurple.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
@@ -1635,7 +1662,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                     children: [
                       Text(
                         'Deuda restante:',
-                        style: AppTextStyles.bodyMedium,
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.ink),
                       ),
                       Text(
                         (maxAllowed - _amount).toCop,
@@ -1651,7 +1678,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
 
               // Confirmation button
               SizedBox(
-                height: AppDimensions.buttonHeightLg,
+                height: AppDimensions.buttonHeightMd,
                 child: FilledButton.icon(
                   onPressed: isValid
                       ? () {
@@ -1670,6 +1697,9 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.statusPurple,
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                    ),
                   ),
                   icon: const Icon(Icons.point_of_sale_rounded),
                   label: Text(
@@ -1678,6 +1708,7 @@ class _SettleLiquorSheetState extends State<_SettleLiquorSheet> {
                         : 'Ingresa un monto válido',
                     style: AppTextStyles.labelLarge.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),

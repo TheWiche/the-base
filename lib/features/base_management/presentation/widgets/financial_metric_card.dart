@@ -5,13 +5,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
-/// Displays a single financial metric in a high-contrast card.
+/// Displays a single financial metric in a Paper Receipt Aesthetic card.
 ///
 /// Used on the wallet dashboard to show Available Balance, Total Debt,
-/// Base Capital, and Liquor Debt in a consistent, scannable layout.
+/// Base Capital, and Liquor Debt in a consistent, high-contrast paper ticket layout.
 ///
 /// The [isHero] variant renders a larger amount number for the primary
-/// balance indicator that the waiter needs to read at a glance.
+/// balance indicator that the waiter needs to read at a glance under sunlight.
 class FinancialMetricCard extends StatelessWidget {
   const FinancialMetricCard({
     super.key,
@@ -36,16 +36,21 @@ class FinancialMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final surfaceColor =
-        isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant;
-
     return Container(
       decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(color: accentColor.withOpacity(0.4), width: 1.5),
+        color: AppColors.paperSurface,
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+        border: Border.all(
+          color: AppColors.paperBorder,
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.paperShadow,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       padding: EdgeInsets.all(isHero ? AppDimensions.space20 : AppDimensions.space16),
       child: Column(
@@ -58,8 +63,11 @@ class FinancialMetricCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppDimensions.space6),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.15),
+                  color: accentColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: Icon(icon, color: accentColor, size: AppDimensions.iconSm),
               ),
@@ -68,9 +76,8 @@ class FinancialMetricCard extends StatelessWidget {
                 child: Text(
                   label.toUpperCase(),
                   style: AppTextStyles.statusBadge.copyWith(
-                    color: isDark
-                        ? AppColors.darkOnSurfaceVariant
-                        : AppColors.lightOnSurfaceVariant,
+                    color: AppColors.inkSecondary,
+                    letterSpacing: 1.0,
                   ),
                 ),
               ),
@@ -83,7 +90,7 @@ class FinancialMetricCard extends StatelessWidget {
           Text(
             amount.toCop,
             style: AppTextStyles.receiptTotal.copyWith(
-              fontSize: isHero ? 30 : 20,
+              fontSize: isHero ? 28 : 20,
               color: accentColor,
             ),
           ),
@@ -94,9 +101,7 @@ class FinancialMetricCard extends StatelessWidget {
             Text(
               subtitle!,
               style: AppTextStyles.bodySmall.copyWith(
-                color: isDark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant,
+                color: AppColors.inkSecondary,
               ),
             ),
           ],

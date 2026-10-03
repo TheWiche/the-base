@@ -46,12 +46,14 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final subtotal = widget.args.billSubtotal;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Pago en Efectivo', style: AppTextStyles.headlineSmall),
+        title: Text(
+          'Pago en Efectivo',
+          style: AppTextStyles.headlineSmall.copyWith(color: AppColors.ink),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
@@ -66,9 +68,7 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
             Text(
               'MONTO RECIBIDO',
               style: AppTextStyles.statusBadge.copyWith(
-                color: isDark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant,
+                color: AppColors.inkSecondary,
               ),
             ),
             const SizedBox(height: AppDimensions.space8),
@@ -80,17 +80,32 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
                 FilteringTextInputFormatter.digitsOnly,
                 _ThousandsSeparatorFormatter(),
               ],
-              style: AppTextStyles.displayMedium,
+              style: AppTextStyles.monoLarge.copyWith(
+                color: AppColors.ink,
+                fontWeight: FontWeight.bold,
+              ),
               decoration: InputDecoration(
+                filled: true,
+                fillColor: AppColors.paperSurface,
                 prefixText: '\$ ',
                 prefixStyle: AppTextStyles.headlineMedium.copyWith(
-                  color: isDark
-                      ? AppColors.darkOnSurfaceVariant
-                      : AppColors.lightOnSurfaceVariant,
+                  color: AppColors.inkSecondary,
                 ),
                 hintText: '0',
-                hintStyle: AppTextStyles.displayMedium.copyWith(
-                  color: isDark ? AppColors.darkDisabled : AppColors.lightDisabled,
+                hintStyle: AppTextStyles.monoLarge.copyWith(
+                  color: AppColors.inkSecondary.withValues(alpha: 0.3),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.paperBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.paperBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
                 ),
               ),
               onChanged: (raw) {
@@ -113,12 +128,16 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
             // ── Confirm button ─────────────────────────────────────────
             SizedBox(
               width: double.infinity,
-              height: AppDimensions.buttonHeightLg,
+              height: AppDimensions.buttonHeightMd,
               child: FilledButton.icon(
                 onPressed: (_isValid && !_isRecording) ? _confirmPayment : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.statusGreen,
-                  foregroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+                  ),
                 ),
                 icon: _isRecording
                     ? const SizedBox(
@@ -126,13 +145,17 @@ class _CashPaymentScreenState extends ConsumerState<CashPaymentScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.black,
+                          color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.check_circle_rounded),
-                label: Text(
+                    : const Icon(Icons.check_circle_rounded, size: 20),
+                label: const Text(
                   'CONFIRMAR PAGO',
-                  style: AppTextStyles.labelLarge.copyWith(color: Colors.black),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),
@@ -189,17 +212,20 @@ class _BillTotalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimensions.space20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(
-          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-        ),
+        color: AppColors.paperSurface,
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+        border: Border.all(color: AppColors.paperBorder),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,16 +233,16 @@ class _BillTotalCard extends StatelessWidget {
           Text(
             'TOTAL A COBRAR',
             style: AppTextStyles.statusBadge.copyWith(
-              color: isDark
-                  ? AppColors.darkOnSurfaceVariant
-                  : AppColors.lightOnSurfaceVariant,
+              color: AppColors.inkSecondary,
             ),
           ),
           const SizedBox(height: AppDimensions.space8),
           Text(
             subtotal.toCop,
-            style: AppTextStyles.displayLarge.copyWith(
-              color: isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
+            style: AppTextStyles.monoLarge.copyWith(
+              color: AppColors.ink,
+              fontWeight: FontWeight.bold,
+              fontSize: 32,
             ),
           ),
         ],
@@ -240,7 +266,6 @@ class _ChangeDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isInsufficient = received > 0 && received < subtotal;
     final isExact = received == subtotal && received > 0;
     final hasChange = changeGiven > 0;
@@ -250,8 +275,8 @@ class _ChangeDisplay extends StatelessWidget {
         : isExact
             ? (AppColors.statusGreen, 'PAGO EXACTO', Icons.check_circle_rounded)
             : hasChange
-                ? (AppColors.brand, 'VUELTO', Icons.currency_exchange_rounded)
-                : (isDark ? AppColors.darkDisabled : AppColors.lightDisabled,
+                ? (AppColors.primary, 'VUELTO', Icons.currency_exchange_rounded)
+                : (AppColors.inkSecondary.withValues(alpha: 0.4),
                    'VUELTO', Icons.currency_exchange_rounded);
 
     return AnimatedContainer(
@@ -259,10 +284,10 @@ class _ChangeDisplay extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimensions.space20),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        color: statusColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
         border: Border.all(
-          color: statusColor.withOpacity(received > 0 ? 0.5 : 0.2),
+          color: statusColor.withValues(alpha: received > 0 ? 0.5 : 0.2),
           width: received > 0 ? 2.0 : 1.0,
         ),
       ),
@@ -276,7 +301,10 @@ class _ChangeDisplay extends StatelessWidget {
               children: [
                 Text(
                   statusLabel,
-                  style: AppTextStyles.statusBadge.copyWith(color: statusColor),
+                  style: AppTextStyles.statusBadge.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: AppDimensions.space4),
                 AnimatedSwitcher(
@@ -288,8 +316,10 @@ class _ChangeDisplay extends StatelessWidget {
                             ? changeGiven.toCop
                             : '\$ 0',
                     key: ValueKey(changeGiven),
-                    style: AppTextStyles.displaySmall.copyWith(
+                    style: AppTextStyles.monoLarge.copyWith(
                       color: statusColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 26,
                     ),
                   ),
                 ),

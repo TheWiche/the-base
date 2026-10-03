@@ -111,8 +111,8 @@ final class PaymentReceiptEntity {
 
 /// Parameters for [RecordPaymentUseCase].
 ///
-/// Supports item-based payments, arbitrary general advances, and mixed
-/// simultaneous (Cash + Transfer) payments.
+/// Supports item-based payments and arbitrary general advances.
+/// Only [PaymentMethod.cash] and [PaymentMethod.transfer] are accepted.
 final class RecordPaymentParams {
   const RecordPaymentParams({
     required this.tableSessionId,
@@ -125,10 +125,15 @@ final class RecordPaymentParams {
     this.photoSourcePath,
     this.tipAmount = 0,
     this.isGeneralAdvance = false,
+    @Deprecated('Mixed payments are no longer supported. Do not set to true.')
     this.isMixed = false,
+    @Deprecated('Mixed payments are no longer supported.')
     this.cashAmount,
+    @Deprecated('Mixed payments are no longer supported.')
     this.transferAmount,
+    @Deprecated('Mixed payments are no longer supported.')
     this.mixedTransferMethod,
+    @Deprecated('Mixed payments are no longer supported.')
     this.mixedPhotoSourcePath,
     this.note,
   })  : assert(

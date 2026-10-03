@@ -86,23 +86,23 @@ final class WalletSummary {
   /// Total net base increases available to be decreased
   int get netIncreases => totalIncreases - totalDecreases;
 
-  /// FORMULA: Total Debt = Initial Base + Σ(Increases) − Σ(Decreases) + Σ(Liquor Costs)
+  /// FORMULA: Total Debt = Base Inicial + Aumentos de Base − Descargas de Base + Deuda por Licores − Pagos de Licor en Caja.
+  /// (Note: [totalLiquorDebt] = liquorAdjustments − liquorSettlements).
   int get totalDebt => initialBase + totalIncreases - totalDecreases + totalLiquorDebt;
 
-  /// FORMULA: Available Balance = Initial Base + Σ(Increases) − Σ(Decreases)
-  ///                              + Σ(Verified Transfers)
-  ///                              + Σ(Cash Payments Net Received)
-  ///                              − Σ(Served Standard Items)
-  int get availableBalance =>
-      initialBase +
-      totalIncreases -
-      totalDecreases +
-      verifiedTransfersTotal +
-      cashPaymentsTotal -
-      servedStandardItemsTotal;
+  /// FORMULA: Efectivo Esperado en Mano = Base Inicial + Cobros en Efectivo + Aumentos − Devoluciones/Vueltos − Descargas de Base.
+  /// Note: [cashPaymentsTotal] is already net of changeGiven (amountPaid − changeGiven).
+  int get expectedCashInHand =>
+      initialBase + totalIncreases - totalDecreases + cashPaymentsTotal;
+
+  /// In The Base, the waiter's available balance in hand represents their expected physical cash.
+  int get availableBalance => expectedCashInHand;
 
   /// FORMULA: Net Profit = Physical Cash − Total Debt + Σ(Transfer Tips)
-  int get netProfit => physicalCashInHand - totalDebt + transferTipsTotal;
+  int get netProfit =>
+      (physicalCashInHand > 0 ? physicalCashInHand : expectedCashInHand) -
+      totalDebt +
+      transferTipsTotal;
 
   // ── State helpers ──────────────────────────────────────────────────────────
 

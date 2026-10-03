@@ -15,6 +15,7 @@ import 'features/tables/data/models/table_session.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/dashboard/presentation/providers/dashboard_providers.dart';
+import 'features/orders/data/models/order_item.dart';
 import 'features/orders/presentation/providers/order_providers.dart';
 import 'features/products/data/repositories/product_repository_impl.dart';
 
@@ -66,7 +67,7 @@ Future<void> main() async {
 }
 
 /// Ensures no dummy or placeholder tables (such as residual "Barra" tables
-/// or sessions without orders) exist at app startup, providing a clean slate.
+/// or sessions without valid table numbers) exist at app startup, providing a clean slate (0 active dummy tables).
 Future<void> _cleanupDummyTables() async {
   try {
     await IsarService.write((db) async {
@@ -80,9 +81,11 @@ Future<void> _cleanupDummyTables() async {
           .findAll();
 
       for (final session in dummySessions) {
-        if (session.orderItems.isEmpty) {
-          await db.tableSessions.delete(session.id);
+        await session.orderItems.load();
+        for (final item in session.orderItems) {
+          await db.orderItems.delete(item.id);
         }
+        await db.tableSessions.delete(session.id);
       }
     });
   } catch (e) {

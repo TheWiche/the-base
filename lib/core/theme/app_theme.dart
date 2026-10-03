@@ -4,155 +4,131 @@ import 'app_colors.dart';
 import 'app_dimensions.dart';
 import 'app_text_styles.dart';
 
-/// Genera [ThemeData] para modo oscuro y claro — Paleta "Violeta Nocturna".
+/// Genera [ThemeData] para "The Base" — Identidad Visual Oficial: Paper Receipt Aesthetic.
 ///
-/// Oscuro → Zinc casi-negro + violeta primario + esmeralda secundaria.
-/// Claro  → Blanco limpio + violeta primario + esmeralda secundaria.
+/// Concepto oficial e inmutable:
+/// - Fondo Principal de la App (Scaffold): Beige cálido / Crema de papel (`#FBF8F2`).
+/// - Superficies y Tarjetas (Cards / Tickets): Blanco papel suave (`#FFFDF9` / `#FFFFFF`)
+///   con bordes sutiles de papel (`#EADBCE`), esquinas redondeadas uniformes (16px)
+///   o remates sutiles estilo comanda.
+/// - Textos y Números (Tinta de Impresión de alto contraste para exteriores):
+///   * Tinta principal: Carbón profundo / Espresso oscuro (`#1E1C1A`).
+///   * Textos secundarios y notas: Ceniza tostado (`#7A7269`).
+/// - Colores de Acento y Funcionales:
+///   * Ámbar Cálido / Mostaza: Pestañas activas, incrementos y alertas primarias (`#D97706`).
+///   * Verde Esmeralda / Salvia: Botones de confirmación, cobrado, estados positivos (`#10B981` / `#059669`).
+///   * Rojo Coral / Terracota: Tiempos transcurridos prolongados, deudas y cancelaciones (`#EF4444` / `#DC2626`).
 abstract final class AppTheme {
   // ── Color Schemes ──────────────────────────────────────────────────────────
 
-  static const ColorScheme _darkScheme = ColorScheme(
-    brightness: Brightness.dark,
-    primary: AppColors.primary,
-    onPrimary: Color(0xFF121212),           // tinta oscura sobre ámbar
-    primaryContainer: Color(0xFF332408),    // ámbar quemado profundo
-    onPrimaryContainer: Color(0xFFFFE082), // ámbar claro
-    secondary: AppColors.secondary,
-    onSecondary: Color(0xFF00240D),
-    secondaryContainer: Color(0xFF004D25),
-    onSecondaryContainer: Color(0xFFB9F6CA),
-    tertiary: AppColors.statusBlue,
-    onTertiary: Color(0xFF06183A),
-    tertiaryContainer: Color(0xFF0D2556),
-    onTertiaryContainer: Color(0xFFD6E4FF),
-    error: AppColors.statusRed,
-    onError: AppColors.onStatusRed,
-    errorContainer: Color(0xFF7F1D1D),
-    onErrorContainer: Color(0xFFFEE2E2),
-    surface: AppColors.darkSurface,
-    onSurface: AppColors.darkOnSurface,
-    surfaceDim: AppColors.darkBackground,
-    surfaceBright: AppColors.darkCard,
-    surfaceContainerLowest: AppColors.darkBackground,
-    surfaceContainerLow: AppColors.darkSurface,
-    surfaceContainer: AppColors.darkSurfaceVariant,
-    surfaceContainerHigh: AppColors.darkCard,
-    surfaceContainerHighest: Color(0xFF383A3C),
-    onSurfaceVariant: AppColors.darkOnSurfaceVariant,
-    surfaceTint: Colors.transparent,
-    outline: AppColors.darkOutline,
-    outlineVariant: AppColors.darkOutlineVariant,
-    shadow: Colors.black,
-    scrim: AppColors.scrim,
-    inverseSurface: AppColors.lightSurface,
-    onInverseSurface: AppColors.lightOnSurface,
-    inversePrimary: AppColors.primaryLight,
-  );
-
-  static const ColorScheme _lightScheme = ColorScheme(
+  static const ColorScheme _paperScheme = ColorScheme(
     brightness: Brightness.light,
     primary: AppColors.primary,
-    onPrimary: Color(0xFF241A05),           // tinta oscura sobre ámbar
-    primaryContainer: Color(0xFFF7E9C9),    // ámbar muy claro
-    onPrimaryContainer: Color(0xFF3A2A0F), // ámbar quemado
-    secondary: AppColors.secondaryDark,
-    onSecondary: Color(0xFFFFFFFF),
-    secondaryContainer: Color(0xFFCFEFDD), // verde claro
-    onSecondaryContainer: Color(0xFF03251A),
-    tertiary: Color(0xFF3B6FD4),           // azul
-    onTertiary: Color(0xFFFFFFFF),
-    tertiaryContainer: Color(0xFFDCE7FB),
-    onTertiaryContainer: Color(0xFF06183A),
-    error: Color(0xFFC0392B),             // rojo sello
-    onError: Color(0xFFFFFFFF),
-    errorContainer: Color(0xFFFEE2E2),
-    onErrorContainer: Color(0xFF7F1D1D),
-    surface: AppColors.lightSurface,
-    onSurface: AppColors.lightOnSurface,
-    surfaceDim: AppColors.lightSurfaceVariant,
-    surfaceBright: AppColors.lightBackground,
-    surfaceContainerLowest: AppColors.lightBackground,
-    surfaceContainerLow: AppColors.lightSurface,
-    surfaceContainer: AppColors.lightSurface,
-    surfaceContainerHigh: AppColors.lightSurfaceVariant,
-    surfaceContainerHighest: AppColors.lightSurfaceVariant,
-    onSurfaceVariant: AppColors.lightOnSurfaceVariant,
+    onPrimary: AppColors.onPrimary,
+    primaryContainer: AppColors.statusOrangeDim,
+    onPrimaryContainer: AppColors.primaryDark,
+    secondary: AppColors.secondary,
+    onSecondary: AppColors.onSecondary,
+    secondaryContainer: AppColors.statusGreenDim,
+    onSecondaryContainer: AppColors.secondaryDark,
+    tertiary: AppColors.statusBlue,
+    onTertiary: AppColors.onStatusBlue,
+    tertiaryContainer: AppColors.statusBlueDim,
+    onTertiaryContainer: Color(0xFF1E40AF),
+    error: AppColors.statusRed,
+    onError: AppColors.onStatusRed,
+    errorContainer: AppColors.statusRedDim,
+    onErrorContainer: Color(0xFF991B1B),
+    surface: AppColors.paperSurface,
+    onSurface: AppColors.ink,
+    surfaceDim: AppColors.paperBackground,
+    surfaceBright: AppColors.paperCard,
+    surfaceContainerLowest: AppColors.paperBackground,
+    surfaceContainerLow: AppColors.paperSurfaceAlt,
+    surfaceContainer: AppColors.paperSurface,
+    surfaceContainerHigh: AppColors.paperSurfaceAlt,
+    surfaceContainerHighest: Color(0xFFEFE9DC),
+    onSurfaceVariant: AppColors.inkSecondary,
     surfaceTint: Colors.transparent,
-    outline: AppColors.lightOutline,
+    outline: AppColors.paperBorder,
     outlineVariant: AppColors.lightOutlineVariant,
-    shadow: Color(0x33000000),
-    scrim: AppColors.scrimLight,
-    inverseSurface: AppColors.darkSurface,
-    onInverseSurface: AppColors.darkOnSurface,
-    inversePrimary: AppColors.primaryDark,
+    shadow: AppColors.paperShadow,
+    scrim: AppColors.scrim,
+    inverseSurface: AppColors.ink,
+    onInverseSurface: AppColors.paperSurface,
+    inversePrimary: AppColors.primaryLight,
   );
 
   // ── ThemeData públicos ──────────────────────────────────────────────────────
 
-  static ThemeData get dark  => _build(_darkScheme);
-  static ThemeData get light => _build(_lightScheme);
+  static ThemeData get light => _build(_paperScheme);
+  // El tema inmutable de la app es el papel beige; dark hereda la misma paleta cálida
+  static ThemeData get dark  => _build(_paperScheme);
 
   // ── Builder ────────────────────────────────────────────────────────────────
 
   static ThemeData _build(ColorScheme scheme) {
-    final bool isDark   = scheme.brightness == Brightness.dark;
-    final Color onSurface  = isDark ? AppColors.darkOnSurface  : AppColors.lightOnSurface;
-    final Color surface    = isDark ? AppColors.darkSurface    : AppColors.lightSurface;
-    final Color background = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    const Color onSurface  = AppColors.ink;
+    const Color surface    = AppColors.paperSurface;
+    const Color background = AppColors.paperBackground;
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: background,
 
-      // ── Tipografía ──────────────────────────────────────────────────────────
+      // ── Tipografía (Tinta de Impresión de Alto Contraste) ───────────────────
       textTheme: AppTextStyles.buildTextTheme(onSurface),
       primaryTextTheme: AppTextStyles.buildTextTheme(scheme.primary),
 
       // ── AppBar ──────────────────────────────────────────────────────────────
       appBarTheme: AppBarTheme(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightBackground,
-        foregroundColor: isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
+        backgroundColor: background,
+        foregroundColor: onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: AppDimensions.appBarElevation,
         scrolledUnderElevation: 0,
         toolbarHeight: AppDimensions.appBarHeight,
-        titleTextStyle: AppTextStyles.headlineLarge.copyWith(
-          color: isDark ? AppColors.darkOnBackground : AppColors.lightOnSurface,
+        titleTextStyle: AppTextStyles.headlineMedium.copyWith(
+          color: onSurface,
+          fontWeight: FontWeight.w800,
         ),
-        iconTheme: IconThemeData(
-          color: isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
+        iconTheme: const IconThemeData(
+          color: onSurface,
           size: AppDimensions.iconMd,
         ),
         centerTitle: false,
       ),
 
-      // ── ElevatedButton ──────────────────────────────────────────────────────
+      // ── ElevatedButton (52px estándar, 14px radius) ─────────────────────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
           minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           ),
-          textStyle: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
+          textStyle: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.w800),
           elevation: 0,
         ),
       ),
 
-      // ── OutlinedButton ──────────────────────────────────────────────────────
+      // ── OutlinedButton (52px estándar, 14px radius, borde sutil de papel) ───
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: scheme.primary,
           minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          side: BorderSide(color: scheme.primary, width: AppDimensions.buttonBorderWidth),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          side: const BorderSide(
+            color: AppColors.paperBorder,
+            width: AppDimensions.buttonBorderWidth,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           ),
-          textStyle: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
+          textStyle: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.w800),
         ),
       ),
 
@@ -164,60 +140,58 @@ abstract final class AppTheme {
             AppDimensions.tapTargetMin,
             AppDimensions.tapTargetMin,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          textStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.bold),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+          ),
+          textStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
 
-      // ── FilledButton ────────────────────────────────────────────────────────
+      // ── FilledButton (52px estándar, 14px radius) ───────────────────────────
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
           minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           ),
-          textStyle: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
+          textStyle: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.w800),
           elevation: 0,
         ),
       ),
 
       // ── NavigationBar ───────────────────────────────────────────────────────
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: isDark ? AppColors.navBarDark : AppColors.navBarLight,
+        backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: AppColors.primary.withOpacity(0.16),
+        indicatorColor: AppColors.primary.withValues(alpha: 0.16),
         elevation: 0,
         labelTextStyle: WidgetStatePropertyAll(
           AppTextStyles.labelSmall.copyWith(
-            color: isDark
-                ? AppColors.darkOnSurfaceVariant
-                : AppColors.lightOnSurfaceVariant,
+            color: AppColors.inkSecondary,
+            fontWeight: FontWeight.w600,
           ),
         ),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected
-                ? AppColors.primary
-                : (isDark
-                    ? AppColors.darkOnSurfaceVariant
-                    : AppColors.lightOnSurfaceVariant),
+            color: selected ? AppColors.primary : AppColors.inkSecondary,
             size: AppDimensions.iconMd,
           );
         }),
       ),
 
-      // ── BottomSheet ─────────────────────────────────────────────────────────
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: isDark ? AppColors.darkSurfaceVariant : surface,
+      // ── BottomSheet (Superficie papel beige, 20px borde superior) ───────────
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
-        modalBackgroundColor: isDark ? AppColors.darkSurfaceVariant : surface,
+        modalBackgroundColor: surface,
         elevation: 0,
         modalElevation: 0,
-        shape: const RoundedRectangleBorder(
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppDimensions.modalRadius),
           ),
@@ -225,88 +199,84 @@ abstract final class AppTheme {
       ),
 
       // ── Menus ───────────────────────────────────────────────────────────────
-      menuTheme: MenuThemeData(
+      menuTheme: const MenuThemeData(
         style: MenuStyle(
-          backgroundColor: WidgetStatePropertyAll(isDark ? AppColors.darkSurfaceVariant : surface),
-          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-          elevation: const WidgetStatePropertyAll(2),
+          backgroundColor: WidgetStatePropertyAll(surface),
+          surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+          elevation: WidgetStatePropertyAll(2),
         ),
       ),
-      popupMenuTheme: PopupMenuThemeData(
-        color: isDark ? AppColors.darkSurfaceVariant : surface,
+      popupMenuTheme: const PopupMenuThemeData(
+        color: surface,
         surfaceTintColor: Colors.transparent,
         elevation: 2,
       ),
 
-      canvasColor: isDark ? AppColors.darkSurfaceVariant : surface,
+      canvasColor: surface,
 
-      // ── Card ────────────────────────────────────────────────────────────────
+      // ── Card (Blanco papel suave, borde papel 1px, 16px radius) ────────────
       cardTheme: CardThemeData(
-        color: isDark ? AppColors.darkSurfaceVariant : surface,
+        color: surface,
         surfaceTintColor: Colors.transparent,
         elevation: AppDimensions.cardElevation,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
-          side: BorderSide(
-            color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+          side: const BorderSide(
+            color: AppColors.paperBorder,
             width: 1.0,
           ),
         ),
       ),
 
-      // ── Input ───────────────────────────────────────────────────────────────
+      // ── Input (Campos de entrada en papel limpio) ───────────────────────────
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark
-            ? AppColors.darkSurfaceVariant
-            : AppColors.lightSurfaceVariant,
+        fillColor: AppColors.paperCard,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppDimensions.space16,
           vertical: AppDimensions.space16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+          borderSide: const BorderSide(
+            color: AppColors.paperBorder,
             width: AppDimensions.inputBorderWidth,
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
+          borderSide: const BorderSide(
+            color: AppColors.paperBorder,
             width: AppDimensions.inputBorderWidth,
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           borderSide: BorderSide(
             color: scheme.primary,
             width: AppDimensions.inputBorderWidth + 0.5,
           ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           borderSide: const BorderSide(
             color: AppColors.statusRed,
             width: AppDimensions.inputBorderWidth,
           ),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
           borderSide: const BorderSide(
             color: AppColors.statusRed,
             width: AppDimensions.inputBorderWidth + 0.5,
           ),
         ),
         labelStyle: AppTextStyles.bodyMedium.copyWith(
-          color: isDark
-              ? AppColors.darkOnSurfaceVariant
-              : AppColors.lightOnSurfaceVariant,
+          color: AppColors.inkSecondary,
         ),
         hintStyle: AppTextStyles.bodyMedium.copyWith(
-          color: isDark ? AppColors.darkDisabled : AppColors.lightDisabled,
+          color: AppColors.inkDisabled,
         ),
         errorStyle: AppTextStyles.labelSmall.copyWith(
           color: AppColors.statusRed,
@@ -314,74 +284,69 @@ abstract final class AppTheme {
         constraints: const BoxConstraints(minHeight: AppDimensions.inputHeight),
       ),
 
-      // ── Chip ────────────────────────────────────────────────────────────────
+      // ── Chip (40px alto, papel crema, borde sutil) ──────────────────────────
       chipTheme: ChipThemeData(
-        backgroundColor: isDark
-            ? AppColors.darkSurfaceVariant
-            : AppColors.lightSurfaceVariant,
-        selectedColor: AppColors.primary.withOpacity(0.2),
-        labelStyle: AppTextStyles.labelMedium.copyWith(color: onSurface),
-        side: BorderSide(
-          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-          width: 1.5,
+        backgroundColor: AppColors.paperSurfaceAlt,
+        selectedColor: AppColors.primary.withValues(alpha: 0.16),
+        labelStyle: AppTextStyles.labelMedium.copyWith(
+          color: onSurface,
+          fontWeight: FontWeight.w700,
+        ),
+        side: const BorderSide(
+          color: AppColors.paperBorder,
+          width: 1.0,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+          borderRadius: BorderRadius.circular(12),
         ),
         padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.space8,
-          vertical: AppDimensions.space4,
+          horizontal: AppDimensions.space10,
+          vertical: AppDimensions.space6,
         ),
       ),
 
       // ── BottomNavigationBar (legacy) ────────────────────────────────────────
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor:
-            isDark ? AppColors.navBarDark : AppColors.navBarLight,
+        backgroundColor: surface,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: isDark
-            ? AppColors.darkOnSurfaceVariant
-            : AppColors.lightOnSurfaceVariant,
+        unselectedItemColor: AppColors.inkSecondary,
         selectedLabelStyle: AppTextStyles.labelSmall,
         unselectedLabelStyle: AppTextStyles.labelSmall,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
       ),
 
-      // ── Divider ─────────────────────────────────────────────────────────────
-      dividerTheme: DividerThemeData(
-        color: isDark
-            ? AppColors.darkOutlineVariant
-            : AppColors.lightOutlineVariant,
+      // ── Divider (Línea de papel sutil) ──────────────────────────────────────
+      dividerTheme: const DividerThemeData(
+        color: AppColors.paperBorder,
         thickness: AppDimensions.dividerThickness,
         space: 0,
       ),
 
-      // ── Dialog ──────────────────────────────────────────────────────────────
+      // ── Dialog (20px bordes redondeados, superficie papel) ──────────────────
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
         elevation: 4,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          borderRadius: BorderRadius.circular(AppDimensions.modalRadius),
+          side: const BorderSide(color: AppColors.paperBorder, width: 1.0),
         ),
-        titleTextStyle:
-            AppTextStyles.headlineSmall.copyWith(color: onSurface),
-        contentTextStyle:
-            AppTextStyles.bodyLarge.copyWith(color: onSurface),
+        titleTextStyle: AppTextStyles.headlineSmall.copyWith(
+          color: onSurface,
+          fontWeight: FontWeight.w800,
+        ),
+        contentTextStyle: AppTextStyles.bodyLarge.copyWith(color: onSurface),
       ),
 
       // ── SnackBar ─────────────────────────────────────────────────────────────
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark
-            ? AppColors.darkSurfaceVariant
-            : AppColors.lightOnSurface,
+        backgroundColor: AppColors.ink,
         contentTextStyle: AppTextStyles.bodyMedium.copyWith(
-          color:
-              isDark ? AppColors.darkOnSurface : AppColors.lightBackground,
+          color: AppColors.paperSurface,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
         ),
         behavior: SnackBarBehavior.floating,
         elevation: 4,
@@ -394,12 +359,12 @@ abstract final class AppTheme {
           horizontal: AppDimensions.pagePaddingH,
           vertical: AppDimensions.space4,
         ),
-        titleTextStyle:
-            AppTextStyles.titleMedium.copyWith(color: onSurface),
+        titleTextStyle: AppTextStyles.titleMedium.copyWith(
+          color: onSurface,
+          fontWeight: FontWeight.w700,
+        ),
         subtitleTextStyle: AppTextStyles.bodySmall.copyWith(
-          color: isDark
-              ? AppColors.darkOnSurfaceVariant
-              : AppColors.lightOnSurfaceVariant,
+          color: AppColors.inkSecondary,
         ),
         iconColor: scheme.primary,
       ),
@@ -411,8 +376,8 @@ abstract final class AppTheme {
           return Colors.transparent;
         }),
         checkColor: WidgetStateProperty.all(scheme.onPrimary),
-        side: BorderSide(
-          color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+        side: const BorderSide(
+          color: AppColors.paperBorder,
           width: 2.0,
         ),
         shape: RoundedRectangleBorder(
@@ -424,27 +389,25 @@ abstract final class AppTheme {
       // ── FAB ──────────────────────────────────────────────────────────────────
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,
-        foregroundColor: const Color(0xFF241A05),
+        foregroundColor: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
         ),
-        extendedTextStyle: AppTextStyles.labelLarge,
+        extendedTextStyle: AppTextStyles.labelLarge.copyWith(color: Colors.white),
       ),
 
       // ── Icons ─────────────────────────────────────────────────────────────────
-      iconTheme: IconThemeData(color: onSurface, size: AppDimensions.iconMd),
+      iconTheme: const IconThemeData(color: onSurface, size: AppDimensions.iconMd),
       primaryIconTheme:
           IconThemeData(color: scheme.primary, size: AppDimensions.iconMd),
 
       // ── TabBar ───────────────────────────────────────────────────────────────
       tabBarTheme: TabBarThemeData(
         labelColor: AppColors.primary,
-        unselectedLabelColor: isDark
-            ? AppColors.darkOnSurfaceVariant
-            : AppColors.lightOnSurfaceVariant,
-        labelStyle: AppTextStyles.labelMedium,
-        unselectedLabelStyle: AppTextStyles.labelMedium,
+        unselectedLabelColor: AppColors.inkSecondary,
+        labelStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w800),
+        unselectedLabelStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w600),
         indicatorColor: AppColors.primary,
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,

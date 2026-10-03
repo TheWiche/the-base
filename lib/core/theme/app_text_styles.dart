@@ -19,6 +19,7 @@ abstract final class AppTextStyles {
     required FontWeight weight,
     double letterSpacing = 0.0,
     double height = 1.25,
+    Color color = AppColors.ink,
   }) =>
       TextStyle(
         fontFamily: 'Nunito',
@@ -26,6 +27,7 @@ abstract final class AppTextStyles {
         fontWeight: weight,
         letterSpacing: letterSpacing,
         height: height,
+        color: color,
       );
 
   // ── Display — large financial figures ─────────────────────────────
@@ -172,6 +174,7 @@ abstract final class AppTextStyles {
     required FontWeight weight,
     double letterSpacing = 0.0,
     double height = 1.35,
+    Color color = AppColors.ink,
   }) =>
       TextStyle(
         fontFamily: 'SpaceMono',
@@ -179,6 +182,7 @@ abstract final class AppTextStyles {
         fontWeight: weight,
         letterSpacing: letterSpacing,
         height: height,
+        color: color,
       );
 
   /// Código de verificación / timestamps. 14 sp.
@@ -233,6 +237,30 @@ abstract final class AppTextStyles {
         weight: FontWeight.w700,
         letterSpacing: 1.0,
         height: 1.4,
+      );
+
+  /// Monospace grande para montos destacados y cabeceras de cobro. 20 sp, bold.
+  static TextStyle get monoLarge => _mono(
+        size: 20,
+        weight: FontWeight.w700,
+        letterSpacing: 0.5,
+        height: 1.3,
+      );
+
+  /// Monospace mediano para precios, totales y cantidades. 15 sp, bold.
+  static TextStyle get monoMedium => _mono(
+        size: 15,
+        weight: FontWeight.w700,
+        letterSpacing: 0.5,
+        height: 1.35,
+      );
+
+  /// Monospace pequeño para marcas de tiempo, tiques y códigos. 12 sp, semi-bold.
+  static TextStyle get monoSmall => _mono(
+        size: 12,
+        weight: FontWeight.w600,
+        letterSpacing: 0.5,
+        height: 1.3,
       );
 
   // ── Convenience: apply color to any style ─────────────────────────

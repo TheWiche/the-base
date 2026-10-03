@@ -99,7 +99,6 @@ class _ComandaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final sessionId = group.items.first.item.tableSessionId;
     final oldest = group.items
         .map((i) => i.item.elapsedMinutes)
@@ -109,16 +108,17 @@ class _ComandaCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppDimensions.space16),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurfaceVariant : Colors.white,
+          color: AppColors.paperSurface,
           borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           border: Border.all(
-            color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+            color: AppColors.paperBorder,
+            width: 1.0,
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: AppColors.paperShadow,
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -146,10 +146,10 @@ class _ComandaCard extends StatelessWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.15),
+                          color: AppColors.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppColors.primary.withOpacity(0.4),
+                            color: AppColors.primary.withValues(alpha: 0.4),
                           ),
                         ),
                         child: Text(
@@ -167,11 +167,9 @@ class _ComandaCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '"${group.tableApodo}"',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 13,
-                              color: isDark
-                                  ? AppColors.darkOnSurfaceVariant
-                                  : AppColors.lightOnSurfaceVariant,
+                              color: AppColors.inkSecondary,
                               fontStyle: FontStyle.italic,
                               fontWeight: FontWeight.w500,
                             ),
@@ -182,21 +180,19 @@ class _ComandaCard extends StatelessWidget {
                         const Spacer(),
                       _ElapsedBadge(minutes: oldest),
                       const SizedBox(width: 4),
-                      Icon(
+                      const Icon(
                         Icons.chevron_right_rounded,
                         size: 20,
-                        color: isDark
-                            ? AppColors.darkOnSurfaceVariant
-                            : AppColors.lightOnSurfaceVariant,
+                        color: AppColors.inkSecondary,
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-            Divider(
-              color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-              height: 24,
+            const Divider(
+              color: AppColors.paperBorder,
+              height: 20,
             ),
 
             // ── Líneas de la comanda ───────────────────────────────
@@ -207,12 +203,12 @@ class _ComandaCard extends StatelessWidget {
                 onDelivered: () => onDelivered(radarItem.item.id),
               ),
 
-            Divider(
-              color: isDark ? AppColors.darkOutline : AppColors.lightOutline,
-              height: 24,
+            const Divider(
+              color: AppColors.paperBorder,
+              height: 20,
             ),
 
-            // ── Entregar todo (botón estándar) ─────────────────────
+            // ── Entregar todo (botón estándar 52px, 14px radius) ───
             FilledButton.icon(
               onPressed: () {
                 HapticFeedback.heavyImpact();
@@ -220,11 +216,12 @@ class _ComandaCard extends StatelessWidget {
               },
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.statusGreen,
-                foregroundColor: const Color(0xFF121212),
-                minimumSize: const Size.fromHeight(52),
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.buttonRadius),
                 ),
+                elevation: 0,
               ),
               icon: const Icon(Icons.done_all_rounded, size: 20),
               label: const Text(
@@ -263,19 +260,18 @@ class _ComandaLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Dismissible(
       key: ValueKey('dismiss_${item.id}'),
       direction: DismissDirection.startToEnd,
       confirmDismiss: (_) async {
+        HapticFeedback.mediumImpact();
         onDelivered();
         return false; // el stream refresca la lista; no removemos localmente
       },
       background: Container(
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 12),
-        color: AppColors.statusGreen.withOpacity(0.25),
+        color: AppColors.statusGreen.withValues(alpha: 0.2),
         child: const Icon(Icons.done_rounded, color: AppColors.statusGreen),
       ),
       child: Padding(
@@ -301,11 +297,9 @@ class _ComandaLine extends StatelessWidget {
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 15,
-                        color: isDark
-                            ? AppColors.darkOnSurface
-                            : AppColors.lightOnSurface,
+                        color: AppColors.ink,
                       ),
                       children: [
                         TextSpan(
@@ -324,13 +318,11 @@ class _ComandaLine extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         '↳ ${item.note}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
                           fontStyle: FontStyle.italic,
                           fontWeight: FontWeight.w500,
-                          color: isDark
-                              ? AppColors.primaryLight
-                              : AppColors.primaryDark,
+                          color: AppColors.primaryDark,
                         ),
                       ),
                     ),
@@ -339,13 +331,16 @@ class _ComandaLine extends StatelessWidget {
             ),
             // Entregar esta línea
             IconButton(
-              onPressed: onDelivered,
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                onDelivered();
+              },
               visualDensity: VisualDensity.compact,
               tooltip: 'Entregado',
               icon: const Icon(
                 Icons.check_circle_outline_rounded,
                 color: AppColors.statusGreen,
-                size: 22,
+                size: 24,
               ),
             ),
           ],
@@ -370,9 +365,9 @@ class _ElapsedBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.14),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
       ),
       child: Text(
         minutes < 1 ? 'ahora' : 'hace ${minutes}m',

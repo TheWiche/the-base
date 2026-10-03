@@ -300,16 +300,14 @@ class _AppShell extends ConsumerWidget {
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,
         systemNavigationBarContrastEnforced: false,
-        systemNavigationBarIconBrightness:
-            isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarIconBrightness: Brightness.dark,
         statusBarColor:
             hasPending ? const Color(0xFFE65100) : Colors.transparent,
         statusBarIconBrightness:
-            hasPending ? Brightness.light : (isDark ? Brightness.light : Brightness.dark),
+            hasPending ? Brightness.light : Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor:
-            isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        backgroundColor: AppColors.paperBackground,
         body: Column(
           children: [
             const GlobalPendingTransfersBanner(),
@@ -365,17 +363,26 @@ class _NavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset   = MediaQuery.of(context).viewPadding.bottom;
-    final bg            = isDark ? AppColors.darkBackground : AppColors.lightBackground;
-    final inactiveColor = isDark ? AppColors.darkOnSurfaceVariant : AppColors.lightOnSurfaceVariant;
-    final dividerColor  = isDark ? AppColors.darkOutline : AppColors.lightOutline;
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    const bg = AppColors.paperBackground;
+    const inactiveColor = AppColors.inkSecondary;
+    const dividerColor = AppColors.paperBorder;
 
-    return ColoredBox(
-      color: bg,
+    return Container(
+      decoration: BoxDecoration(
+        color: bg,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Divider(height: 1, thickness: 1, color: dividerColor),
+          const Divider(height: 1, thickness: 1, color: dividerColor),
           SizedBox(
             height: 64,
             child: Row(
