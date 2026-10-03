@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/animated_amount.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../base_management/domain/entities/wallet_summary.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
