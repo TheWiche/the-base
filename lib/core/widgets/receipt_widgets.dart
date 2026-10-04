@@ -15,7 +15,7 @@ class DashedDivider extends StatelessWidget {
     this.padding = const EdgeInsets.symmetric(vertical: 8),
   });
 
-  final Color? color;
+  final Color color;
   final double dashWidth;
   final double dashGap;
   final double thickness;
@@ -49,7 +49,7 @@ class _DashedLinePainter extends CustomPainter {
     required this.thickness,
   });
 
-  final Color? color;
+  final Color color;
   final double dashWidth;
   final double dashGap;
   final double thickness;
@@ -206,5 +206,7 @@ class PillToggle extends StatelessWidget {
     );
   }
 }
+
+
 
 
