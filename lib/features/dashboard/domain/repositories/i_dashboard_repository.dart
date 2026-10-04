@@ -24,4 +24,7 @@ abstract interface class IDashboardRepository {
   /// wallet summary updates automatically, injecting the legalized amount into
   /// the waiter's Available Balance without any manual refresh.
   Future<Result<void>> legalizeTransfer(int receiptId);
+
+  Stream<int> watchVerifiedLiquorPaymentsTotal();
 }
+
