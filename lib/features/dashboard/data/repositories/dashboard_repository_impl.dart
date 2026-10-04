@@ -1,3 +1,4 @@
+import 'dart:async' as dart_async;
 import 'package:isar/isar.dart';
 
 import '../../../../core/database/isar_service.dart';
@@ -51,6 +52,58 @@ final class DashboardRepositoryImpl implements IDashboardRepository {
           .findAll();
       return models.fold<int>(0, (sum, item) => sum + item.price * item.quantity);
     });
+  }
+
+  @override
+  @override
+  Stream<int> watchVerifiedLiquorPaymentsTotal() {
+    late dart_async.StreamController<int> controller;
+    dart_async.StreamSubscription? ordersSub;
+    dart_async.StreamSubscription? receiptsSub;
+
+    void update() async {
+      final paidLiquorItems = await _db.orderItems
+          .filter()
+          .categoryEqualTo(ProductCategory.liquor)
+          .isPaidEqualTo(true)
+          .findAll();
+
+      int total = 0;
+      for (final item in paidLiquorItems) {
+        final tableReceipts = await _db.paymentReceipts
+            .filter()
+            .tableSessionIdEqualTo(item.tableSessionId)
+            .findAll();
+
+        bool hasVerifiedPayment = false;
+        for (final receipt in tableReceipts) {
+          if (receipt.paymentMethod == PaymentMethod.cash ||
+              (receipt.paymentMethod == PaymentMethod.transfer && receipt.isLegalizedInCaja)) {
+            hasVerifiedPayment = true;
+            break;
+          }
+        }
+
+        if (hasVerifiedPayment) {
+          total += (item.price * item.quantity);
+        }
+      }
+      if (!controller.isClosed) controller.add(total);
+    }
+
+    controller = dart_async.StreamController<int>(
+      onListen: () {
+        ordersSub = _db.orderItems.watchLazy(fireImmediately: true).listen((_) => update());
+        receiptsSub = _db.paymentReceipts.watchLazy(fireImmediately: true).listen((_) => update());
+      },
+      onCancel: () {
+        ordersSub?.cancel();
+        receiptsSub?.cancel();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
   }
 
   @override
@@ -116,3 +169,5 @@ final class DashboardRepositoryImpl implements IDashboardRepository {
         paidAt: m.paidAt,
       );
 }
+
+

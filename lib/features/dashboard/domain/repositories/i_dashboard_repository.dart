@@ -25,3 +25,4 @@ abstract interface class IDashboardRepository {
   /// the waiter's Available Balance without any manual refresh.
   Future<Result<void>> legalizeTransfer(int receiptId);
 }
+
