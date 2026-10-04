@@ -340,7 +340,7 @@ class _PreviewBody extends StatelessWidget {
                 quarterTurns: rotationTurns,
                 child: Image.file(
                   File(photo.path),
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain, // Changed from cover to contain
                 ),
               ),
             ),
@@ -388,7 +388,7 @@ class _PreviewBody extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'Comprobante de Transferencia · ${billSubtotal.toCop}',
+                        'Comprobante por ${billSubtotal.toCop}',
                         style: AppTextStyles.bodyLarge.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,

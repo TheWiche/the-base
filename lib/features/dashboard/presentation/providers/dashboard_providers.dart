@@ -77,15 +77,22 @@ final cashPaymentsTotalProvider = StreamProvider<int>((ref) {
   return ref.read(dashboardRepositoryProvider).watchCashPaymentsTotal();
 });
 
-// ── Enriched wallet summary ────────────────────────────────────────────────────
+/// Running sum of liquor items paid via cash or legalized transfer.
+/// Feeds [WalletSummary.verifiedLiquorPaymentsTotal] to offset Available Balance.
+final verifiedLiquorPaymentsTotalProvider = StreamProvider<int>((ref) {
+  return ref.read(dashboardRepositoryProvider).watchVerifiedLiquorPaymentsTotal();
+});
+
+// ── Enriched wallet summary ──────────────────────────────────────────────────
 
 /// The complete [WalletSummary] with all cross-feature integrations applied.
 ///
 /// Derives from [baseWalletProvider] and injects:
-///   • [verifiedTransfersTotal]  → fills [WalletSummary.verifiedTransfersTotal]
-///   • [cashPaymentsTotal]       → fills [WalletSummary.cashPaymentsTotal]
-///   • [transferTipsTotal]       → fills [WalletSummary.transferTipsTotal]
-///   • [servedStandardItemsTotal]→ fills [WalletSummary.servedStandardItemsTotal]
+///   • [verifiedTransfersTotal]      → fills [WalletSummary.verifiedTransfersTotal]
+///   • [cashPaymentsTotal]           → fills [WalletSummary.cashPaymentsTotal]
+///   • [transferTipsTotal]           → fills [WalletSummary.transferTipsTotal]
+///   • [servedStandardItemsTotal]    → fills [WalletSummary.servedStandardItemsTotal]
+///   • [verifiedLiquorPaymentsTotal] → fills [WalletSummary.verifiedLiquorPaymentsTotal]
 ///
 /// [BaseWalletScreen] should watch this provider instead of [baseWalletProvider]
 /// so the Available Balance and Net Profit reflect real-time payment data.
@@ -107,6 +114,8 @@ final enrichedWalletSummaryProvider =
   final servedTotal = servedAsync.valueOrNull ?? 0;
   final cashAsync = ref.watch(cashPaymentsTotalProvider);
   final cashTotal = cashAsync.valueOrNull ?? 0;
+  final liquorAsync = ref.watch(verifiedLiquorPaymentsTotalProvider);
+  final liquorTotal = liquorAsync.valueOrNull ?? 0;
 
   return baseAsync.whenData(
     (base) => base.copyWith(
@@ -114,6 +123,7 @@ final enrichedWalletSummaryProvider =
       cashPaymentsTotal: cashTotal,
       transferTipsTotal: tipsTotal,
       servedStandardItemsTotal: servedTotal,
+      verifiedLiquorPaymentsTotal: liquorTotal,
     ),
   );
 });

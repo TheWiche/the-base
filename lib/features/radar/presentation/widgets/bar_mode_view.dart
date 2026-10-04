@@ -88,7 +88,7 @@ class _BarBatchCard extends StatelessWidget {
     final cardBg = Theme.of(context).colorScheme.surface;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimensions.space16),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Container(
         decoration: BoxDecoration(
           color: cardBg,
@@ -111,7 +111,7 @@ class _BarBatchCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           child: Container(
             color: urgencyBgTint,
-            padding: const EdgeInsets.all(AppDimensions.space16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -121,10 +121,7 @@ class _BarBatchCard extends StatelessWidget {
                   children: [
                     // Badge numérico grande y destacado para lectura a distancia
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimensions.space12,
-                        vertical: AppDimensions.space6,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         borderRadius:
@@ -140,7 +137,7 @@ class _BarBatchCard extends StatelessWidget {
                       child: Text(
                         '[${batch.totalQuantity}x]',
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
                           letterSpacing: -0.5,
@@ -221,8 +218,7 @@ class _BarBatchCard extends StatelessWidget {
                 const SizedBox(height: AppDimensions.space8),
 
                 Wrap(
-                  spacing: AppDimensions.space8,
-                  runSpacing: AppDimensions.space8,
+                  spacing: 6, runSpacing: 6,
                   children: [
                     for (final subBatch in batch.tableDestinations)
                       _TableDestinationChip(
@@ -246,7 +242,7 @@ class _BarBatchCard extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.statusGreen,
                     foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(AppDimensions.buttonHeightMd),
+                    minimumSize: const Size.fromHeight(40),
                     shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(AppDimensions.buttonRadius),
@@ -420,3 +416,4 @@ class _EmptyBarMode extends StatelessWidget {
     );
   }
 }
+

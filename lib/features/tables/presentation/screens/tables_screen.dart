@@ -18,6 +18,26 @@ import '../../../payments/presentation/providers/payment_providers.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../domain/entities/table_session_entity.dart';
 import '../widgets/new_table_dialog.dart';
+import '../../../../core/theme/theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const String _kTablesLayoutKey = 'thebase_tables_list_mode';
+
+final tablesListModeProvider = StateNotifierProvider<TablesListModeNotifier, bool>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return TablesListModeNotifier(prefs);
+});
+
+class TablesListModeNotifier extends StateNotifier<bool> {
+  TablesListModeNotifier(this._prefs) : super(_prefs.getBool(_kTablesLayoutKey) ?? false);
+  final SharedPreferences _prefs;
+
+  void toggle() {
+    state = !state;
+    _prefs.setBool(_kTablesLayoutKey, state);
+  }
+}
+
 
 enum _TableFilter { all, open, partiallyPaid }
 
@@ -79,6 +99,20 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
       appBar: AppBar(
         title: Text('Mesas', style: AppTextStyles.headlineSmall),
         actions: [
+          Consumer(
+            builder: (context, ref, child) {
+              final isList = ref.watch(tablesListModeProvider);
+              return IconButton(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  ref.read(tablesListModeProvider.notifier).toggle();
+                },
+                tooltip: isList ? 'Cambiar a cuadrícula' : 'Cambiar a lista',
+                icon: Icon(isList ? Icons.grid_view_rounded : Icons.view_list_rounded),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              );
+            },
+          ),
           IconButton(
             onPressed: () => context.push('/tables/historial'),
             tooltip: 'Historial de mesas',
@@ -370,7 +404,7 @@ class _EmptyFilterState extends StatelessWidget {
 
 // ── Sessions grid (with staggered entrance) ───────────────────────────────────
 
-class _SessionsGrid extends StatefulWidget {
+class _SessionsGrid extends ConsumerStatefulWidget {
   const _SessionsGrid({
     required this.sessions,
     required this.onTap,
@@ -382,10 +416,10 @@ class _SessionsGrid extends StatefulWidget {
   final void Function(TableSessionEntity)? onLongPress;
 
   @override
-  State<_SessionsGrid> createState() => _SessionsGridState();
+  ConsumerState<_SessionsGrid> createState() => _SessionsGridState();
 }
 
-class _SessionsGridState extends State<_SessionsGrid>
+class _SessionsGridState extends ConsumerState<_SessionsGrid>
     with SingleTickerProviderStateMixin {
   static bool _hasPlayed = false;
 
@@ -415,6 +449,8 @@ class _SessionsGridState extends State<_SessionsGrid>
 
   @override
   Widget build(BuildContext context) {
+    final isList = ref.watch(tablesListModeProvider);
+    
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(
         AppDimensions.pagePaddingH,
@@ -422,11 +458,11 @@ class _SessionsGridState extends State<_SessionsGrid>
         AppDimensions.pagePaddingH,
         AppDimensions.space64 + AppDimensions.pagePaddingH,
       ),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: isList ? 1 : 2,
         crossAxisSpacing: AppDimensions.space12,
         mainAxisSpacing: AppDimensions.space12,
-        mainAxisExtent: 124,
+        mainAxisExtent: isList ? 84 : 124,
       ),
       itemCount: widget.sessions.length,
       itemBuilder: (_, i) {
@@ -436,6 +472,7 @@ class _SessionsGridState extends State<_SessionsGrid>
           child: _TableCard(
             key: ValueKey(widget.sessions[i].id),
             session: widget.sessions[i],
+            isListMode: isList,
             onTap: () => widget.onTap(widget.sessions[i]),
             onLongPress: widget.onLongPress != null
                 ? () => widget.onLongPress!(widget.sessions[i])
@@ -453,11 +490,13 @@ class _TableCard extends ConsumerWidget {
   const _TableCard({
     super.key,
     required this.session,
+    required this.isListMode,
     required this.onTap,
     this.onLongPress,
   });
 
   final TableSessionEntity session;
+  final bool isListMode;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
@@ -735,4 +774,5 @@ class _NoShiftEmptyState extends StatelessWidget {
     );
   }
 }
+
 

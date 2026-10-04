@@ -326,23 +326,29 @@ class _PendingReceiptTile extends StatelessWidget {
               if (method != null) ...[
                 Icon(method.displayIcon, color: methodColor, size: 16),
                 const SizedBox(width: 4),
-                Text(
-                  method.displayLabel.toUpperCase(),
-                  style: AppTextStyles.receiptSmall.copyWith(
-                    color: methodColor,
-                    fontWeight: FontWeight.bold,
+                Flexible(
+                  child: Text(
+                    method.displayLabel.toUpperCase(),
+                    style: AppTextStyles.receiptSmall.copyWith(
+                      color: methodColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
               ],
               Expanded(
+                flex: 2,
                 child: Text(
                   tableName,
                   style: AppTextStyles.labelMedium.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 4),
               Text(
                 _formatTime(receipt.paidAt),
                 style: AppTextStyles.mono.copyWith(
@@ -400,11 +406,15 @@ class _PendingReceiptTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      receipt.amountPaid.toCop,
-                      style: AppTextStyles.headlineSmall.copyWith(
-                        color: const Color(0xFFE65100),
-                        fontWeight: FontWeight.w900,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        receipt.amountPaid.toCop,
+                        style: AppTextStyles.headlineSmall.copyWith(
+                          color: const Color(0xFFE65100),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     if (receipt.tipAmount > 0)

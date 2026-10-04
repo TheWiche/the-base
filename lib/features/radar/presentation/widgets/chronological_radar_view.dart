@@ -73,7 +73,7 @@ class _ChronologicalItemCard extends StatelessWidget {
     final cardBg = Theme.of(context).colorScheme.surface;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimensions.space10),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Dismissible(
         key: ValueKey('dismiss_chrono_${item.id}'),
         direction: DismissDirection.startToEnd,
@@ -125,14 +125,14 @@ class _ChronologicalItemCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimensions.space16,
-              vertical: AppDimensions.space12,
+              vertical: 8,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // ── Badge de tiempo transcurrido ────────────────────────────
                 Container(
-                  width: 50,
+                  width: 44,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                   decoration: BoxDecoration(
@@ -145,7 +145,7 @@ class _ChronologicalItemCard extends StatelessWidget {
                     '${item.elapsedMinutes}m',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       fontWeight: FontWeight.w900,
                       color: urgencyColor,
                     ),
@@ -250,7 +250,7 @@ class _ChronologicalItemCard extends StatelessWidget {
                   tooltip: 'Marcar entregado',
                   icon: const Icon(
                     Icons.check_circle_outline_rounded,
-                    size: 28,
+                    size: 24,
                     color: AppColors.statusGreen,
                   ),
                 ),
@@ -298,3 +298,4 @@ class _EmptyChronologicalRadar extends StatelessWidget {
     );
   }
 }
+
