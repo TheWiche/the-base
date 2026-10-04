@@ -26,7 +26,7 @@ enum TransferMethod {
   other;
 
   String get displayLabel => switch (this) {
-        TransferMethod.nequi => 'Nequi',
+        TransferMethod.nequi => 'Transferencia',
         TransferMethod.daviplata => 'Daviplata',
         TransferMethod.other => 'Otro',
       };

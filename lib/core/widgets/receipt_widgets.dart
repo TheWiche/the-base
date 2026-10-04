@@ -56,7 +56,7 @@ class _DashedLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color
+      ..color = color ?? const Color(0xFF000000)
       ..strokeWidth = thickness
       ..strokeCap = StrokeCap.round;
     double x = 0;

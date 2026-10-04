@@ -39,7 +39,7 @@ class MasterTicketView extends StatelessWidget {
     final Color dividerColor = isDark ? Colors.white24 : Colors.black26;
 
     // Fondo del tiquete según el tema
-    final Color ticketBgColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFFFFDF9);
+    final Color ticketBgColor = isDark ? const Color(0xFF15171E) : const Color(0xFFFDFBF7);
 
     final ticketTheme = baseTheme.copyWith(
       scaffoldBackgroundColor: ticketBgColor,

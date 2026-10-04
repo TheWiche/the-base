@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -1006,27 +1006,26 @@ class _PaymentMethodSheet extends StatelessWidget {
             _MethodTile(
               icon: Icons.payments_rounded,
               label: 'Efectivo',
-              description: 'Calcula el vuelto automáticamente.',
-              color: AppColors.statusGreen,
-              onTap: () => onSelected(PaymentMethod.cash),
+              description: isGeneralAdvance ? 'Selecciona productos para usar este método' : 'Calcula el vuelto automáticamente.',
+              color: isGeneralAdvance ? Colors.grey : AppColors.statusGreen,
+              onTap: isGeneralAdvance ? () { Navigator.of(context).pop(); AppToast.error(context, 'Debes seleccionar al menos un producto para pagar en efectivo.'); } : () => onSelected(PaymentMethod.cash),
             ),
             const SizedBox(height: AppDimensions.space12),
             _MethodTile(
               icon: Icons.smartphone_rounded,
               label: 'Transferencia',
-              description: 'Foto del comprobante y listo.',
-              color: AppColors.statusBlue,
-              onTap: () => onSelected(PaymentMethod.transfer),
+              description: isGeneralAdvance ? 'Selecciona productos para usar este método' : 'Foto del comprobante y listo.',
+              color: isGeneralAdvance ? Colors.grey : AppColors.statusBlue,
+              onTap: isGeneralAdvance ? () { Navigator.of(context).pop(); AppToast.error(context, 'Debes seleccionar al menos un producto para pagar por transferencia.'); } : () => onSelected(PaymentMethod.transfer),
             ),
             if (onExact != null) ...[
               const SizedBox(height: AppDimensions.space12),
               _MethodTile(
                 icon: Icons.check_circle_rounded,
                 label: 'Pago exacto',
-                description:
-                    'Registra ${subtotal.toCop} en efectivo, sin escribir monto.',
-                color: AppColors.primary,
-                onTap: onExact!,
+                description: isGeneralAdvance ? 'Selecciona productos para usar este método' : 'Registra ${subtotal.toCop} en efectivo, sin escribir monto.',
+                color: isGeneralAdvance ? Colors.grey : AppColors.primary,
+                onTap: isGeneralAdvance ? () { Navigator.of(context).pop(); AppToast.error(context, 'Debes seleccionar al menos un producto para usar el pago exacto.'); } : onExact!,
               ),
             ],
           ],
@@ -1148,4 +1147,7 @@ class _ErrorBody extends StatelessWidget {
     );
   }
 }
+
+
+
 

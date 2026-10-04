@@ -198,7 +198,7 @@ class ReceiptChronological extends StatelessWidget {
               name: it.productName,
               total: it.lineTotal,
               note: it.note,
-              statusColor: _statusColor(it),
+              statusColor: _statusColor(context, it),
               onLongPress: onLongPressItem == null
                   ? null
                   : () => onLongPressItem!(it),
@@ -471,7 +471,7 @@ class _FooterRow extends StatelessWidget {
 
 // ── Utilidad de estado ─────────────────────────────────────────────────────────
 
-Color? _statusColor(OrderItemEntity it) {
+Color? _statusColor(BuildContext context, OrderItemEntity it) {
   if (it.isPaid) return AppColors.secondary;      // pagado
   if (it.isActive) return AppColors.statusOrange; // pendiente en cocina
   return AppColors.statusBlue;                     // entregado sin pagar

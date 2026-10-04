@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 /// Papel de tiquete crema con bordes superior e inferior en zigzag (efecto
-/// "papel térmico rasgado") y una sombra suave. El [child] se dibuja encima
+/// "papel tǸrmico rasgado") y una sombra suave. El [child] se dibuja encima
 /// del papel con un padding que respeta los dientes del zigzag.
 ///
 /// Se usa como contenedor de las facturas / historial de mesa en toda la app.
@@ -29,17 +29,16 @@ class ReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // RepaintBoundary: cachea el papel como raster — sin esto, cada frame de
-    // scroll repinta el zigzag de todas las tarjetas (jank en 120 Hz).
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return RepaintBoundary(
       child: CustomPaint(
         painter: _ReceiptPainter(
           color: color,
           toothHeight: toothHeight,
           toothWidth: toothWidth,
+          isDark: isDark,
         ),
         child: Padding(
-          // El contenido se separa de los dientes arriba y abajo.
           padding: padding.add(
             EdgeInsets.symmetric(vertical: toothHeight + 8),
           ),
@@ -50,8 +49,8 @@ class ReceiptPaper extends StatelessWidget {
   }
 }
 
-/// Talón de tiquete compacto: papel crema con borde superior recto (redondeado
-/// leve) y zigzag SOLO abajo — como un tiquete arrancado del talonario.
+/// Taln de tiquete compacto: papel crema con borde superior recto (redondeado
+/// leve) y zigzag SOLO abajo ?" como un tiquete arrancado del talonario.
 /// Usado por las tarjetas de mesa y otras vistas compactas.
 class ReceiptStub extends StatelessWidget {
   const ReceiptStub({
@@ -76,16 +75,7 @@ class ReceiptStub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final useDarkTicket = isDark && color == AppColors.paper;
-    final effectiveColor = useDarkTicket ? const Color(0xFF252628) : color;
-    
-    final theme = Theme.of(context);
-    final paperTheme = theme.copyWith(
-      colorScheme: theme.colorScheme.copyWith(
-        onSurface: useDarkTicket ? Colors.white : AppColors.ink,
-        onSurfaceVariant: useDarkTicket ? const Color(0xFFA0A0A5) : AppColors.inkSecondary,
-      ),
-    );
+    final effectiveColor = (isDark && color == AppColors.paper) ? const Color(0xFF252628) : color;
 
     final stub = RepaintBoundary(
       child: CustomPaint(
@@ -93,16 +83,11 @@ class ReceiptStub extends StatelessWidget {
           color: effectiveColor,
           toothHeight: toothHeight,
           toothWidth: toothWidth,
+          isDark: isDark,
         ),
-        child: Theme(
-          data: paperTheme,
-          child: DefaultTextStyle.merge(
-            style: TextStyle(color: paperTheme.colorScheme.onSurface),
-            child: Padding(
-              padding: padding.add(EdgeInsets.only(bottom: toothHeight + 4)),
-              child: child,
-            ),
-          ),
+        child: Padding(
+          padding: padding.add(EdgeInsets.only(bottom: toothHeight + 4)),
+          child: child,
         ),
       ),
     );
@@ -121,11 +106,13 @@ class _StubPainter extends CustomPainter {
     required this.color,
     required this.toothHeight,
     required this.toothWidth,
+    this.isDark = false,
   });
 
   final Color color;
   final double toothHeight;
   final double toothWidth;
+  final bool isDark;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -142,7 +129,7 @@ class _StubPainter extends CustomPainter {
       ..lineTo(w - r, 0)
       ..quadraticBezierTo(w, 0, w, r)
       ..lineTo(w, h - toothHeight);
-    // Zigzag inferior (derecha → izquierda).
+    // Zigzag inferior (derecha ' izquierda).
     for (var i = teeth - 1; i >= 0; i--) {
       path.lineTo(step * i + step / 2, h);
       path.lineTo(step * i, h - toothHeight);
@@ -151,13 +138,13 @@ class _StubPainter extends CustomPainter {
 
     canvas.drawPath(
       path.shift(const Offset(0, 2)),
-      Paint()..color = const Color(0x142D2A26),
+      Paint()..color = isDark ? const Color(0x11FFFFFF) : const Color(0x142D2A26),
     );
     canvas.drawPath(path, Paint()..color = color);
     canvas.drawPath(
       path,
       Paint()
-        ..color = AppColors.paperBorder
+        ..color = isDark ? const Color(0x22FFFFFF) : AppColors.paperBorder
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0,
     );
@@ -167,7 +154,8 @@ class _StubPainter extends CustomPainter {
   bool shouldRepaint(_StubPainter old) =>
       old.color != color ||
       old.toothHeight != toothHeight ||
-      old.toothWidth != toothWidth;
+      old.toothWidth != toothWidth ||
+      old.isDark != isDark;
 }
 
 class _ReceiptPainter extends CustomPainter {
@@ -175,11 +163,13 @@ class _ReceiptPainter extends CustomPainter {
     required this.color,
     required this.toothHeight,
     required this.toothWidth,
+    this.isDark = false,
   });
 
   final Color color;
   final double toothHeight;
   final double toothWidth;
+  final bool isDark;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -187,14 +177,14 @@ class _ReceiptPainter extends CustomPainter {
 
     canvas.drawPath(
       path.shift(const Offset(0, 2)),
-      Paint()..color = const Color(0x142D2A26),
+      Paint()..color = isDark ? const Color(0x11FFFFFF) : const Color(0x142D2A26),
     );
 
     canvas.drawPath(path, Paint()..color = color);
     canvas.drawPath(
       path,
       Paint()
-        ..color = AppColors.paperBorder
+        ..color = isDark ? const Color(0x22FFFFFF) : AppColors.paperBorder
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0,
     );
@@ -209,7 +199,7 @@ class _ReceiptPainter extends CustomPainter {
     final teeth = (w / toothWidth).floor().clamp(1, 400);
     final step = w / teeth;
 
-    // ── Borde superior (zigzag de izquierda a derecha) ──
+    // "?"? Borde superior (zigzag de izquierda a derecha) "?"?
     path.moveTo(0, toothHeight);
     for (var i = 0; i < teeth; i++) {
       final x1 = step * i + step / 2;
@@ -218,10 +208,10 @@ class _ReceiptPainter extends CustomPainter {
       path.lineTo(x2, toothHeight);
     }
 
-    // ── Lado derecho ──
+    // "?"? Lado derecho "?"?
     path.lineTo(w, h - toothHeight);
 
-    // ── Borde inferior (zigzag de derecha a izquierda) ──
+    // "?"? Borde inferior (zigzag de derecha a izquierda) "?"?
     for (var i = teeth - 1; i >= 0; i--) {
       final x1 = step * i + step / 2;
       final x2 = step * i;
@@ -229,7 +219,7 @@ class _ReceiptPainter extends CustomPainter {
       path.lineTo(x2, h - toothHeight);
     }
 
-    // ── Lado izquierdo ──
+    // "?"? Lado izquierdo "?"?
     path.close();
     return path;
   }
@@ -238,5 +228,6 @@ class _ReceiptPainter extends CustomPainter {
   bool shouldRepaint(_ReceiptPainter old) =>
       old.color != color ||
       old.toothHeight != toothHeight ||
-      old.toothWidth != toothWidth;
+      old.toothWidth != toothWidth ||
+      old.isDark != isDark;
 }

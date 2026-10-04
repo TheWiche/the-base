@@ -62,7 +62,7 @@ abstract final class AppStrings {
 
   // ── Transfer / Camera ──────────────────────────────────────────────
   static const String transferTitle = 'Transferencia';
-  static const String transferNequi = 'Nequi';
+  static const String transferNequi = 'Transferencia';
   static const String transferDaviplata = 'Daviplata';
   static const String transferOther = 'Otro';
   static const String transferPhotoPrompt = 'Toma la foto del comprobante';

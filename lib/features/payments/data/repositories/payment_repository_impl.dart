@@ -309,7 +309,7 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
         ..paymentMethod = PaymentMethod.transfer
         ..transferMethodIndex = transferMethod.index
         ..photoPath = destPath
-        ..isLegalizedInCaja = true
+        ..isLegalizedInCaja = false
         ..paidAt = now
         ..verificationCode = verificationCode
         ..isGeneralAdvance = false
