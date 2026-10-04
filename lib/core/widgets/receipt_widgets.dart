@@ -15,7 +15,7 @@ class DashedDivider extends StatelessWidget {
     this.padding = const EdgeInsets.symmetric(vertical: 8),
   });
 
-  final Color color;
+  final Color? color;
   final double dashWidth;
   final double dashGap;
   final double thickness;
@@ -49,7 +49,7 @@ class _DashedLinePainter extends CustomPainter {
     required this.thickness,
   });
 
-  final Color color;
+  final Color? color;
   final double dashWidth;
   final double dashGap;
   final double thickness;
@@ -85,6 +85,7 @@ class ReceiptRow extends StatelessWidget {
     required this.value,
     this.bold = false,
     this.color,
+
     this.labelMaxLines = 2,
   });
 
@@ -96,9 +97,7 @@ class ReceiptRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Si no proveen color, tomamos el default del Theme (que inyecta ReceiptPaper) o AppColors.paperInk.
     final effectiveColor = color ?? Theme.of(context).colorScheme.onSurface;
-    
     final style = (bold ? AppTextStyles.receiptBodyBold : AppTextStyles.receiptBody)
         .copyWith(color: effectiveColor);
     return Row(
@@ -114,6 +113,8 @@ class ReceiptRow extends StatelessWidget {
   }
 }
 
+/// Segmentado tipo píldora (Cronológica / Agrupada). Píldora ámbar animada
+/// sobre pista oscura.
 class PillToggle extends StatelessWidget {
   const PillToggle({
     super.key,
@@ -130,8 +131,12 @@ class PillToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const track = Color(0xFFEFE9DC); // Papel crema cálido
-    const inactive = AppColors.inkSecondary;
+    final _isDark = Theme.of(context).brightness == Brightness.dark;
+      final track = _isDark ? const Color(0xFF1C1D1F) : const Color(0xFFEFE9DC);
+      final inactive = _isDark ? const Color(0xFF9CA3AF) : AppColors.inkSecondary;
+      final activeBg = _isDark ? const Color(0xFFD97706) : AppColors.primary;
+      final activeShadow = activeBg.withValues(alpha: 0.28);
+      final borderColor = _isDark ? const Color(0xFF2A2B2E) : AppColors.paperBorder;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -204,6 +209,3 @@ class PillToggle extends StatelessWidget {
     );
   }
 }
-
-
-

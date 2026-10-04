@@ -535,4 +535,3 @@ class _EmptyTabBody extends StatelessWidget {
     );
   }
 }
-

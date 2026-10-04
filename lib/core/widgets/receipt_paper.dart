@@ -29,6 +29,52 @@ class ReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // RepaintBoundary: cachea el papel como raster — sin esto, cada frame de
+    // scroll repinta el zigzag de todas las tarjetas (jank en 120 Hz).
+    return RepaintBoundary(
+      child: CustomPaint(
+        painter: _ReceiptPainter(
+          color: color,
+          toothHeight: toothHeight,
+          toothWidth: toothWidth,
+        ),
+        child: Padding(
+          // El contenido se separa de los dientes arriba y abajo.
+          padding: padding.add(
+            EdgeInsets.symmetric(vertical: toothHeight + 8),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// Talón de tiquete compacto: papel crema con borde superior recto (redondeado
+/// leve) y zigzag SOLO abajo — como un tiquete arrancado del talonario.
+/// Usado por las tarjetas de mesa y otras vistas compactas.
+class ReceiptStub extends StatelessWidget {
+  const ReceiptStub({
+    super.key,
+    required this.child,
+    this.color = AppColors.paper,
+    this.padding = const EdgeInsets.fromLTRB(12, 12, 12, 8),
+    this.toothHeight = 7,
+    this.toothWidth = 14,
+    this.onTap,
+    this.onLongPress,
+  });
+
+  final Widget child;
+  final Color color;
+  final EdgeInsets padding;
+  final double toothHeight;
+  final double toothWidth;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final useDarkTicket = isDark && color == AppColors.paper;
     final effectiveColor = useDarkTicket ? const Color(0xFF252628) : color;
@@ -67,7 +113,8 @@ class ReceiptPaper extends StatelessWidget {
       onLongPress: onLongPress,
       child: stub,
     );
-  }}
+  }
+}
 
 class _StubPainter extends CustomPainter {
   _StubPainter({
@@ -193,5 +240,3 @@ class _ReceiptPainter extends CustomPainter {
       old.toothHeight != toothHeight ||
       old.toothWidth != toothWidth;
 }
-
-
