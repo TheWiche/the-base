@@ -85,7 +85,6 @@ class ReceiptRow extends StatelessWidget {
     required this.value,
     this.bold = false,
     this.color,
-
     this.labelMaxLines = 2,
   });
 
@@ -113,8 +112,6 @@ class ReceiptRow extends StatelessWidget {
   }
 }
 
-/// Segmentado tipo píldora (Cronológica / Agrupada). Píldora ámbar animada
-/// sobre pista oscura.
 class PillToggle extends StatelessWidget {
   const PillToggle({
     super.key,
@@ -209,3 +206,5 @@ class PillToggle extends StatelessWidget {
     );
   }
 }
+
+

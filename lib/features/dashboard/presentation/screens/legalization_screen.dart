@@ -454,8 +454,7 @@ class _VerificationCodeRow extends StatelessWidget {
             Clipboard.setData(ClipboardData(text: code));
             AppToast.info(context, 'Código $code copiado');
           },
-          child: const Icon(Icons.copy_rounded,
-              size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          child: Icon(Icons.copy_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -535,3 +534,4 @@ class _EmptyTabBody extends StatelessWidget {
     );
   }
 }
+
