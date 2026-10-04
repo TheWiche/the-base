@@ -30,6 +30,7 @@ class ShiftSnapshot {
   late int cashPaymentsTotal;
   late int servedStandardItemsTotal;
   late int transferTipsTotal;
+  int standaloneTransfersTotal = 0;
 
   // ── Cierre calculator output ──────────────────────────────────────────────
   late int cashInHand;

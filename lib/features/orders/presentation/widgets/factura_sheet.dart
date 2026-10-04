@@ -12,6 +12,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/widgets/master_ticket_view.dart';
 import '../../../../core/widgets/receipt_paper.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../tables/domain/entities/table_session_entity.dart';
@@ -83,7 +84,7 @@ class _FacturaSheetState extends ConsumerState<FacturaSheet> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: RepaintBoundary(
                   key: _boundaryKey,
-                  child: ReceiptPaper(
+                  child: MasterTicketView(
                     child: session == null
                         ? const SizedBox.shrink()
                         : _ReceiptContent(
@@ -290,3 +291,4 @@ class _ReceiptContent extends StatelessWidget {
     );
   }
 }
+

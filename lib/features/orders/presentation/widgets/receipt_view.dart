@@ -52,13 +52,13 @@ class ReceiptHeader extends StatelessWidget {
       children: [
         Text(
           barName.toUpperCase(),
-          style: AppTextStyles.receiptTitle.copyWith(color: AppColors.ink),
+          style: AppTextStyles.receiptTitle.copyWith(color: Theme.of(context).colorScheme.onSurface),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
         Text(
           sub,
-          style: AppTextStyles.receiptSmall.copyWith(color: AppColors.inkSecondary),
+          style: AppTextStyles.receiptSmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
       ],
@@ -110,14 +110,14 @@ class ReceiptItemLine extends StatelessWidget {
                 child: Text(
                   '${quantity}× $name',
                   style: AppTextStyles.receiptBody
-                      .copyWith(color: AppColors.ink),
+                      .copyWith(color: Theme.of(context).colorScheme.onSurface),
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 total.toCop,
                 style: AppTextStyles.receiptBodyBold
-                    .copyWith(color: AppColors.ink),
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface),
               ),
             ],
           ),
@@ -127,7 +127,7 @@ class ReceiptItemLine extends StatelessWidget {
               child: Text(
                 unitLabel!,
                 style: AppTextStyles.receiptSmall
-                    .copyWith(color: AppColors.inkSecondary),
+                    .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
           if (note != null && note!.isNotEmpty)
@@ -136,7 +136,7 @@ class ReceiptItemLine extends StatelessWidget {
               child: Text(
                 '↳ $note',
                 style: AppTextStyles.receiptSmall.copyWith(
-                  color: AppColors.inkSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -174,7 +174,7 @@ class ReceiptChronological extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Text(
           'Mesa vacía — agrega el primer ítem.',
-          style: AppTextStyles.receiptBody.copyWith(color: AppColors.inkSecondary),
+          style: AppTextStyles.receiptBody.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
       );
@@ -223,7 +223,7 @@ class ReceiptTimeHeader extends StatelessWidget {
           Text(
             label,
             style: AppTextStyles.receiptSmall.copyWith(
-              color: AppColors.inkSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -256,7 +256,7 @@ class ReceiptGrouped extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Text(
           'Mesa vacía.',
-          style: AppTextStyles.receiptBody.copyWith(color: AppColors.inkSecondary),
+          style: AppTextStyles.receiptBody.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
       );
@@ -359,7 +359,7 @@ class ReceiptCategoryHeader extends StatelessWidget {
         children: [
           Text(
             '${label.toUpperCase()} ($count)',
-            style: AppTextStyles.receiptBodyBold.copyWith(color: AppColors.ink),
+            style: AppTextStyles.receiptBodyBold.copyWith(color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(width: 8),
           const Expanded(
@@ -368,7 +368,7 @@ class ReceiptCategoryHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             subtotal.toCop,
-            style: AppTextStyles.receiptBodyBold.copyWith(color: AppColors.ink),
+            style: AppTextStyles.receiptBodyBold.copyWith(color: Theme.of(context).colorScheme.onSurface),
           ),
           if (collapsed != null) ...[
             const SizedBox(width: 4),
@@ -378,7 +378,7 @@ class ReceiptCategoryHeader extends StatelessWidget {
               child: Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 20,
-                color: AppColors.inkSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -424,13 +424,13 @@ class ReceiptFooter extends StatelessWidget {
             label: 'SALDO',
             value: saldo.toCop,
             bold: true,
-            color: saldo == 0 ? AppColors.secondaryDark : AppColors.ink,
+            color: saldo == 0 ? AppColors.secondaryDark : Theme.of(context).colorScheme.onSurface,
           ),
         if (showThanks) ...[
           const SizedBox(height: 12),
           Text(
             '¡gracias por venir!',
-            style: AppTextStyles.receiptSmall.copyWith(color: AppColors.inkSecondary),
+            style: AppTextStyles.receiptSmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ],
@@ -556,4 +556,5 @@ String buildReceiptText({
   }
   return b.toString();
 }
+
 

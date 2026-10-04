@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/widgets/master_ticket_view.dart';
 import '../../../../core/widgets/receipt_paper.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../payments/domain/entities/payment_receipt_entity.dart';
@@ -213,7 +214,7 @@ class _TransferReceiptCard extends StatelessWidget {
     final method = receipt.transferMethod;
     final methodColor = method?.displayColor ?? AppColors.statusBlue;
 
-    return ReceiptPaper(
+    return MasterTicketView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,4 +535,5 @@ class _EmptyTabBody extends StatelessWidget {
     );
   }
 }
+
 

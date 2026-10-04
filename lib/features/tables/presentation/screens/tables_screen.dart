@@ -558,18 +558,24 @@ class _TableCard extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _elapsedColor(context, session.openedAt).withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                      ),
-                      child: Text(
-                        elapsed,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: _elapsedColor(context, session.openedAt),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _elapsedColor(context, session.openedAt).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                          ),
+                          child: Text(
+                            elapsed,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _elapsedColor(context, session.openedAt),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -609,12 +615,17 @@ class _TableCard extends ConsumerWidget {
                             : AppColors.lightOnSurfaceVariant,
                       ),
                     ),
-                    Text(
-                      total.toCop,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: total > 0 ? AppColors.primary : AppColors.statusGreen,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          total.toCop,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: total > 0 ? AppColors.primary : AppColors.statusGreen,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -639,13 +650,19 @@ class _TableCard extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 5),
-                    Text(
-                      session.statusLabel.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.0,
-                        color: statusColor,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          session.statusLabel.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.0,
+                            color: statusColor,
+                          ),
+                        ),
                       ),
                     ),
                   ],

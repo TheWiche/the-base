@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/isar_service.dart';
 import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/settings/bar_settings_provider.dart';
 import '../../../../core/settings/financial_settings_provider.dart';
@@ -9,7 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/master_ticket_view.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 
 /// Pantalla de Ajustes — estilo tiquete: nombre del bar, base inicial y paso
@@ -30,7 +31,7 @@ class SettingsScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           // ── Ficha del negocio (papel) ──────────────────────────────
-          ReceiptPaper(
+          MasterTicketView(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -121,6 +122,30 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: 20),
+
+          // ── Mantenimiento y Caché ──────────────────────────────────
+          _SectionLabel('MANTENIMIENTO Y CACHÉ'),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.cleaning_services_rounded, color: AppColors.statusRed),
+                  title: Text(
+                    'Purgar historial y caché de pruebas',
+                    style: AppTextStyles.titleMedium.copyWith(color: AppColors.statusRed),
+                  ),
+                  subtitle: Text(
+                    'Elimina turnos antiguos y mesas de prueba en Isar dejando el historial en blanco.',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _confirmPurgeHistory(context),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 24),
           Center(
             child: Text(
@@ -206,6 +231,46 @@ class SettingsScreen extends ConsumerWidget {
     ctrl.dispose();
     if (result != null && result > 0) onSave(result);
   }
+
+  Future<void> _confirmPurgeHistory(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.delete_sweep_rounded,
+            color: AppColors.statusRed, size: 36),
+        title: const Text('¿Purgar historial y caché?'),
+        content: const Text(
+          'Se eliminarán todos los turnos del historial, mesas y cobros acumulados '
+          'en la base de datos local (Isar) para reiniciar en blanco.\n\n'
+          'Los productos del menú se mantendrán.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.statusRed),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Purgar Datos'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await IsarService.purgeShiftHistoryAndOperationalData();
+        if (context.mounted) {
+          AppToast.success(context, '🧹 Historial y turnos purgados correctamente.');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          AppToast.error(context, 'Error al purgar: $e');
+        }
+      }
+    }
+  }
 }
 
 class _PaperActionRow extends StatelessWidget {
@@ -261,3 +326,5 @@ class _SectionLabel extends StatelessWidget {
     );
   }
 }
+
+

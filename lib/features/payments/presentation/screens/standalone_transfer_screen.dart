@@ -140,7 +140,7 @@ class _StandaloneTransferScreenState
       if (!mounted) return;
       AppToast.success(
         context,
-        '⚡ Transferencia de ${rawAmount.toCop} registrada. ¡Pendiente por mostrar en caja!',
+        '📸 Comprobante suelto de ${rawAmount.toCop} guardado para auditoría. (No afecta saldo ni deuda).',
       );
       context.pop();
     } catch (e) {
@@ -157,7 +157,7 @@ class _StandaloneTransferScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Transferencia Independiente',
+          'Comprobante Suelto (Informativo)',
           style: AppTextStyles.headlineSmall,
         ),
       ),
@@ -220,13 +220,13 @@ class _InitialBody extends StatelessWidget {
                 Row(
                   children: [
                     const Icon(
-                      Icons.bolt_rounded,
+                      Icons.receipt_long_rounded,
                       color: Color(0xFFE65100),
                       size: 24,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'PAGO SUELTO / ANTICIPO',
+                      'REGISTRO INFORMATIVO / AUDITORÍA',
                       style: AppTextStyles.statusBadge.copyWith(
                         color: const Color(0xFFE65100),
                         fontWeight: FontWeight.w900,
@@ -236,9 +236,11 @@ class _InitialBody extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimensions.space8),
                 Text(
-                  'Captura un comprobante de transferencia que no pertenezca '
-                  'a ninguna mesa (pagos en barra, propinas sueltas o anticipos).\n\n'
-                  'Se sumará automáticamente a las transferencias por legalizar en caja.',
+                  'Captura un comprobante de transferencia sin mesa asociada '
+                  'como respaldo informativo y de registro.\n\n'
+                  '⚠️ REGLA: Este comprobante NO se suma ni se resta del Saldo Disponible '
+                  'del mesero ni afecta la Deuda Base. Solo se registra en el Total Vendido '
+                  'para auditoría de turno.',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: isDark
                         ? AppColors.darkOnSurface
@@ -582,7 +584,7 @@ class _PreviewWithDetailsBody extends StatelessWidget {
                         ),
                       ),
                       icon: const Icon(Icons.check_circle_rounded),
-                      label: const Text('GUARDAR TRANSFERENCIA'),
+                      label: const Text('GUARDAR REGISTRO INFORMATIVO'),
                     ),
                   ),
                 ],

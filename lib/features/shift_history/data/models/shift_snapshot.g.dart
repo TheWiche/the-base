@@ -52,33 +52,38 @@ const ShiftSnapshotSchema = CollectionSchema(
       name: r'snapshotAt',
       type: IsarType.dateTime,
     ),
-    r'totalDebt': PropertySchema(
+    r'standaloneTransfersTotal': PropertySchema(
       id: 7,
+      name: r'standaloneTransfersTotal',
+      type: IsarType.long,
+    ),
+    r'totalDebt': PropertySchema(
+      id: 8,
       name: r'totalDebt',
       type: IsarType.long,
     ),
     r'totalDecreases': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'totalDecreases',
       type: IsarType.long,
     ),
     r'totalIncreases': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'totalIncreases',
       type: IsarType.long,
     ),
     r'totalLiquorDebt': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'totalLiquorDebt',
       type: IsarType.long,
     ),
     r'transferTipsTotal': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'transferTipsTotal',
       type: IsarType.long,
     ),
     r'verifiedTransfersTotal': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'verifiedTransfersTotal',
       type: IsarType.long,
     )
@@ -133,12 +138,13 @@ void _shiftSnapshotSerialize(
   writer.writeLong(offsets[4], object.netProfit);
   writer.writeLong(offsets[5], object.servedStandardItemsTotal);
   writer.writeDateTime(offsets[6], object.snapshotAt);
-  writer.writeLong(offsets[7], object.totalDebt);
-  writer.writeLong(offsets[8], object.totalDecreases);
-  writer.writeLong(offsets[9], object.totalIncreases);
-  writer.writeLong(offsets[10], object.totalLiquorDebt);
-  writer.writeLong(offsets[11], object.transferTipsTotal);
-  writer.writeLong(offsets[12], object.verifiedTransfersTotal);
+  writer.writeLong(offsets[7], object.standaloneTransfersTotal);
+  writer.writeLong(offsets[8], object.totalDebt);
+  writer.writeLong(offsets[9], object.totalDecreases);
+  writer.writeLong(offsets[10], object.totalIncreases);
+  writer.writeLong(offsets[11], object.totalLiquorDebt);
+  writer.writeLong(offsets[12], object.transferTipsTotal);
+  writer.writeLong(offsets[13], object.verifiedTransfersTotal);
 }
 
 ShiftSnapshot _shiftSnapshotDeserialize(
@@ -156,12 +162,13 @@ ShiftSnapshot _shiftSnapshotDeserialize(
   object.netProfit = reader.readLong(offsets[4]);
   object.servedStandardItemsTotal = reader.readLong(offsets[5]);
   object.snapshotAt = reader.readDateTime(offsets[6]);
-  object.totalDebt = reader.readLong(offsets[7]);
-  object.totalDecreases = reader.readLong(offsets[8]);
-  object.totalIncreases = reader.readLong(offsets[9]);
-  object.totalLiquorDebt = reader.readLong(offsets[10]);
-  object.transferTipsTotal = reader.readLong(offsets[11]);
-  object.verifiedTransfersTotal = reader.readLong(offsets[12]);
+  object.standaloneTransfersTotal = reader.readLong(offsets[7]);
+  object.totalDebt = reader.readLong(offsets[8]);
+  object.totalDecreases = reader.readLong(offsets[9]);
+  object.totalIncreases = reader.readLong(offsets[10]);
+  object.totalLiquorDebt = reader.readLong(offsets[11]);
+  object.transferTipsTotal = reader.readLong(offsets[12]);
+  object.verifiedTransfersTotal = reader.readLong(offsets[13]);
   return object;
 }
 
@@ -197,6 +204,8 @@ P _shiftSnapshotDeserializeProp<P>(
     case 11:
       return (reader.readLong(offset)) as P;
     case 12:
+      return (reader.readLong(offset)) as P;
+    case 13:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -847,6 +856,62 @@ extension ShiftSnapshotQueryFilter
   }
 
   QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterFilterCondition>
+      standaloneTransfersTotalEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'standaloneTransfersTotal',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterFilterCondition>
+      standaloneTransfersTotalGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'standaloneTransfersTotal',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterFilterCondition>
+      standaloneTransfersTotalLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'standaloneTransfersTotal',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterFilterCondition>
+      standaloneTransfersTotalBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'standaloneTransfersTotal',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterFilterCondition>
       totalDebtEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1285,6 +1350,20 @@ extension ShiftSnapshotQuerySortBy
     });
   }
 
+  QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterSortBy>
+      sortByStandaloneTransfersTotal() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'standaloneTransfersTotal', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterSortBy>
+      sortByStandaloneTransfersTotalDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'standaloneTransfersTotal', Sort.desc);
+    });
+  }
+
   QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterSortBy> sortByTotalDebt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'totalDebt', Sort.asc);
@@ -1477,6 +1556,20 @@ extension ShiftSnapshotQuerySortThenBy
     });
   }
 
+  QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterSortBy>
+      thenByStandaloneTransfersTotal() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'standaloneTransfersTotal', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterSortBy>
+      thenByStandaloneTransfersTotalDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'standaloneTransfersTotal', Sort.desc);
+    });
+  }
+
   QueryBuilder<ShiftSnapshot, ShiftSnapshot, QAfterSortBy> thenByTotalDebt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'totalDebt', Sort.asc);
@@ -1609,6 +1702,13 @@ extension ShiftSnapshotQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ShiftSnapshot, ShiftSnapshot, QDistinct>
+      distinctByStandaloneTransfersTotal() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'standaloneTransfersTotal');
+    });
+  }
+
   QueryBuilder<ShiftSnapshot, ShiftSnapshot, QDistinct> distinctByTotalDebt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'totalDebt');
@@ -1701,6 +1801,13 @@ extension ShiftSnapshotQueryProperty
   QueryBuilder<ShiftSnapshot, DateTime, QQueryOperations> snapshotAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'snapshotAt');
+    });
+  }
+
+  QueryBuilder<ShiftSnapshot, int, QQueryOperations>
+      standaloneTransfersTotalProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'standaloneTransfersTotal');
     });
   }
 

@@ -36,6 +36,7 @@ final class CierreRepositoryImpl implements ICierreRepository {
         ..cashPaymentsTotal = summary.cashPaymentsTotal
         ..servedStandardItemsTotal = summary.servedStandardItemsTotal
         ..transferTipsTotal = summary.transferTipsTotal
+        ..standaloneTransfersTotal = summary.standaloneTransfersTotal
         ..cashInHand = cashInHand
         ..totalDebt = summary.totalDebt
         ..availableBalance = summary.availableBalance

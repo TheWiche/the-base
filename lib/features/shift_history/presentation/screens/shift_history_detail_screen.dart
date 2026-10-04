@@ -7,7 +7,7 @@ import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/settings/bar_settings_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/master_ticket_view.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 import '../../data/models/shift_snapshot.dart';
 import '../providers/shift_history_providers.dart';
@@ -105,7 +105,7 @@ class _DetailBody extends StatelessWidget {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      child: ReceiptPaper(
+      child: MasterTicketView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -146,6 +146,12 @@ class _DetailBody extends StatelessWidget {
             const SizedBox(height: 4),
             ReceiptRow(label: 'Transferencias verificadas', value: snapshot.verifiedTransfersTotal.toCop),
             ReceiptRow(label: 'Efectivo cobrado', value: snapshot.cashPaymentsTotal.toCop),
+            if (snapshot.standaloneTransfersTotal > 0)
+              ReceiptRow(
+                label: 'Comprobantes sueltos (auditoría)',
+                value: snapshot.standaloneTransfersTotal.toCop,
+                color: AppColors.statusBlue,
+              ),
             ReceiptRow(label: 'Servido (productos)', value: '-${snapshot.servedStandardItemsTotal.toCop}'),
             if (snapshot.transferTipsTotal > 0)
               ReceiptRow(
@@ -189,3 +195,4 @@ class _DetailBody extends StatelessWidget {
     );
   }
 }
+

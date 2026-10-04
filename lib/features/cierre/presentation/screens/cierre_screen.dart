@@ -160,8 +160,11 @@ class _CierreScreenState extends ConsumerState<CierreScreen> {
       '📊 Resumen de Turno — $dateStr',
       '──────────────────────────────',
       'Deuda Total:          ${summary.totalDebt.toCop}',
-      'Ventas en Efectivo:   ${summary.cashPaymentsTotal.toCop}',
-      'Transferencias:       ${summary.verifiedTransfersTotal.toCop}',
+      'Total Vendido:        ${summary.totalSold.toCop}',
+      '  · Ventas en Efectivo: ${summary.cashPaymentsTotal.toCop}',
+      '  · Transferencias:     ${summary.verifiedTransfersTotal.toCop}',
+      if (summary.standaloneTransfersTotal > 0)
+        '  · Sueltas (registro): ${summary.standaloneTransfersTotal.toCop}',
       if (summary.transferTipsTotal > 0)
         'Propinas (transfer.): ${summary.transferTipsTotal.toCop}',
       'Saldo Disponible:     ${summary.availableBalance.toCop}',
@@ -438,8 +441,7 @@ class _ShiftOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalFacturado =
-        summary.cashPaymentsTotal + summary.verifiedTransfersTotal;
+    final totalFacturado = summary.totalSold;
 
     return Container(
       padding: const EdgeInsets.all(AppDimensions.space16),
@@ -489,10 +491,17 @@ class _ShiftOverviewCard extends StatelessWidget {
             isSmall: true,
           ),
           _OverviewRow(
-            label: '  · Ventas transferencias',
+            label: '  · Ventas transferencias (mesas)',
             value: summary.verifiedTransfersTotal.toCop,
             isSmall: true,
           ),
+          if (summary.standaloneTransfersTotal > 0)
+            _OverviewRow(
+              label: '  · Comprobantes sueltos (auditoría)',
+              value: summary.standaloneTransfersTotal.toCop,
+              valueColor: AppColors.statusBlue,
+              isSmall: true,
+            ),
           if (summary.transferTipsTotal > 0)
             _OverviewRow(
               label: '  · Propinas recibidas',

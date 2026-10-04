@@ -8,14 +8,14 @@ import '../theme/app_text_styles.dart';
 class DashedDivider extends StatelessWidget {
   const DashedDivider({
     super.key,
-    this.color = AppColors.paperLine,
+    this.color,
     this.dashWidth = 5,
     this.dashGap = 4,
     this.thickness = 1.4,
     this.padding = const EdgeInsets.symmetric(vertical: 8),
   });
 
-  final Color color;
+  final Color? color;
   final double dashWidth;
   final double dashGap;
   final double thickness;
@@ -29,8 +29,7 @@ class DashedDivider extends StatelessWidget {
         height: thickness,
         width: double.infinity,
         child: CustomPaint(
-          painter: _DashedLinePainter(
-            color: color,
+          painter: _DashedLinePainter(color: color ?? Theme.of(context).dividerColor,
             dashWidth: dashWidth,
             dashGap: dashGap,
             thickness: thickness,
@@ -49,7 +48,7 @@ class _DashedLinePainter extends CustomPainter {
     required this.thickness,
   });
 
-  final Color color;
+  final Color? color;
   final double dashWidth;
   final double dashGap;
   final double thickness;
@@ -206,6 +205,7 @@ class PillToggle extends StatelessWidget {
     );
   }
 }
+
 
 
 

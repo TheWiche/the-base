@@ -35,6 +35,7 @@ final class WalletSummary {
     this.transferTipsTotal = 0,
     this.verifiedLiquorPaymentsTotal = 0,
     this.physicalCashInHand = 0,
+    this.standaloneTransfersTotal = 0,
   });
 
   // ── Source data ────────────────────────────────────────────────────────────
@@ -83,6 +84,10 @@ final class WalletSummary {
   /// Entered manually by the waiter at Cierre time: total physical cash in hand.
   final int physicalCashInHand;
 
+  /// Sum of [PaymentReceipt.amountPaid] where tableSessionId == 0 (comprobantes sueltos).
+  /// Strictly for informational / audit purposes — NEVER affects Available Balance or Debt.
+  final int standaloneTransfersTotal;
+
   // ── Computed properties (formula implementations) ─────────────────────────
 
   /// initialBase + totalIncreases − totalDecreases — the capital actually committed.
@@ -116,6 +121,11 @@ final class WalletSummary {
       verifiedTransfersTotal -
       totalDebt +
       transferTipsTotal;
+
+  /// FORMULA: Total Vendido / Facturado = Ventas en Efectivo + Transferencias de Mesas + Comprobantes Sueltos
+  /// Registra el volumen global de ventas para auditoría sin alterar el saldo del mesero.
+  int get totalSold =>
+      cashPaymentsTotal + verifiedTransfersTotal + standaloneTransfersTotal;
 
   // ── State helpers ──────────────────────────────────────────────────────────
 
@@ -195,6 +205,7 @@ final class WalletSummary {
     int? transferTipsTotal,
     int? verifiedLiquorPaymentsTotal,
     int? physicalCashInHand,
+    int? standaloneTransfersTotal,
   }) =>
       WalletSummary(
         transactions: transactions ?? this.transactions,
@@ -210,6 +221,8 @@ final class WalletSummary {
         transferTipsTotal: transferTipsTotal ?? this.transferTipsTotal,
         verifiedLiquorPaymentsTotal: verifiedLiquorPaymentsTotal ?? this.verifiedLiquorPaymentsTotal,
         physicalCashInHand: physicalCashInHand ?? this.physicalCashInHand,
+        standaloneTransfersTotal:
+            standaloneTransfersTotal ?? this.standaloneTransfersTotal,
       );
 
   @override

@@ -8,7 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/master_ticket_view.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 import '../../../payments/presentation/providers/payment_providers.dart';
 import '../../../tables/domain/entities/table_session_entity.dart';
@@ -439,7 +439,7 @@ class _ReceiptBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      child: ReceiptPaper(
+      child: MasterTicketView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

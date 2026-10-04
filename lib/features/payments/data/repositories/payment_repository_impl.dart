@@ -309,11 +309,11 @@ final class PaymentRepositoryImpl implements IPaymentRepository {
         ..paymentMethod = PaymentMethod.transfer
         ..transferMethodIndex = transferMethod.index
         ..photoPath = destPath
-        ..isLegalizedInCaja = false
+        ..isLegalizedInCaja = true
         ..paidAt = now
         ..verificationCode = verificationCode
-        ..isGeneralAdvance = true
-        ..note = note ?? 'Transferencia independiente / suelta';
+        ..isGeneralAdvance = false
+        ..note = note ?? 'Comprobante suelto (registro informativo / auditoría)';
 
       final db = IsarService.db;
       await db.writeTxn(() async {

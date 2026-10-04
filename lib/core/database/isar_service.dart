@@ -1,6 +1,7 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/base_management/data/models/waiter_base_transaction.dart';
 import '../../features/billing/data/models/payment_receipt.dart';
@@ -87,6 +88,44 @@ final class IsarService {
     );
 
     debugPrint('[IsarService] Database opened at ${dir.path}/thebase_db.isar');
+
+    // ── Script de limpieza rápida de turnos antiguos y mesas basura ─────────
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      const purgeKey = 'has_purged_legacy_junk_shifts_v2';
+      if (!(prefs.getBool(purgeKey) ?? false)) {
+        await purgeShiftHistoryAndOperationalData();
+        await prefs.setBool(purgeKey, true);
+        debugPrint('[IsarService] One-time auto-purge executed: old shift history & tables wiped.');
+      }
+    } catch (e) {
+      debugPrint('[IsarService] Auto-purge check note: $e');
+    }
+  }
+
+  /// Elimina específicamente la colección de Shift / Turnos y Mesas antiguas
+  /// para reiniciar la caché de la base de datos local y dejar el historial en blanco.
+  /// No borra los productos del catálogo por defecto para conservar el menú.
+  static Future<void> purgeShiftHistoryAndOperationalData({
+    bool includeProducts = false,
+  }) async {
+    await write((isar) async {
+      await isar.shiftSnapshots.clear();
+      await isar.tableSessions.clear();
+      await isar.orderItems.clear();
+      await isar.paymentReceipts.clear();
+      await isar.waiterBaseTransactions.clear();
+      if (includeProducts) {
+        await isar.products.clear();
+      }
+    });
+    debugPrint('[IsarService] All shift history and operational collections purged.');
+  }
+
+  /// Limpia TODAS las colecciones de la base de datos local Isar.
+  static Future<void> clearDatabase() async {
+    await write((isar) async => isar.clear());
+    debugPrint('[IsarService] Entire database cleared.');
   }
 
   /// Closes the database connection.

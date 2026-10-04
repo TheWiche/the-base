@@ -43,23 +43,36 @@ final legalizedTransfersProvider =
 
 // ── Derived totals (computed from the same stream — one Isar subscription) ────
 
-/// Sum of [amountPaid] for legalized transfer receipts.
+/// Sum of [amountPaid] for legalized transfer receipts associated with tables (tableSessionId != 0).
 /// Feeds [WalletSummary.verifiedTransfersTotal] for Available Balance.
+/// Standalone receipts (tableSessionId == 0) are strictly excluded so they NEVER affect Available Balance or Debt.
 final verifiedTransfersTotalProvider = Provider<int>((ref) {
   return ref.watch(allTransferReceiptsProvider).maybeWhen(
         data: (receipts) => receipts
-            .where((r) => r.isLegalizedInCaja)
+            .where((r) => r.isLegalizedInCaja && r.tableSessionId != 0)
             .fold(0, (sum, r) => sum + r.amountPaid),
         orElse: () => 0,
       );
 });
 
-/// Sum of [tipAmount] for all transfer receipts (legalized or not).
+/// Sum of [tipAmount] for table transfer receipts (tableSessionId != 0).
 /// Feeds [WalletSummary.transferTipsTotal] for Net Profit.
 final transferTipsTotalProvider = Provider<int>((ref) {
   return ref.watch(allTransferReceiptsProvider).maybeWhen(
-        data: (receipts) =>
-            receipts.fold(0, (sum, r) => sum + r.tipAmount),
+        data: (receipts) => receipts
+            .where((r) => r.tableSessionId != 0)
+            .fold(0, (sum, r) => sum + r.tipAmount),
+        orElse: () => 0,
+      );
+});
+
+/// Sum of [amountPaid] for standalone / informative transfers (tableSessionId == 0).
+/// Strictly for information and audit — NEVER enters Available Balance or Waiter Debt.
+final standaloneTransfersTotalProvider = Provider<int>((ref) {
+  return ref.watch(allTransferReceiptsProvider).maybeWhen(
+        data: (receipts) => receipts
+            .where((r) => r.tableSessionId == 0)
+            .fold(0, (sum, r) => sum + r.amountPaid),
         orElse: () => 0,
       );
 });
@@ -110,6 +123,7 @@ final enrichedWalletSummaryProvider =
   final baseAsync = ref.watch(baseWalletProvider);
   final verifiedTotal = ref.watch(verifiedTransfersTotalProvider);
   final tipsTotal = ref.watch(transferTipsTotalProvider);
+  final standaloneTotal = ref.watch(standaloneTransfersTotalProvider);
   final servedAsync = ref.watch(servedStandardItemsTotalProvider);
   final servedTotal = servedAsync.valueOrNull ?? 0;
   final cashAsync = ref.watch(cashPaymentsTotalProvider);
@@ -124,6 +138,7 @@ final enrichedWalletSummaryProvider =
       transferTipsTotal: tipsTotal,
       servedStandardItemsTotal: servedTotal,
       verifiedLiquorPaymentsTotal: liquorTotal,
+      standaloneTransfersTotal: standaloneTotal,
     ),
   );
 });

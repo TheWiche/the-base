@@ -6,7 +6,7 @@ import '../../../../core/extensions/int_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/receipt_paper.dart';
+import '../../../../core/widgets/master_ticket_view.dart';
 import '../../../../core/widgets/receipt_widgets.dart';
 import '../../data/models/shift_snapshot.dart';
 import '../providers/shift_history_providers.dart';
@@ -42,14 +42,14 @@ class ReportsScreen extends ConsumerWidget {
 
           final totalProfit = snapshots.fold(0, (s, x) => s + x.netProfit);
           final totalRevenue = snapshots.fold(
-              0, (s, x) => s + x.cashPaymentsTotal + x.verifiedTransfersTotal);
+              0, (s, x) => s + x.cashPaymentsTotal + x.verifiedTransfersTotal + x.standaloneTransfersTotal);
           final avgProfit = totalProfit ~/ snapshots.length;
           final best = snapshots.reduce((a, b) => a.netProfit >= b.netProfit ? a : b);
           final worst = snapshots.reduce((a, b) => a.netProfit <= b.netProfit ? a : b);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: ReceiptPaper(
+            child: MasterTicketView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -276,3 +276,4 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
