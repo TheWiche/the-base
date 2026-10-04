@@ -29,62 +29,34 @@ class ReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // RepaintBoundary: cachea el papel como raster — sin esto, cada frame de
-    // scroll repinta el zigzag de todas las tarjetas (jank en 120 Hz).
-    return RepaintBoundary(
-      child: CustomPaint(
-        painter: _ReceiptPainter(
-          color: color,
-          toothHeight: toothHeight,
-          toothWidth: toothWidth,
-        ),
-        child: Padding(
-          // El contenido se separa de los dientes arriba y abajo.
-          padding: padding.add(
-            EdgeInsets.symmetric(vertical: toothHeight + 8),
-          ),
-          child: child,
-        ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final useDarkTicket = isDark && color == AppColors.paper;
+    final effectiveColor = useDarkTicket ? const Color(0xFF252628) : color;
+    
+    final theme = Theme.of(context);
+    final paperTheme = theme.copyWith(
+      colorScheme: theme.colorScheme.copyWith(
+        onSurface: useDarkTicket ? Colors.white : AppColors.ink,
+        onSurfaceVariant: useDarkTicket ? const Color(0xFFA0A0A5) : AppColors.inkSecondary,
       ),
     );
-  }
-}
 
-/// Talón de tiquete compacto: papel crema con borde superior recto (redondeado
-/// leve) y zigzag SOLO abajo — como un tiquete arrancado del talonario.
-/// Usado por las tarjetas de mesa y otras vistas compactas.
-class ReceiptStub extends StatelessWidget {
-  const ReceiptStub({
-    super.key,
-    required this.child,
-    this.color = AppColors.paper,
-    this.padding = const EdgeInsets.fromLTRB(12, 12, 12, 8),
-    this.toothHeight = 7,
-    this.toothWidth = 14,
-    this.onTap,
-    this.onLongPress,
-  });
-
-  final Widget child;
-  final Color color;
-  final EdgeInsets padding;
-  final double toothHeight;
-  final double toothWidth;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
     final stub = RepaintBoundary(
       child: CustomPaint(
         painter: _StubPainter(
-          color: color,
+          color: effectiveColor,
           toothHeight: toothHeight,
           toothWidth: toothWidth,
         ),
-        child: Padding(
-          padding: padding.add(EdgeInsets.only(bottom: toothHeight + 4)),
-          child: child,
+        child: Theme(
+          data: paperTheme,
+          child: DefaultTextStyle.merge(
+            style: TextStyle(color: paperTheme.colorScheme.onSurface),
+            child: Padding(
+              padding: padding.add(EdgeInsets.only(bottom: toothHeight + 4)),
+              child: child,
+            ),
+          ),
         ),
       ),
     );
@@ -95,8 +67,7 @@ class ReceiptStub extends StatelessWidget {
       onLongPress: onLongPress,
       child: stub,
     );
-  }
-}
+  }}
 
 class _StubPainter extends CustomPainter {
   _StubPainter({
@@ -222,3 +193,5 @@ class _ReceiptPainter extends CustomPainter {
       old.toothHeight != toothHeight ||
       old.toothWidth != toothWidth;
 }
+
+

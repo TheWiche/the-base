@@ -84,20 +84,23 @@ class ReceiptRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.bold = false,
-    this.color = AppColors.paperInk,
+    this.color,
     this.labelMaxLines = 2,
   });
 
   final String label;
   final String value;
   final bool bold;
-  final Color color;
+  final Color? color;
   final int labelMaxLines;
 
   @override
   Widget build(BuildContext context) {
+    // Si no proveen color, tomamos el default del Theme (que inyecta ReceiptPaper) o AppColors.paperInk.
+    final effectiveColor = color ?? Theme.of(context).colorScheme.onSurface;
+    
     final style = (bold ? AppTextStyles.receiptBodyBold : AppTextStyles.receiptBody)
-        .copyWith(color: color);
+        .copyWith(color: effectiveColor);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -111,8 +114,6 @@ class ReceiptRow extends StatelessWidget {
   }
 }
 
-/// Segmentado tipo píldora (Cronológica / Agrupada). Píldora ámbar animada
-/// sobre pista oscura.
 class PillToggle extends StatelessWidget {
   const PillToggle({
     super.key,
@@ -142,7 +143,7 @@ class PillToggle extends StatelessWidget {
             color: track,
             borderRadius: BorderRadius.circular(23),
             border: Border.all(
-              color: AppColors.paperBorder,
+              color: borderColor,
               width: 1.0,
             ),
           ),
@@ -161,11 +162,11 @@ class PillToggle extends StatelessWidget {
                   width: segW,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: activeBg,
                     borderRadius: BorderRadius.circular(23),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.28),
+                        color: activeShadow,
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -203,3 +204,6 @@ class PillToggle extends StatelessWidget {
     );
   }
 }
+
+
+
